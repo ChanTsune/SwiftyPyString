@@ -53,7 +53,7 @@ class Formatter{
         var digitval:Int
         var numDigits:Int = 0
         while pos < end {
-            digitval = UNICODE_TO_DECIMAL(str[pos])//TODO:unknow Impl
+            digitval = UNICODE_TO_DECIMAL(str[pos])//TODO:Desimal to int
             if digitval < 0{
                 break
             }
@@ -63,7 +63,7 @@ class Formatter{
              accumulator * 10 + digitval > PY_SSIZE_T_MAX if and only if
              accumulator > (PY_SSIZE_T_MAX - digitval) / 10.
              */
-            if accumulator > INT_MAX - digitval / 10 {
+            if accumulator > Int.max - digitval / 10 {
                 PyErr_Format(PyExc_ValueError,
                              "Too many decimal digits in format string");
                 return -1
@@ -71,7 +71,7 @@ class Formatter{
             accumulator = accumulator * 10 + digitval
 
             pos++
-            numDigits ++
+            numDigits++
         }
         result = accumulator
         return numDigits
