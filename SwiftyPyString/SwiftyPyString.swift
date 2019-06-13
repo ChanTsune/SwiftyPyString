@@ -25,22 +25,22 @@ class Formatter{
     struct conversion {
         
     }
-    enum LocaleType {
-        LT_NO_LOCALE = 0,
-        LT_DEFAULT_LOCALE = ",",
-        LT_UNDERSCORE_LOCALE = "_",
-        LT_UNDER_FOUR_LOCALE,
-        LT_CURRENT_LOCALE
+    enum LocaleType : String {
+        case LT_NO_LOCALE = "\0"
+        case LT_DEFAULT_LOCALE = ","
+        case LT_UNDERSCORE_LOCALE = "_"
+        case LT_UNDER_FOUR_LOCALE
+        case LT_CURRENT_LOCALE
     }
     struct FormatSpec {
-        var fillChar:Charactor
-        var aline:Charactor
+        var fillChar:Character
+        var align:Character
         var alternate:Int
-        var sign:Charactor
+        var sign:Character
         var width:Int
         var thousandsSeparators:LocaleType
         var precision:Int
-        var type:Charactor
+        var type:Character
     }
     /*
      ptr points to the start of the format_spec, end points just past its end.
@@ -48,7 +48,7 @@ class Formatter{
      returns 1 on success, 0 on failure.
      if failure, sets the exception
      */
-    private func getInteger(str:String,inout pos: Int,end:Int,inout result:Int){
+    private func getInteger(str:String, pos: inout Int,end:Int, result:inout Int) -> Int{
         var accumulator:Int = 0
         var digitval:Int
         var numDigits:Int = 0
@@ -70,24 +70,24 @@ class Formatter{
             }
             accumulator = accumulator * 10 + digitval
 
-            pos++
-            numDigits++
+            pos += 1
+            numDigits += 1
         }
         result = accumulator
         return numDigits
         
     }
-    private func parseInternalRenderFormatSpec(formatSpec:String,start:Int,end:Int format:FormatSpec,defaultType:Charactor,defaultAline:Charactor)->Int{
+    private func parseInternalRenderFormatSpec(formatSpec:String, start:Int, end:Int, format: inout FormatSpec, defaultType:Character, defaultalign:Character) -> Int{
         /* end-pos is used throughout this code to specify the length of
          the input string */
         var pos:Int = start
         var consumed:Int
         
-        var alineSpecified:Bool = false
+        var alignSpecified:Bool = false
         var fillCharSpecified:Bool = false
         
         format.fillChar = " "
-        format.aline = defaultAline
+        format.align = defaultalign
         format.alternate = 0
         format.sign = "0"
         format.width = -1
@@ -97,35 +97,35 @@ class Formatter{
         /* If the second char is an alignment token,
          then parse the fill char */
         if end - pos >= 2 && self.isAlignmentToken(formatSpec[pos+1]){
-            format.aline = formatSpec[pos+1]
+            format.align = formatSpec[pos+1]
             format.fillChar = formatSpec[pos]
             fillCharSpecified = true
-            alineSpecified = true
+            alignSpecified = true
             pos += 2
         }else if end - pos >= 1 && isAlignmentToken(formatSpec[pos]){
-            format.aline = formatSpec[pos]
-            alineSpecified = true
-            ++pos
+            format.align = formatSpec[pos]
+            alignSpecified = true
+            pos += 1
         }
         /* Parse the various sign options */
-        if end - pos >=1 && self.isSignElement(formatSpec[pos]){
-            format.sine = formatSpec[pos]
-            ++pos
+        if (end - pos) >= 1 && self.isSignElement(formatSpec[pos]){
+            format.sign = formatSpec[pos]
+            pos += 1
         }
         /* If the next character is #, we're in alternate mode.  This only
          applies to integers. */
         if end - pos >= 1 && formatSpec[pos] == "#" {
             format.alternate = 1
-            ++pos
+            pos += 1
         }
         
         /* The special case for 0-padding (backwards compat) */
         if !fillCharSpecified && end - pos >= 1 && formatSpec[pos] == "0" {
             format.fillChar = "0"
-            if !align_specified {
-                format->align = "="
+            if !alignSpecified {
+                format.align = "="
             }
-            ++pos
+            pos += 1
         }
         consumed = get_integer(format_spec, &pos, end, &format->width)// TODO:Impl
         
@@ -141,26 +141,26 @@ class Formatter{
             format.width = -1
         }
         /* Comma signifies add thousands separators */
-        if end - pos && formatSpec[pos] == ","{
+        if (end - pos) && formatSpec[pos] == ","{
             format.thousandsSeparators = .LT_DEFAULT_LOCALE
-            ++pos
+            pos += 1
         }
         /* Underscore signifies add thousands separators */
-        if end - pos && formatSpec[pos] == "_" {
+        if (end - pos) && formatSpec[pos] == "_" {
             if format.thousandsSeparators != .LT_NO_LOCALE {
                 invalid_comma_and_underscore() // TODO:Impl
                 return 0
             }
             format.thousandsSeparators = .LT_UNDERSCORE_LOCALE
-            ++pos
+            pos += 1
         }
-        if end-pos && formatSpec[pos] == "," {
+        if (end - pos) && formatSpec[pos] == "," {
             invalid_comma_and_underscore() // TODO:Impl
             return 0
         }
         /* Parse field precision */
-        if end-pos && formatSpec[pos] == "." {
-            ++pos
+        if (end - pos) && formatSpec[pos] == "." {
+            pos += 1
             
             consumed = get_integer(format_spec, &pos, end, &format->precision) // TODO:Imple
             if consumed == -1{
@@ -186,7 +186,7 @@ class Formatter{
         
         if end-pos == 1 {
             format.type = formatSpec[pos]
-            ++pos
+            pos += 1
         }
         /* Do as much validating as we can, just by looking at the format
          specifier.  Do not take into account what type of formatting
@@ -194,25 +194,25 @@ class Formatter{
         
         if format.thousandsSeparators != .LT_NO_LOCALE {
             switch (format.type) {
-            case 'd':
-            case 'e':
-            case 'f':
-            case 'g':
-            case 'E':
-            case 'G':
-            case '%':
-            case 'F':
-            case '\0':
+            case "d":
+            case "e":
+            case "f":
+            case "g":
+            case "E":
+            case "G":
+            case "%":
+            case "F":
+            case "\0":
                 /* These are allowed. See PEP 378.*/
                 break;
-            case 'b':
-            case 'o':
-            case 'x':
-            case 'X':
+            case "b":
+            case "o":
+            case "x":
+            case "X":
                 /* Underscores are allowed in bin/oct/hex. See PEP 515. */
-                if format.thousandsSeparators == LT_UNDERSCORE_LOCALE {
+                if format.thousandsSeparators == .LT_UNDERSCORE_LOCALE {
                     /* Every four digits, not every three, in bin/oct/hex. */
-                    format.thousandsSeparators = LT_UNDER_FOUR_LOCALE
+                    format.thousandsSeparators = .LT_UNDER_FOUR_LOCALE
                     break;
                 }
                 /* fall through */
@@ -235,7 +235,7 @@ class Formatter{
     }
     
     
-    struct aline {
+    struct align {
         
     }
     
@@ -261,13 +261,13 @@ class Formatter{
 
     struct type {
         
-        enum t:String {
-            
+        enum t : String {
+            case a
         }
         
         
     }
-    func isAlignmentToken(c:Charactor) -> Bool{
+    func isAlignmentToken(c:Character) -> Bool{
         switch c {
         case "<":
             return true
@@ -281,13 +281,13 @@ class Formatter{
             return false
         }
     }
-    func isSignElement(c:Charactor) -> Bool{
+    func isSignElement(c:Character) -> Bool{
         switch (c) {
-        case ' ':
+        case " ":
             return true
-        case '+':
+        case "+":
             return true
-        case '-':
+        case "-":
             return true
         default:
             return false
