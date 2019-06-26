@@ -16,15 +16,10 @@ public class Slice {
         self.end = end
         self.step = nil
     }
-    init(start:Int?,end:Int?){
+    init(start:Int?,end:Int?,step:Int?=nil){
         self.start = start
         self.end = end
         self.step = nil
-    }
-    init(start:Int?,end:Int?,step:Int?){
-        self.start = start
-        self.end = end
-        self.step = step
     }
 }
 
