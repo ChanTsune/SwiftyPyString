@@ -53,13 +53,21 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual(str[nil,nil,-2],"97531")
     }
     func testCapitalize() throws {
-        /* code */
+        let case1 = "hello world!"
+        let case2 = "Hello World!"
+        XCTAssertEqual(case1.capitalize(),"Hello world!")
+        XCTAssertEqual(case2.capitalize(),"Hello world!")
     }
     func testCasefold() throws {
         /* code */
     }
     func testCenter() throws {
-        /* code */
+        let even = "1234"
+        let odd = "123"
+        XCTAssertEqual(even.center(10),"   1234   ")
+        XCTAssertEqual(odd.center(10),"   123    ")
+        XCTAssertEqual(even.center(10,fillchar:"0"),"0001234000")
+        XCTAssertEqual(odd.center(10,fillchar:"0"),"0001230000")
     }
     func testCount() throws {
         /* code */
