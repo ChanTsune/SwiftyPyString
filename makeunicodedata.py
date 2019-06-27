@@ -316,7 +316,7 @@ def makeunicodedata(unicode, trace):
         fprint("let TOTAL_LAST = ",total_last)
 
         fprint("""
-        struct reindex{
+        struct reindex {
             var start:Int
             var count:Int16
             var index:Int16}

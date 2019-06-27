@@ -294,14 +294,3 @@ class Formatter{
         }
     }
 }
-
-
-
-extension String {
-
-    func zfill(width:Int=0) -> String {
-        return self
-    }
-}
-
-
