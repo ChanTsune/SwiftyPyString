@@ -203,7 +203,11 @@ extension String {
         return String(str.dropLast(self.count))
     }
     public func ljust(_ width:Int,fillchar:Character=" ") -> String {
-        return ""
+        if self.count >= width {
+            return self
+        }
+        let w = width - self.count
+        return String(repeating: fillchar, count: w) + self
     }
     public func lower() -> String {
         return ""
@@ -233,7 +237,11 @@ extension String {
         return i;
     }
     public func rjust(_ width:Int,fillchar:Character=" ") -> String {
-        return ""
+        if self.count >= width {
+            return self
+        }
+        let w = width - self.count
+        return self + String(repeating: fillchar, count: w)
     }
 
     public func rpartition(_ sep:String) -> (String,String,String) {
@@ -270,7 +278,7 @@ extension String {
         if !self.isEmpty {
             let h = self[0, 1]
             if h == "+" || h == "-" {
-                return h + self[1, nil].ljust(width - 1)
+                return h + self[1, nil].ljust(width - 1,fillchar: "0")
             }
         }
         return self.ljust(width,fillchar: "0")

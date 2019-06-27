@@ -83,6 +83,29 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual("-".join(arry),"abc-def-ghi")
         XCTAssertEqual("-".join(carry),"a-b-c")
     }
+    func testLjust() throws {
+        let str = "abc"
+        XCTAssertEqual(str.ljust(1),"abc")
+        XCTAssertEqual(str.ljust(5),"  abc")
+        XCTAssertEqual(str.ljust(5,fillchar:"z"),"zzabc")
+    }
+    func testRjust() throws {
+        let str = "abc"
+        XCTAssertEqual(str.rjust(1),"abc")
+        XCTAssertEqual(str.rjust(5),"abc  ")
+        XCTAssertEqual(str.rjust(5,fillchar:"z"),"abczz")
+    }
+
+    func testZfill() throws {
+        let str = "abc"
+        let plus = "+12"
+        let minus = "-3"
+        XCTAssertEqual(str.zfill(1),"abc")
+        XCTAssertEqual(str.zfill(5),"00abc")
+        XCTAssertEqual(plus.zfill(5),"+0012")
+        XCTAssertEqual(minus.zfill(5),"-0003")
+        XCTAssertEqual(plus.zfill(2),"+12")
+    }
 
     /// Returns path to the built products directory.
     var productsDirectory: URL {
