@@ -187,7 +187,20 @@ extension String {
         return false
     }
     public func join(_ iterable:[String]) -> String {
-        return ""
+        var str = ""
+        for item in iterable {
+            str += item
+            str += self
+        }
+        return String(str.dropLast(self.count))
+    }
+    public func join(_ iterable:[Character]) -> String {
+        var str = ""
+        for item in iterable {
+            str.append(item)
+            str += self
+        }
+        return String(str.dropLast(self.count))
     }
     public func ljust(_ width:Int,fillchar:Character=" ") -> String {
         return ""

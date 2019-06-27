@@ -76,6 +76,13 @@ final class SwiftyPyStringTests: XCTestCase {
     func testEndswith() throws {
         /* code */
     }
+    func testJoin() throws {
+        let arry = ["abc","def","ghi"]
+        let carry:[Character] = ["a","b","c"]
+        XCTAssertEqual("".join(arry),"abcdefghi")
+        XCTAssertEqual("-".join(arry),"abc-def-ghi")
+        XCTAssertEqual("-".join(carry),"a-b-c")
+    }
 
     /// Returns path to the built products directory.
     var productsDirectory: URL {
