@@ -4,7 +4,7 @@ class Formatter{
     struct replacement_field {
         
     }
-    
+
     struct field_name {
         
     }
@@ -222,8 +222,8 @@ class Formatter{
             }
         }
         
-        assert (format->align <= 127);
-        assert (format->sign <= 127);
+        assert (format.align <= 127);
+        assert (format.sign <= 127);
         return 1;
         
         
