@@ -22,8 +22,8 @@ func getUnicodeTypeRecord(code:Py_UCS4) -> UnicodeTypeRecord {
         index = 0
     }
     else {
-        index = index1[(code >> SHIFT)];
-        index = index2[(index << SHIFT) + (code & ((1 << SHIFT) - 1))]
+        index = Int(index1[Int(code >> SHIFT)])
+        index = Int(index2[(index << SHIFT) + Int(code & ((1 << SHIFT) - 1))])
     }
     return UnicodeTypeRecords[index]
 }
@@ -35,7 +35,7 @@ func toTitleCase(ch:Py_UCS4) -> Py_UCS4 {
     if (typerecord.flags & EXTENDED_CASE_MASK) != 0 {
         return UnicodeExtendedCase[typerecord.title & 0xFFFF]
     }
-    return ch + typerecord.title
+    return ch + Py_UCS4(typerecord.title)
 }
 /* Returns 1 for Unicode characters having the category 'Lt', 0
    otherwise. */
@@ -68,11 +68,11 @@ func isXidContinue(ch:Py_UCS4) -> Bool {
 func toDecimalDigit(ch:Py_UCS4) ->Int {
     let ctype = getUnicodeTypeRecord(code:ch);
 
-    return (ctype.flags & DECIMAL_MASK) ? ctype.decimal : -1;
+    return (ctype.flags & DECIMAL_MASK) != 0 ? ctype.decimal : -1;
 }
 
 func isDecimalDigit(ch:Py_UCS4) -> Bool {
-    if (toDecimalDigit(ch) < 0){
+    if (toDecimalDigit(ch:ch) < 0){
         return false;
     }
     return true;
@@ -84,11 +84,11 @@ func isDecimalDigit(ch:Py_UCS4) -> Bool {
 func toDigit(ch:Py_UCS4) -> Int {
     let ctype = getUnicodeTypeRecord(code:ch);
 
-    return (ctype.flags & DIGIT_MASK) ? ctype.digit : -1;
+    return (ctype.flags & DIGIT_MASK) != 0 ? ctype.digit : -1;
 }
 
 func isDigit(ch:Py_UCS4) -> Bool {
-    if (toDigit(ch) < 0){
+    if (toDigit(ch:ch) < 0){
         return false;
     }
     return true;
@@ -116,8 +116,7 @@ func isNumeric(ch:Py_UCS4) -> Bool {
       * Zp Separator, Paragraph ('\u2029', PARAGRAPH SEPARATOR)
       * Zs (Separator, Space) other than ASCII space('\x20').
 */
-func isPrintable(ch:Py_UCS4)
-{
+func isPrintable(ch:Py_UCS4) -> Bool {
     let ctype = getUnicodeTypeRecord(code:ch);
 
     return (ctype.flags & PRINTABLE_MASK) != 0;
@@ -126,8 +125,7 @@ func isPrintable(ch:Py_UCS4)
 /* Returns 1 for Unicode characters having the category 'Ll', 0
    otherwise. */
 
-func isLowercase(ch:Py_UCS4)
-{
+func isLowercase(ch:Py_UCS4) -> Bool {
     let ctype = getUnicodeTypeRecord(code:ch);
 
     return (ctype.flags & LOWER_MASK) != 0;
@@ -136,8 +134,7 @@ func isLowercase(ch:Py_UCS4)
 /* Returns 1 for Unicode characters having the category 'Lu', 0
    otherwise. */
 
-func isUppercase(ch:Py_UCS4)
-{
+func isUppercase(ch:Py_UCS4) -> Bool {
     let ctype = getUnicodeTypeRecord(code:ch);
 
     return (ctype.flags & UPPER_MASK) != 0;
@@ -152,7 +149,7 @@ func toUppercase(ch:Py_UCS4) -> Py_UCS4 {
     if (ctype.flags & EXTENDED_CASE_MASK) != 0{
         return UnicodeExtendedCase[ctype.upper & 0xFFFF]
     }
-    return ch + ctype.upper;
+    return ch + Py_UCS4(ctype.upper);
 }
 
 /* Returns the lowercase Unicode characters corresponding to ch or just
@@ -165,7 +162,7 @@ func toLowercase(ch:Py_UCS4) -> Py_UCS4
     if (ctype.flags & EXTENDED_CASE_MASK) != 0{
         return UnicodeExtendedCase[ctype.lower & 0xFFFF];
     }
-    return ch + ctype.lower;
+    return ch + Py_UCS4(ctype.lower);
 }
 /* TODO:convert C to Swift
 int _PyUnicode_ToLowerFull(Py_UCS4 ch, Py_UCS4 *res)
@@ -232,7 +229,7 @@ int _PyUnicode_ToFoldedFull(Py_UCS4 ch, Py_UCS4 *res)
 }
 */
 
-func isCased(ch:Py_UCS4) -> Bool{
+func isCased(ch:Py_UCS4) -> Bool {
     let ctype = getUnicodeTypeRecord(code:ch);
 
     return (ctype.flags & CASED_MASK) != 0;
