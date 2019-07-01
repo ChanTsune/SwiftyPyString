@@ -70,11 +70,46 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual(odd.center(10,fillchar:"0"),"0001230000")
     }
     func testCount() throws {
-        /* code */
-        XCTAssertEqual(1,1)
+        let a = "aaaaaaaaaa"
+        let bb = "bbbbbbbbbb"
+        let words = "abc abc abc"
+        XCTAssertEqual(a.count("a"),10)
+        XCTAssertEqual(bb.count("bb"),5)
+        XCTAssertEqual(words.count("abc"),3)
     }
     func testEndswith() throws {
+        let s1 = "hello"
+        let s2 = "hello world!"
+        let pos:[String] = ["hello","world","!"]
+        XCTAssertEqual(s1.endswith(pos), true)
+        XCTAssertEqual(s1.endswith("world"), false)
+        XCTAssertEqual(s2.endswith("world!"), true)
+        XCTAssertEqual(s2.endswith("!"), true)
+    }
+    func testExpandtabs() throws {
         /* code */
+    }
+
+    func testFind() throws {
+        let str = "0123456789"
+        let str2 = "123412312312345"
+        XCTAssertEqual(str.find("0"),0)
+        XCTAssertEqual(str.find("5"),5)
+        XCTAssertEqual(str.find("9"),9)
+        XCTAssertEqual(str.find("789"),7)
+        XCTAssertEqual(str.find("79"),-1)
+
+        XCTAssertEqual(str2.find("0"),-1)
+        XCTAssertEqual(str2.find("5"),14)
+        XCTAssertEqual(str2.find("123"),0)
+        XCTAssertEqual(str2.find("12345"),10)
+        XCTAssertEqual(str2.find("31"),6)
+    }
+    func testMakeTable() throws {
+        let p = "qwertyuiop"
+        for _ in 0...10000 {
+            String.make_table(p)
+        }
     }
     func testJoin() throws {
         let arry = ["abc","def","ghi"]
@@ -94,6 +129,17 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual(str.rjust(1),"abc")
         XCTAssertEqual(str.rjust(5),"abc  ")
         XCTAssertEqual(str.rjust(5,fillchar:"z"),"abczz")
+    }
+
+    func testStartswith() throws {
+        let s1 = "hello"
+        let s2 = "hello world!"
+        let pos:[String] = ["hello","world","!"]
+        XCTAssertEqual(s1.startswith(pos), true)
+        XCTAssertEqual(s1.startswith("world"), false)
+        XCTAssertEqual(s2.startswith("hello"), true)
+        XCTAssertEqual(s2.startswith("h"), true)
+
     }
 
     func testZfill() throws {

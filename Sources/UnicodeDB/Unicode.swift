@@ -1,10 +1,4 @@
-public struct Unicode {
-    var a:Int
-}
-
-public let UnicodeArray = [
-    Unicode(a: 1)
-]
+public let PYTHON_VERSION = "3.7.2"
 
 public class Slice {
     var start:Int?
@@ -49,7 +43,6 @@ public class Exception : BaseException {
 public class ValueError : Exception {
 
 }
-
 extension String {
 
     public subscript (_ i: Int) -> Character {
@@ -104,7 +97,13 @@ extension String {
     }
     public func count(_ sub:String, start:Int?=nil,end:Int?=nil) -> Int {
         // TODO:Impl
-        return 0
+        var n = self.find(sub,start: start,end: end)
+        var c = 0
+        while n != -1 {
+            c += 1
+            n = self.find(sub,start: n + sub.count, end:end)
+        }
+        return c
     }
     /*
     public func encode() -> String {
@@ -112,8 +111,7 @@ extension String {
     }
     */
     public func endswith(_ suffix:String,start:Int?,end:Int?) -> Bool {
-        let str = self[start, end]
-        return str.hasSuffix(suffix)
+        return self[start, end].hasSuffix(suffix)
     }
     public func endswith(_ suffix:[String],start:Int?,end:Int?) -> Bool {
         let str = self[start,end]
@@ -125,19 +123,57 @@ extension String {
         return false
     }
     public func expandtabs(_ tabsize:Int=8) -> String {
+        return self.replace("\t", new:String(repeating: " ", count:tabsize ))
+    }
+    static public func make_table(_ pattern:String) -> [Character:Int] {
+        var table:[Character:Int] = [:]
+        let len = pattern.count - 1
+        for i in 0..<(len) {
+            table[pattern[i]] = len - i
+        }
+        return table
+    }
+
+    public func find(_ sub:String, start:Int?=nil,end:Int?=nil) -> Int {
+        // BMH algorithm
+
+        let (s, e) = adjustIndex(start: start, end: end, len: self.count)
+        var i = s
+        let fin = e - sub.count
+        while i <= fin {
+            if self[i,i + sub.count] == sub {
+                return i
+            }
+            i += 1
+        }
+
+        // let table = String.make_table(sub)
+        // print("table:",table)
+        
+        // func skip_table(_ c:Character) -> Int {
+        //     return table[c,default: sub.count]
+        // }
+        // var skip = s
+        // while self.count - skip >= sub.count {
+        //     var i = sub.count - 1
+        //     while self[skip + i] == sub[i] {
+        //         if i == 0 {
+        //             return skip
+        //         }
+        //         i = i - 1
+        //     }
+        //     skip = skip + skip_table(self[skip + sub.count - 1])
+        // }
+        return -1
+    }
+
+    public func format(_ args:Any?,kwargs:[String:Any?]) -> String {
         // TODO:Impl
         return ""
     }
 
-    public func find(_ sub:String, start:Int?=nil,end:Int?=nil) -> Int {
-        return -1;
-    }
-
-    public func format(_ args:Any?,kwargs:[String:Any?]) -> String {
-        return ""
-    }
-
     public func format_map(_mapping:[String:Any?]) -> String {
+        // TODO:Impl
         return ""
     }
 
@@ -149,18 +185,22 @@ extension String {
         return i
     }
     public func isalpha() -> Bool {
+        // TODO:Impl
         return false
     }
 
     public func isascii() -> Bool {
+        // TODO:Impl
         return false
     }
 
     public func isdecimal() -> Bool {
+        // TODO:Impl
         return false
     }
 
     public func isdigit() -> Bool {
+        // TODO:Impl
         return false
     }
     /*
@@ -169,21 +209,26 @@ extension String {
     }
     */
     public func islower() -> Bool {
+        // TODO:Impl
         return false
     }
 
     public func isnumeric() -> Bool {
+        // TODO:Impl
         return false
     }
 
     public func isprintable() -> Bool {
+        // TODO:Impl
         return false
     }
 
     public func isspace() -> Bool {
+        // TODO:Impl
         return false
     }
     public func istitle() -> Bool {
+        // TODO:Impl
         return false
     }
     public func join(_ iterable:[String]) -> String {
@@ -210,23 +255,29 @@ extension String {
         return String(repeating: fillchar, count: w) + self
     }
     public func lower() -> String {
+        // TODO:Impl
         return ""
     }
     public func lstrip(_ chars:String?=nil) -> String {
+        // TODO:Impl
         return ""
     }
     static public func maketrans() -> [String:String] {
+        // TODO:Impl
         return [:]
     }
 
-    public func partition(_ sep:String) -> (String,String,String) {
+    public func partition(_ sep:String) -> (String, String, String) {
+        // TODO:Impl
         return ("","","")
     }
 
     public func replace(_ old:String,new:String,count:Int=Int.max) -> String {
+        // TODO:Impl
         return ""
     }
     public func rfind(_ sub:String,start:Int?=nil,end:Int?=nil) -> Int {
+        // TODO:Impl
         return -1;
     }
     public func rindex(_ sub:String,start:Int?=nil,end:Int?=nil) throws -> Int {
@@ -244,34 +295,62 @@ extension String {
         return self + String(repeating: fillchar, count: w)
     }
 
-    public func rpartition(_ sep:String) -> (String,String,String) {
+    public func rpartition(_ sep:String) -> (String, String, String) {
+        // TODO:Impl
         return ("","","")
     }
     public func rsplit(_ sep:String?=nil, maxsplit:Int=(-1)) -> [String] {
+        // TODO:Impl
+        if self.isEmpty {
+            return [""]
+        }
         return []
     }
     public func rstrip(_ chars:String?=nil) -> String {
+        // TODO:Impl
         return ""
     }
     public func split(_ sep:String?=nil,maxsplit:Int=(-1)) -> [String] {
+        // TODO:Impl
+        if self.isEmpty {
+            return [""]
+        }
         return []
     }
     public func splitlines(_ keepends:Bool=false) -> [String] {
+        // TODO:Impl
         return []
     }
+    public func startswith(_ prefix:String,start:Int?=nil,end:Int?=nil) -> Bool {
+        return self[start,end].hasPrefix(prefix)
+    }
+    public func startswith(_ prefix:[String],start:Int?=nil,end:Int?=nil) -> Bool {
+        let str = self[start,end]
+        for s in prefix {
+            if str.hasPrefix(s){
+                return true
+            }
+        }
+        return false
+    }
+
     public func strip(_ chars:String?=nil) -> String {
         return self.lstrip(chars).lstrip(chars)
     }
     public func swapcase() -> String {
+        // TODO:Impl
         return ""
     }
     public func title() -> String {
+        // TODO:Impl
         return ""
     }
     public func transerate(_ table:[String:String]) -> String {
+        // TODO:Impl
         return ""
     }
     public func upper() -> String {
+        // TODO:Impl
         return ""
     }
     public func zfill(_ width:Int) -> String {
