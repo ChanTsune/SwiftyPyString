@@ -1,5 +1,5 @@
 //
-//  string.swift
+//  SwiftyPyString.swift
 //  SwiftyPyString
 //
 //  Created by 恒川大輝 on 2019/07/05.
@@ -38,16 +38,8 @@ extension Character {
     public var isTitlecase:Bool {
         return self.toTitle() == self
     }
-
+    
 }
-
-
-//
-//  string.swift
-//  SwiftyPyString
-//
-//  Created by 恒川大輝 on 2019/07/05.
-//
 
 public let PYTHON_VERSION = "3.7.2"
 

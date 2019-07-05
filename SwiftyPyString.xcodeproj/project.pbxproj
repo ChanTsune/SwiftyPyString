@@ -22,10 +22,13 @@
 
 /* Begin PBXBuildFile section */
 		B51620BA22CF2FDC00D2BF10 /* SwiftyPyString.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = "SwiftyPyString::SwiftyPyString::Product" /* SwiftyPyString.framework */; };
-		B51620BB22CF2FFC00D2BF10 /* SwiftyPyStringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_12 /* SwiftyPyStringTests.swift */; };
+		B51620BD22CF9E2700D2BF10 /* SwiftyPyString.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = "SwiftyPyString::SwiftyPyString::Product" /* SwiftyPyString.framework */; };
+		B51620BE22CF9E6700D2BF10 /* SwiftyPyString.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_9 /* SwiftyPyString.swift */; };
+		B51620BF22CF9E6800D2BF10 /* SwiftyPyString.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_9 /* SwiftyPyString.swift */; };
+		B51620C022CF9FB700D2BF10 /* SwiftyPyStringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_12 /* SwiftyPyStringTests.swift */; };
+		B51620C122CF9FC800D2BF10 /* SwiftyPyStringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_12 /* SwiftyPyStringTests.swift */; };
 		OBJ_26 /* SwiftyPyString.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_9 /* SwiftyPyString.swift */; };
 		OBJ_33 /* Package.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_6 /* Package.swift */; };
-		OBJ_44 /* SwiftyPyStringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_12 /* SwiftyPyStringTests.swift */; };
 		OBJ_45 /* XCTestManifests.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_13 /* XCTestManifests.swift */; };
 /* End PBXBuildFile section */
 
@@ -64,6 +67,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 0;
 			files = (
+				B51620BD22CF9E2700D2BF10 /* SwiftyPyString.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -223,7 +227,7 @@
 			buildActionMask = 0;
 			files = (
 				OBJ_26 /* SwiftyPyString.swift in Sources */,
-				B51620BB22CF2FFC00D2BF10 /* SwiftyPyStringTests.swift in Sources */,
+				B51620C122CF9FC800D2BF10 /* SwiftyPyStringTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -232,6 +236,7 @@
 			buildActionMask = 0;
 			files = (
 				OBJ_33 /* Package.swift in Sources */,
+				B51620BE22CF9E6700D2BF10 /* SwiftyPyString.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -239,8 +244,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 0;
 			files = (
-				OBJ_44 /* SwiftyPyStringTests.swift in Sources */,
+				B51620BF22CF9E6800D2BF10 /* SwiftyPyString.swift in Sources */,
 				OBJ_45 /* XCTestManifests.swift in Sources */,
+				B51620C022CF9FB700D2BF10 /* SwiftyPyStringTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
