@@ -161,10 +161,10 @@ extension String {
      return ""
      }
      */
-    public func endswith(_ suffix:String,start:Int?,end:Int?) -> Bool {
+    public func endswith(_ suffix:String, start:Int?=nil, end:Int?=nil) -> Bool {
         return self[start, end].hasSuffix(suffix)
     }
-    public func endswith(_ suffix:[String],start:Int?,end:Int?) -> Bool {
+    public func endswith(_ suffix:[String], start:Int?=nil, end:Int?=nil) -> Bool {
         let str = self[start,end]
         for s in suffix {
             if str.hasSuffix(s){

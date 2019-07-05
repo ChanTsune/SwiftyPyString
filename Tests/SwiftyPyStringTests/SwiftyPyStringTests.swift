@@ -77,13 +77,17 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual(words.count("abc"),3)
     }
     func testEndswith() throws {
-        let s1 = "hello"
-        let s2 = "hello world!"
+        let s1:String = "hello"
+        let s2:String = "hello world!"
         let pos:[String] = ["hello","world","!"]
-        XCTAssertEqual(s1.endswith(pos), true)
-        XCTAssertEqual(s1.endswith("world"), false)
-        XCTAssertEqual(s2.endswith("world!"), true)
-        XCTAssertEqual(s2.endswith("!"), true)
+
+        XCTAssertTrue(s1.endswith(pos))
+
+        XCTAssertFalse(s1.endswith("world"))
+
+        XCTAssertTrue(s2.endswith("world!"))
+
+        XCTAssertTrue(s2.endswith("!"))
     }
     func testExpandtabs() throws {
         /* code */
@@ -134,10 +138,11 @@ final class SwiftyPyStringTests: XCTestCase {
         let s1 = "hello"
         let s2 = "hello world!"
         let pos:[String] = ["hello","world","!"]
-        XCTAssertEqual(s1.startswith(pos), true)
-        XCTAssertEqual(s1.startswith("world"), false)
-        XCTAssertEqual(s2.startswith("hello"), true)
-        XCTAssertEqual(s2.startswith("h"), true)
+
+        XCTAssertTrue(s1.startswith(pos))
+        XCTAssertFalse(s1.startswith("world"))
+        XCTAssertTrue(s2.startswith("hello"))
+        XCTAssertTrue(s2.startswith("h"))
 
     }
 
