@@ -1,10 +1,61 @@
+//
+//  string.swift
+//  SwiftyPyString
+//
+//  Created by 恒川大輝 on 2019/07/05.
+//
+extension Character {
+    public init(_ i:Int){
+        self.self = Character(UnicodeScalar(i)!)
+    }
+}
+extension Character {
+    
+    var unicode:Unicode.Scalar {
+        return self.unicodeScalars.first!
+    }
+    var properties:Unicode.Scalar.Properties {
+        return self.unicode.properties
+    }
+    public var uppercaseMapping:String {
+        return self.properties.uppercaseMapping
+    }
+    public var lowercaseMapping:String {
+        return self.properties.lowercaseMapping
+    }
+    public var titlecaseMapping:String {
+        return self.properties.titlecaseMapping
+    }
+    public func toUpper() -> Character {
+        return Character(self.uppercaseMapping)
+    }
+    public func toLower() -> Character {
+        return Character(self.lowercaseMapping)
+    }
+    public func toTitle() -> Character {
+        return Character(self.titlecaseMapping)
+    }
+    public var isTitlecase:Bool {
+        return self.toTitle() == self
+    }
+
+}
+
+
+//
+//  string.swift
+//  SwiftyPyString
+//
+//  Created by 恒川大輝 on 2019/07/05.
+//
+
 public let PYTHON_VERSION = "3.7.2"
 
 public class Slice {
     var start:Int?
     var end:Int?
     var step:Int?
-
+    
     init(end:Int?){
         self.start = nil
         self.end = end
@@ -28,7 +79,7 @@ func underIndex(i:Int,l:Int) -> Int{
 }
 
 public func adjustIndex(start:Int?,end:Int?,len:Int) -> (Int,Int) {
-    return (underIndex(i: overIndex(i: backIndex(i: start ?? 0, l: len), l: len), l: len), 
+    return (underIndex(i: overIndex(i: backIndex(i: start ?? 0, l: len), l: len), l: len),
             underIndex(i: overIndex(i: backIndex(i: end ?? len, l: len), l: len), l: len))
 }
 
@@ -37,14 +88,14 @@ public class BaseException : Error {
 }
 
 public class Exception : BaseException {
-
+    
 }
 
 public class ValueError : Exception {
-
+    
 }
 extension String {
-
+    
     public subscript (_ i: Int) -> Character {
         return self[self.index(self.startIndex, offsetBy: backIndex(i: i, l: self.count))]
     }
@@ -106,10 +157,10 @@ extension String {
         return c
     }
     /*
-    public func encode() -> String {
-        return ""
-    }
-    */
+     public func encode() -> String {
+     return ""
+     }
+     */
     public func endswith(_ suffix:String,start:Int?,end:Int?) -> Bool {
         return self[start, end].hasSuffix(suffix)
     }
@@ -133,10 +184,10 @@ extension String {
         }
         return table
     }
-
+    
     public func find(_ sub:String, start:Int?=nil,end:Int?=nil) -> Int {
         // BMH algorithm
-
+        
         let (s, e) = adjustIndex(start: start, end: end, len: self.count)
         var i = s
         let fin = e - sub.count
@@ -146,7 +197,7 @@ extension String {
             }
             i += 1
         }
-
+        
         // let table = String.make_table(sub)
         // print("table:",table)
         
@@ -166,17 +217,17 @@ extension String {
         // }
         return -1
     }
-
+    
     public func format(_ args:Any?,kwargs:[String:Any?]) -> String {
         // TODO:Impl
         return ""
     }
-
+    
     public func format_map(_mapping:[String:Any?]) -> String {
         // TODO:Impl
         return ""
     }
-
+    
     public func index(_ sub:String,start:Int?=nil,end:Int?=nil) throws -> Int {
         let i = self.find(sub,start: start,end: end)
         if i == -1 {
@@ -188,41 +239,41 @@ extension String {
         // TODO:Impl
         return false
     }
-
+    
     public func isascii() -> Bool {
         // TODO:Impl
         return false
     }
-
+    
     public func isdecimal() -> Bool {
         // TODO:Impl
         return false
     }
-
+    
     public func isdigit() -> Bool {
         // TODO:Impl
         return false
     }
     /*
-    public func isidentifier() -> Bool {
-        return false
-    }
-    */
+     public func isidentifier() -> Bool {
+     return false
+     }
+     */
     public func islower() -> Bool {
         // TODO:Impl
         return false
     }
-
+    
     public func isnumeric() -> Bool {
         // TODO:Impl
         return false
     }
-
+    
     public func isprintable() -> Bool {
         // TODO:Impl
         return false
     }
-
+    
     public func isspace() -> Bool {
         // TODO:Impl
         return false
@@ -266,12 +317,12 @@ extension String {
         // TODO:Impl
         return [:]
     }
-
+    
     public func partition(_ sep:String) -> (String, String, String) {
         // TODO:Impl
         return ("","","")
     }
-
+    
     public func replace(_ old:String,new:String,count:Int=Int.max) -> String {
         // TODO:Impl
         return ""
@@ -294,7 +345,7 @@ extension String {
         let w = width - self.count
         return self + String(repeating: fillchar, count: w)
     }
-
+    
     public func rpartition(_ sep:String) -> (String, String, String) {
         // TODO:Impl
         return ("","","")
@@ -333,7 +384,7 @@ extension String {
         }
         return false
     }
-
+    
     public func strip(_ chars:String?=nil) -> String {
         return self.lstrip(chars).lstrip(chars)
     }

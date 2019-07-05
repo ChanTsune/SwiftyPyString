@@ -1,6 +1,5 @@
 import XCTest
-import UnicodeDB
-import class Foundation.Bundle
+@testable import SwiftyPyString
 
 final class SwiftyPyStringTests: XCTestCase {
     // func testExample() throws {
