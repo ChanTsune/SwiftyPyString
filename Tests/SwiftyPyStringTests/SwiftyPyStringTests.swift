@@ -82,11 +82,8 @@ final class SwiftyPyStringTests: XCTestCase {
         let pos:[String] = ["hello","world","!"]
 
         XCTAssertTrue(s1.endswith(pos))
-
         XCTAssertFalse(s1.endswith("world"))
-
         XCTAssertTrue(s2.endswith("world!"))
-
         XCTAssertTrue(s2.endswith("!"))
     }
     func testExpandtabs() throws {
@@ -114,6 +111,61 @@ final class SwiftyPyStringTests: XCTestCase {
             String.make_table(p)
         }
     }
+    func test() throws {
+        
+    }
+    func testIsAlnum() throws {
+        XCTAssertTrue("123abc".isalnum())
+        XCTAssertTrue("１０００A".isalnum())
+        XCTAssertTrue("日本語".isalnum())
+        XCTAssertFalse("abc 123".isalnum())
+    }
+    func testIsAlpha() throws {
+        XCTAssertFalse("I have pen.".isalpha())
+        XCTAssertTrue("qwerty".isalpha())
+        XCTAssertFalse("123".isalpha())
+        XCTAssertFalse("".isalpha())
+    }
+    func testIsAscii() throws {
+        XCTAssertTrue("I have pen.".isascii())
+        XCTAssertTrue("qwerty".isascii())
+        XCTAssertTrue("123".isascii())
+        XCTAssertTrue("".isascii())
+        XCTAssertFalse("非ASCII文字列".isascii())
+    }
+    func testIsDecimal() throws {
+        XCTAssertTrue("123".isdecimal())
+        XCTAssertTrue("１２３４５".isdecimal())
+        XCTAssertFalse("一".isdecimal())
+        XCTAssertFalse("".isdecimal())
+    }
+    func testIsDigit() throws {
+        XCTAssertTrue("123".isdigit())
+        XCTAssertTrue("１２３４５".isdigit())
+        XCTAssertFalse("一".isdigit())
+        XCTAssertFalse("".isdigit())
+    }
+    func testIsLower() throws {
+        XCTAssertTrue("lower case string".islower())
+        XCTAssertFalse("Lower case string".islower())
+        XCTAssertFalse("lower case String".islower())
+        XCTAssertFalse("lower Case string".islower())
+        XCTAssertFalse("小文字では無い".islower())
+    }
+    func testIsNumeric() throws {
+        XCTAssertTrue("123".isnumeric())
+        XCTAssertTrue("１２３４５".isnumeric())
+        XCTAssertTrue("一".isnumeric())
+        XCTAssertFalse("".isnumeric())
+    }
+    func testIsTitle() throws {
+        XCTAssertTrue("Title Case String".istitle())
+        XCTAssertTrue("Title_Case_String".istitle())
+        XCTAssertTrue("Title__Case  String".istitle())
+        XCTAssertFalse("not Title Case String".istitle())
+        XCTAssertFalse("NotTitleCaseString".istitle())
+        XCTAssertFalse("Not Title case String".istitle())
+    }
     func testJoin() throws {
         let arry = ["abc","def","ghi"]
         let carry:[Character] = ["a","b","c"]
@@ -133,7 +185,6 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual(str.rjust(5),"abc  ")
         XCTAssertEqual(str.rjust(5,fillchar:"z"),"abczz")
     }
-
     func testStartswith() throws {
         let s1 = "hello"
         let s2 = "hello world!"
@@ -143,9 +194,7 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertFalse(s1.startswith("world"))
         XCTAssertTrue(s2.startswith("hello"))
         XCTAssertTrue(s2.startswith("h"))
-
     }
-
     func testZfill() throws {
         let str = "abc"
         let plus = "+12"

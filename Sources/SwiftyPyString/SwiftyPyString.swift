@@ -227,24 +227,51 @@ extension String {
         }
         return i
     }
+    private func isX(_ conditional:(Character) -> Bool, empty:Bool=false) -> Bool {
+        if self.isEmpty {
+            return empty
+        }
+        for chr in self {
+            if !conditional(chr) {
+                return false
+            }
+        }
+        return true
+    }
+    
+    public func isalnum() -> Bool {
+        let alphaTypes:[Unicode.GeneralCategory] = [.modifierLetter,.titlecaseLetter,.uppercaseLetter,.lowercaseLetter,.otherLetter,.decimalNumber]
+        return self.isX({(chr) -> Bool in
+            return alphaTypes.contains(chr.properties.generalCategory) || chr.properties.numericType != nil
+        })
+    }
+    
     public func isalpha() -> Bool {
-        // TODO:Impl
-        return false
+        let alphaTypes:[Unicode.GeneralCategory] = [.modifierLetter,.titlecaseLetter,.uppercaseLetter,.lowercaseLetter,.otherLetter]
+        return self.isX({(chr) -> Bool in
+            return alphaTypes.contains(chr.properties.generalCategory)
+        })
     }
     
     public func isascii() -> Bool {
-        // TODO:Impl
-        return false
+        return self.isX({(chr) -> Bool in
+            return 0 <= chr.unicode.value && chr.unicode.value <= 127
+        },empty: true)
     }
     
     public func isdecimal() -> Bool {
-        // TODO:Impl
-        return false
+        return self.isX({(chr) -> Bool in
+            return chr.properties.generalCategory == .decimalNumber
+        })
     }
     
     public func isdigit() -> Bool {
-        // TODO:Impl
-        return false
+        return self.isX({(chr) -> Bool in
+            if let numericType = chr.properties.numericType {
+                return numericType == .decimal || numericType == .digit
+            }
+            return false
+        })
     }
     /*
      public func isidentifier() -> Bool {
@@ -252,27 +279,80 @@ extension String {
      }
      */
     public func islower() -> Bool {
-        // TODO:Impl
-        return false
+        if self.isEmpty {
+            return false
+        }
+        var hasCase = false
+        for chr in self {
+            if chr.isCased {
+                if !chr.isLowercase {
+                    return false
+                }
+                hasCase = true
+            }
+        }
+        return hasCase
     }
     
     public func isnumeric() -> Bool {
-        // TODO:Impl
-        return false
+        return self.isX({(chr) -> Bool in
+            return chr.properties.numericType != nil
+        })
     }
     
     public func isprintable() -> Bool {
-        // TODO:Impl
-        return false
+        let otherTypes:[Unicode.GeneralCategory] = [.otherLetter,.otherNumber,.otherSymbol,.otherPunctuation]
+        let separatorTypes:[Unicode.GeneralCategory] = [.lineSeparator,.spaceSeparator,.paragraphSeparator]
+        let maybeDisPrintable = otherTypes + separatorTypes
+        return self.isX({(chr) -> Bool in
+            if maybeDisPrintable.contains(chr.properties.generalCategory) {
+                return chr == " "
+            }
+            return true
+        },empty: true)
     }
     
     public func isspace() -> Bool {
-        // TODO:Impl
-        return false
+        return self.isX({(chr) -> Bool in
+            // TODO:unicode propaty
+            return chr.isWhitespace
+        })
     }
     public func istitle() -> Bool {
-        // TODO:Impl
-        return false
+        if self.isEmpty {
+            return false
+        }
+        var prev_cased = false
+        for chr in self {
+            if !prev_cased {
+                if !chr.isTitlecase {
+                    return false
+                }
+            } else {
+                if chr.isCased {
+                    if !chr.isLowercase{
+                        return false
+                    }
+                }
+            }
+            prev_cased = chr.isCased
+        }
+        return true
+    }
+    public func isupper() -> Bool {
+        if self.isEmpty {
+            return false
+        }
+        var hasCase = false
+        for chr in self {
+            if chr.isCased {
+                if !chr.isUppercase {
+                    return false
+                }
+                hasCase = true
+            }
+        }
+        return hasCase
     }
     public func join(_ iterable:[String]) -> String {
         var str = ""
