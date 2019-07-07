@@ -111,9 +111,6 @@ final class SwiftyPyStringTests: XCTestCase {
             String.make_table(p)
         }
     }
-    func test() throws {
-        
-    }
     func testIsAlnum() throws {
         XCTAssertTrue("123abc".isalnum())
         XCTAssertTrue("１０００A".isalnum())
@@ -179,6 +176,13 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual(str.ljust(5),"  abc")
         XCTAssertEqual(str.ljust(5,fillchar:"z"),"zzabc")
     }
+    func testLower() throws {
+        XCTAssertEqual("ABCDE".lower(), "abcde")
+        XCTAssertEqual("あいうえお".lower(), "あいうえお")
+    }
+    func test() throws {
+        
+    }
     func testRjust() throws {
         let str = "abc"
         XCTAssertEqual(str.rjust(1),"abc")
@@ -194,6 +198,20 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertFalse(s1.startswith("world"))
         XCTAssertTrue(s2.startswith("hello"))
         XCTAssertTrue(s2.startswith("h"))
+    }
+    func testSwapcase() throws {
+        XCTAssertEqual("aBcDe".swapcase(), "AbCdE")
+        XCTAssertEqual("AbC dEf".swapcase(), "aBc DeF")
+        XCTAssertEqual("あいうえお".swapcase(), "あいうえお")
+    }
+    func testTitle() throws {
+        XCTAssertEqual("Title letter".title(), "Title Letter")
+        XCTAssertEqual("title Letter".title(), "Title Letter")
+        XCTAssertEqual("abc  abC _ aBC".title(), "Abc  Abc _ Abc")
+    }
+    func testUpper() throws {
+        XCTAssertEqual("abcde".upper(), "ABCDE")
+        XCTAssertEqual("あいうえお".upper(), "あいうえお")
     }
     func testZfill() throws {
         let str = "abc"

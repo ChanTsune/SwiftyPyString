@@ -378,8 +378,7 @@ extension String {
         return String(repeating: fillchar, count: w) + self
     }
     public func lower() -> String {
-        // TODO:Impl
-        return ""
+        return self.lowercased()
     }
     public func lstrip(_ chars:String?=nil) -> String {
         // TODO:Impl
@@ -461,20 +460,53 @@ extension String {
         return self.lstrip(chars).lstrip(chars)
     }
     public func swapcase() -> String {
-        // TODO:Impl
-        return ""
+        var swapped = ""
+        for chr in self {
+            if chr.isASCII {
+                if chr.isUppercase {
+                    swapped.append(chr.lowercaseMapping)
+                } else if chr.isLowercase {
+                    swapped.append(chr.uppercaseMapping)
+                } else {
+                    swapped.append(chr)
+                }
+            } else {
+                swapped.append(chr)
+            }
+        }
+        return swapped
     }
     public func title() -> String {
-        // TODO:Impl
-        return ""
+        var titled = ""
+        var prev_cased = false
+        for chr in self {
+            if !prev_cased {
+                if !chr.isTitlecase {
+                    titled.append(chr.titlecaseMapping)
+                } else {
+                    titled.append(chr)
+                }
+            } else {
+                if chr.isCased {
+                    if !chr.isLowercase{
+                        titled.append(chr.lowercaseMapping)
+                    } else {
+                        titled.append(chr)
+                    }
+                } else {
+                    titled.append(chr)
+                }
+            }
+            prev_cased = chr.isCased
+        }
+        return titled
     }
     public func transerate(_ table:[String:String]) -> String {
         // TODO:Impl
         return ""
     }
     public func upper() -> String {
-        // TODO:Impl
-        return ""
+        return self.uppercased()
     }
     public func zfill(_ width:Int) -> String {
         if !self.isEmpty {
