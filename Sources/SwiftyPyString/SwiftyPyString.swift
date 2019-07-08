@@ -139,7 +139,6 @@ extension String {
         return String(repeating: fillchar, count: left-right) + self + String(repeating: fillchar, count: right)
     }
     public func count(_ sub:String, start:Int?=nil,end:Int?=nil) -> Int {
-        // TODO:Impl
         var n = self.find(sub,start: start,end: end)
         var c = 0
         while n != -1 {
@@ -381,14 +380,49 @@ extension String {
         return self.lowercased()
     }
     public func lstrip(_ chars:String?=nil) -> String {
-        // TODO:Impl
-        return ""
+        var i = 0
+        if let chars = chars {
+            while chars.contains(self[i]) {
+                i += 1
+            }
+            return self[i,nil]
+        }
+        while self[i].isWhitespace {
+            i += 1
+        }
+        return self[i,nil]
     }
-    static public func maketrans() -> [String:String] {
-        // TODO:Impl
-        return [:]
+    static public func maketrans(_ x:[UInt32:String?]) -> [Character:String] {
+        var _x:[Character:String?] = [:]
+        for (key,value) in x {
+            _x[Character(UnicodeScalar(key)!)] = value
+        }
+        return maketrans(_x)
     }
-    
+    static public func maketrans(_ x:[Character:String?]) -> [Character:String] {
+        var cvTable:[Character:String] = [:]
+        for (key,value) in x {
+            cvTable[key] = value ?? ""
+        }
+        return cvTable
+    }
+    static public func maketrans(_ x:String,y:String,z:String="") -> [Character:String] {
+        var cvTable:[Character:String] = [:]
+        func max(x:Int,y:Int) -> Int {
+            if x > y {
+                return x
+            }
+            return y
+        }
+        let loop:Int = max(x:x.count, y:y.count)
+        for i in 0..<loop {
+            cvTable[x[i]] = String(y[i])
+        }
+        for chr in z {
+            cvTable[chr] = ""
+        }
+        return cvTable
+    }
     public func partition(_ sep:String) -> (String, String, String) {
         // TODO:Impl
         return ("","","")
@@ -429,8 +463,17 @@ extension String {
         return []
     }
     public func rstrip(_ chars:String?=nil) -> String {
-        // TODO:Impl
-        return ""
+        var i = -1
+        if let chars = chars {
+            while chars.contains(self[i]) {
+                i -= 1
+            }
+            return self[nil, i == -1 ? nil : i + 1]
+        }
+        while self[i].isWhitespace {
+            i -= 1
+        }
+        return self[nil, i == -1 ? nil : i + 1]
     }
     public func split(_ sep:String?=nil,maxsplit:Int=(-1)) -> [String] {
         // TODO:Impl
@@ -457,7 +500,7 @@ extension String {
     }
     
     public func strip(_ chars:String?=nil) -> String {
-        return self.lstrip(chars).lstrip(chars)
+        return self.lstrip(chars).rstrip(chars)
     }
     public func swapcase() -> String {
         var swapped = ""
@@ -501,9 +544,12 @@ extension String {
         }
         return titled
     }
-    public func transerate(_ table:[String:String]) -> String {
-        // TODO:Impl
-        return ""
+    public func translate(_ table:[Character:String]) -> String {
+        var transed = ""
+        for chr in self {
+            transed.append(table[chr,default: String(chr)])
+        }
+        return transed
     }
     public func upper() -> String {
         return self.uppercased()

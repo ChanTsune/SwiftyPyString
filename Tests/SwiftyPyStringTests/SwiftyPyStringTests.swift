@@ -180,6 +180,17 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual("ABCDE".lower(), "abcde")
         XCTAssertEqual("あいうえお".lower(), "あいうえお")
     }
+    func testLstrip() throws {
+        XCTAssertEqual("  lstrip sample".lstrip(), "lstrip sample")
+        XCTAssertEqual("  lstrip sample".lstrip(" ls"), "trip sample")
+        XCTAssertEqual("lstrip sample".lstrip(), "lstrip sample")
+    }
+    func testMaketrans() throws {
+        XCTAssertEqual(String.maketrans([97:"A",98:nil,99:"String"]), ["a":"A","b":"","c":"String"])
+        XCTAssertEqual(String.maketrans(["a":"A","b":nil,"c":"String"]), ["a":"A","b":"","c":"String"])
+        XCTAssertEqual(String.maketrans("abc",y: "ABC"),["a":"A","b":"B","c":"C"])
+        XCTAssertEqual(String.maketrans("abc", y: "ABC", z: "xyz"), ["a":"A","b":"B","c":"C","x":"","y":"","z":""])
+    }
     func test() throws {
         
     }
@@ -188,6 +199,11 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual(str.rjust(1),"abc")
         XCTAssertEqual(str.rjust(5),"abc  ")
         XCTAssertEqual(str.rjust(5,fillchar:"z"),"abczz")
+    }
+    func testRstrip() throws {
+        XCTAssertEqual("rstrip sample   ".rstrip(), "rstrip sample")
+        XCTAssertEqual("rstrip sample   ".rstrip("sample "), "rstri")
+        XCTAssertEqual("  rstrip sample".rstrip(), "  rstrip sample")
     }
     func testStartswith() throws {
         let s1 = "hello"
@@ -199,6 +215,10 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertTrue(s2.startswith("hello"))
         XCTAssertTrue(s2.startswith("h"))
     }
+    func testStrip() throws {
+        XCTAssertEqual("   spacious   ".strip(), "spacious")
+        XCTAssertEqual("www.example.com".strip("cmowz."), "example")
+    }
     func testSwapcase() throws {
         XCTAssertEqual("aBcDe".swapcase(), "AbCdE")
         XCTAssertEqual("AbC dEf".swapcase(), "aBc DeF")
@@ -208,6 +228,11 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual("Title letter".title(), "Title Letter")
         XCTAssertEqual("title Letter".title(), "Title Letter")
         XCTAssertEqual("abc  abC _ aBC".title(), "Abc  Abc _ Abc")
+    }
+    func testTransrate() throws {
+        let table1 = String.maketrans("", y: "", z: "swift")
+        
+        XCTAssertEqual("I will make Python like string operation library".translate(table1), "I ll make Pyhon lke rng operaon lbrary")
     }
     func testUpper() throws {
         XCTAssertEqual("abcde".upper(), "ABCDE")
