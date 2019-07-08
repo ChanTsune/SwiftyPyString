@@ -1,2 +1,15 @@
 # SwiftyPyString  
- Extension to add python str type method to swift string type
+SwiftyPyString is a string extension for Swift.  
+This library provide Python compliant String operation methods.  
+
+## Installation  
+```
+```
+
+## Usage  
+```swift
+import SwiftyPyString
+```
+
+## Methods  
+
