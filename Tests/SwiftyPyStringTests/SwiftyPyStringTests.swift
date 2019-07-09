@@ -191,6 +191,10 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual(String.maketrans("abc",y: "ABC"),["a":"A","b":"B","c":"C"])
         XCTAssertEqual(String.maketrans("abc", y: "ABC", z: "xyz"), ["a":"A","b":"B","c":"C","x":"","y":"","z":""])
     }
+    func testPartition() throws {
+        XCTAssert("a,b,c".partition(",") == ("a",",","b,c"))
+        XCTAssert("a,b,c".partition("x") == ("a,b,c","",""))
+    }
     func test() throws {
         
     }
@@ -206,13 +210,16 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual(str.rjust(5),"abc  ")
         XCTAssertEqual(str.rjust(5,fillchar:"z"),"abczz")
     }
+    func testRpartition() throws {
+        XCTAssert("a,b,c".rpartition(",") == ("a,b",",","c"))
+        XCTAssert("a,b,c".rpartition("x") == ("","","a,b,c"))
+    }
     func testRsplit() throws {
         XCTAssertEqual("a,b,c,d,".rsplit(","), ["a","b","c","d",""])
         XCTAssertEqual("a,b,c,d,".rsplit(), ["a,b,c,d,"])
         XCTAssertEqual("a,b,c,d,".rsplit(",",maxsplit: 2), ["a,b,c","d",""])
         XCTAssertEqual("a,b,c,d,".rsplit(",",maxsplit: 0), ["a,b,c,d,"])
         XCTAssertEqual("aabbxxaabbaaddbb".rsplit("aa",maxsplit: 2), ["aabbxx", "bb", "ddbb"])
-
     }
     func testRstrip() throws {
         XCTAssertEqual("rstrip sample   ".rstrip(), "rstrip sample")
@@ -225,6 +232,12 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual("a,b,c,d,".split(",",maxsplit: 2), ["a","b","c,d,"])
         XCTAssertEqual("a,b,c,d,".split(",",maxsplit: 0), ["a,b,c,d,"])
         XCTAssertEqual("aabbxxaabbaaddbb".split("aa",maxsplit: 2), ["", "bbxx", "bbaaddbb"])
+    }
+    func testSplitlines() throws {
+        XCTAssertEqual("abc\nabc".splitlines(), ["abc","abc"])
+        XCTAssertEqual("abc\nabc".splitlines(true), ["abc\n","abc"])
+        XCTAssertEqual("abc\r\nabc\n".splitlines(), ["abc","abc"])
+        XCTAssertEqual("abc\r\nabc\n".splitlines(true), ["abc\r\n","abc\n"])
     }
     func testStartswith() throws {
         let s1 = "hello"

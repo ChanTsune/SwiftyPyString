@@ -466,11 +466,13 @@ extension String {
     }
     
     public func rpartition(_ sep:String) -> (String, String, String) {
-        // TODO:Impl
-        return ("","","")
+        let tmp = self._rsplit(sep, maxsplit: 1)
+        if tmp.count == 1 {
+            return ("","",self)
+        }
+        return (tmp[0],sep,tmp[1])
     }
     func _rsplit(_ sep:String,maxsplit:Int) -> [String] {
-        // TODO:Fix
         if sep.isEmpty {
             return self._rsplit(maxsplit: maxsplit)
         }
@@ -609,7 +611,27 @@ extension String {
     }
     public func splitlines(_ keepends:Bool=false) -> [String] {
         // TODO:Impl
-        return []
+        let lineTokens = "\n\r\r\n\u{0b}\u{0c}\u{1c}\u{1d}\u{1e}\u{85}\u{2028}\u{2029}"
+        var len = self.count, i = 0, j = 0, eol = 0
+        var result:[String] = []
+        while  i < len {
+            while i < len && !lineTokens.contains(self[i]) {
+                i += 1
+            }
+            eol = i
+            if i < len {
+                i += 1
+                if keepends {
+                    eol = i
+                }
+            }
+            result.append(self[j,eol])
+            j = i;
+        }
+        if j < len {
+            result.append(self[j,eol])
+        }
+        return result
     }
     public func startswith(_ prefix:String,start:Int?=nil,end:Int?=nil) -> Bool {
         return self[start,end].hasPrefix(prefix)
