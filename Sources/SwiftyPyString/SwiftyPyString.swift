@@ -465,12 +465,69 @@ extension String {
         // TODO:Impl
         return ("","","")
     }
-    public func rsplit(_ sep:String?=nil, maxsplit:Int=(-1)) -> [String] {
-        // TODO:Impl
-        if self.isEmpty {
-            return [""]
+    func _rsplit(_ sep:String,maxsplit:Int) -> [String] {
+        // TODO:Fix
+        if sep.isEmpty {
+            return self._rsplit(maxsplit: maxsplit)
         }
-        return []
+        var result:[String] = []
+        var index = 0,prev_index = Int.max,sep_len = sep.count
+        var maxsplit = maxsplit
+        if maxsplit < 0 {
+            maxsplit = Int.max
+        }
+        while maxsplit != 0 {
+            index = self.rfind(sep, end: prev_index) //????
+            if index == -1 {
+                break
+            }
+            index += sep_len
+            result.insert(self[index,prev_index], at: 0)
+            index -= sep_len
+
+            index -= 1
+            prev_index = index + 1
+
+            maxsplit -= 1
+
+            if maxsplit == 0 {
+                break
+            }
+        }
+        result.insert(self[0,prev_index], at: 0)
+        return result
+    }
+    func _rsplit(maxsplit:Int) -> [String] {
+        var index = self.count - 1,len = 0
+        var result:[String] = []
+        var maxsplit = maxsplit
+        if maxsplit < 0 {
+            maxsplit = Int.max
+        }
+        for chr in self.reversed() {
+            if chr.isWhitespace {
+                if len != 0 {
+                    result.insert(self[index,len], at: 0)
+                    maxsplit -= 1
+                    index -= len
+                }
+                index -= 1
+                len = 0
+            } else {
+                len += 1
+            }
+        }
+        let tmp = self[0,index+1].rstrip()
+        if tmp.count != 0 {
+            result.insert(tmp, at: 0)
+        }
+        return result
+    }
+    public func rsplit(_ sep:String?=nil, maxsplit:Int=(-1)) -> [String] {
+        if let sep = sep {
+            return self._rsplit(sep, maxsplit: maxsplit)
+        }
+        return self._rsplit(maxsplit: maxsplit)
     }
     public func rstrip(_ chars:String?=nil) -> String {
         var i = -1

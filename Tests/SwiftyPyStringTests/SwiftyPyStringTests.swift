@@ -206,6 +206,14 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual(str.rjust(5),"abc  ")
         XCTAssertEqual(str.rjust(5,fillchar:"z"),"abczz")
     }
+    func testRsplit() throws {
+        XCTAssertEqual("a,b,c,d,".rsplit(","), ["a","b","c","d",""])
+        XCTAssertEqual("a,b,c,d,".rsplit(), ["a,b,c,d,"])
+        XCTAssertEqual("a,b,c,d,".rsplit(",",maxsplit: 2), ["a,b,c","d",""])
+        XCTAssertEqual("a,b,c,d,".rsplit(",",maxsplit: 0), ["a,b,c,d,"])
+        XCTAssertEqual("aabbxxaabbaaddbb".rsplit("aa",maxsplit: 2), ["aabbxx", "bb", "ddbb"])
+
+    }
     func testRstrip() throws {
         XCTAssertEqual("rstrip sample   ".rstrip(), "rstrip sample")
         XCTAssertEqual("rstrip sample   ".rstrip("sample "), "rstri")
@@ -216,6 +224,7 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual("a,b,c,d,".split(), ["a,b,c,d,"])
         XCTAssertEqual("a,b,c,d,".split(",",maxsplit: 2), ["a","b","c,d,"])
         XCTAssertEqual("a,b,c,d,".split(",",maxsplit: 0), ["a,b,c,d,"])
+        XCTAssertEqual("aabbxxaabbaaddbb".split("aa",maxsplit: 2), ["", "bbxx", "bbaaddbb"])
     }
     func testStartswith() throws {
         let s1 = "hello"
