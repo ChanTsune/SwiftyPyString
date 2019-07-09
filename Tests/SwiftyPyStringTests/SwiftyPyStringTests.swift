@@ -194,6 +194,12 @@ final class SwiftyPyStringTests: XCTestCase {
     func test() throws {
         
     }
+    func testRfind() throws {
+        XCTAssertEqual("0123456789".rfind("0"), 0)
+        XCTAssertEqual("0123456789".rfind("02"), -1)
+        XCTAssertEqual("0123456789".rfind("23"), 2)
+        XCTAssertEqual("0123456789".rfind("0",start: 1), -1)
+    }
     func testRjust() throws {
         let str = "abc"
         XCTAssertEqual(str.rjust(1),"abc")

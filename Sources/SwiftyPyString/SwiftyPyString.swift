@@ -434,6 +434,16 @@ extension String {
     }
     public func rfind(_ sub:String,start:Int?=nil,end:Int?=nil) -> Int {
         // TODO:Impl
+        var (s, e) = adjustIndex(start: start, end: end, len: self.count)
+        s -= 1
+        var fin = e - sub.count
+        while fin != s {
+            print(self[fin, fin + sub.count ])
+            if self[fin, fin + sub.count ] == sub {
+                return fin
+            }
+            fin -= 1
+        }
         return -1;
     }
     public func rindex(_ sub:String,start:Int?=nil,end:Int?=nil) throws -> Int {
