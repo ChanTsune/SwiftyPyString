@@ -205,6 +205,12 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual("rstrip sample   ".rstrip("sample "), "rstri")
         XCTAssertEqual("  rstrip sample".rstrip(), "  rstrip sample")
     }
+    func testSplit() throws {
+        XCTAssertEqual("a,b,c,d,".split(","), ["a","b","c","d",""])
+        XCTAssertEqual("a,b,c,d,".split(), ["a,b,c,d,"])
+        XCTAssertEqual("a,b,c,d,".split(",",maxsplit: 2), ["a","b","c,d,"])
+        XCTAssertEqual("a,b,c,d,".split(",",maxsplit: 0), ["a,b,c,d,"])
+    }
     func testStartswith() throws {
         let s1 = "hello"
         let s2 = "hello world!"

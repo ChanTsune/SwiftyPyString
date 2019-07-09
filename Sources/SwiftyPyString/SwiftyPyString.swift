@@ -475,12 +475,66 @@ extension String {
         }
         return self[nil, i == -1 ? nil : i + 1]
     }
-    public func split(_ sep:String?=nil,maxsplit:Int=(-1)) -> [String] {
-        // TODO:Impl
-        if self.isEmpty {
-            return [""]
+    func _split(_ sep:String,maxsplit:Int) -> [String] {
+        if sep.isEmpty {
+            return self._split(maxsplit: maxsplit)
         }
-        return []
+        var maxsplit = maxsplit
+        var result:[String] = []
+        if maxsplit < 0 {
+            maxsplit = Int.max
+        }
+        var index = 0,prev_index = 0,sep_len = sep.count
+        while maxsplit != 0 {
+            index = self.find(sep, start: prev_index)
+            if index == -1 {
+                break
+            }
+            result.append(self[prev_index,index])
+            prev_index = index + sep_len
+
+            maxsplit -= 1
+        }
+        
+        result.append(self[prev_index,nil])
+
+        return result
+    }
+    func _split(maxsplit:Int) -> [String] {
+        var maxsplit = maxsplit
+        var result:[String] = []
+        var index = 0
+        var len = 0
+        if maxsplit < 0 {
+            maxsplit = Int.max
+        }
+        for chr in self {
+            if chr.isWhitespace {
+                if len != 0 {
+                    result.append(self[index,len])
+                    maxsplit -= 1
+                    index += len
+                }
+                index += 1
+                len = 0
+            } else {
+                len += 1
+            }
+            if maxsplit == 0 {
+                break
+            }
+        }
+        let tmp = self[index,nil].lstrip()
+        if tmp.count != 0 {
+            result.append(tmp)
+        }
+        return result
+    }
+    public func split(_ sep:String?=nil,maxsplit:Int=(-1)) -> [String] {
+        if let sep = sep {
+            return self._split(sep, maxsplit: maxsplit)
+        }
+        return self._split(maxsplit: maxsplit)
     }
     public func splitlines(_ keepends:Bool=false) -> [String] {
         // TODO:Impl
