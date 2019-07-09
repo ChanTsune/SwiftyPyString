@@ -425,7 +425,11 @@ extension String {
     }
     public func partition(_ sep:String) -> (String, String, String) {
         // TODO:Impl
-        return ("","","")
+        let tmp = self.split(sep, maxsplit:1)
+        if tmp.count == 1 {
+            return (self,"","")
+        }
+        return (tmp[0],sep,tmp[1])
     }
     
     public func replace(_ old:String,new:String,count:Int=Int.max) -> String {
