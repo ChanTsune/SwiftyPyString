@@ -58,7 +58,7 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual(case2.capitalize(),"Hello world!")
     }
     func testCasefold() throws {
-        /* code */
+        XCTAssertEqual("ß".casefold(), "ss")
     }
     func testCenter() throws {
         let even = "1234"

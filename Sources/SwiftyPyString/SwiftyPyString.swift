@@ -127,8 +127,11 @@ extension String {
         return self.prefix(1).uppercased() + self.dropFirst(1).lowercased();
     }
     public func casefold() -> String {
-        // TODO:Impl
-        return ""
+        var folded = ""
+        for chr in self {
+            folded.append(getFolded(chr))
+        }
+        return folded
     }
     public func center(_ width:Int,fillchar:Character=" ") -> String {
         if self.count >= width{
