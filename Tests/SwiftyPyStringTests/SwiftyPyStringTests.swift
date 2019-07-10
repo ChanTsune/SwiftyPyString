@@ -87,7 +87,8 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertTrue(s2.endswith("!"))
     }
     func testExpandtabs() throws {
-        /* code */
+        XCTAssertEqual("abc\tabc\t".expandtabs(), "abc        abc        ")
+        XCTAssertEqual("abc\tabc".expandtabs(0), "abcabc")
     }
 
     func testFind() throws {
@@ -195,8 +196,9 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssert("a,b,c".partition(",") == ("a",",","b,c"))
         XCTAssert("a,b,c".partition("x") == ("a,b,c","",""))
     }
-    func test() throws {
-        
+    func testReplace() throws {
+        XCTAssertEqual("abc".replace("bc", new: "bcd"), "abcd")
+        XCTAssertEqual("Python python python python".replace("python", new: "Swift", count: 2), "Python Swift Swift python")
     }
     func testRfind() throws {
         XCTAssertEqual("0123456789".rfind("0"), 0)
@@ -235,7 +237,7 @@ final class SwiftyPyStringTests: XCTestCase {
     }
     func testSplitlines() throws {
         XCTAssertEqual("abc\nabc".splitlines(), ["abc","abc"])
-        XCTAssertEqual("abc\nabc".splitlines(true), ["abc\n","abc"])
+        XCTAssertEqual("abc\nabc\r".splitlines(true), ["abc\n","abc\r"])
         XCTAssertEqual("abc\r\nabc\n".splitlines(), ["abc","abc"])
         XCTAssertEqual("abc\r\nabc\n".splitlines(true), ["abc\r\n","abc\n"])
     }

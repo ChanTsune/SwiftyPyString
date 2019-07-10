@@ -424,7 +424,6 @@ extension String {
         return cvTable
     }
     public func partition(_ sep:String) -> (String, String, String) {
-        // TODO:Impl
         let tmp = self.split(sep, maxsplit:1)
         if tmp.count == 1 {
             return (self,"","")
@@ -433,8 +432,7 @@ extension String {
     }
     
     public func replace(_ old:String,new:String,count:Int=Int.max) -> String {
-        // TODO:Impl
-        return ""
+        return new.join(self.split(old,maxsplit: count))
     }
     public func rfind(_ sub:String,start:Int?=nil,end:Int?=nil) -> Int {
         // TODO:Impl
@@ -483,7 +481,7 @@ extension String {
             maxsplit = Int.max
         }
         while maxsplit != 0 {
-            index = self.rfind(sep, end: prev_index) //????
+            index = self.rfind(sep, end: prev_index)
             if index == -1 {
                 break
             }
@@ -610,7 +608,6 @@ extension String {
         return self._split(maxsplit: maxsplit)
     }
     public func splitlines(_ keepends:Bool=false) -> [String] {
-        // TODO:Impl
         let lineTokens = "\n\r\r\n\u{0b}\u{0c}\u{1c}\u{1d}\u{1e}\u{85}\u{2028}\u{2029}"
         var len = self.count, i = 0, j = 0, eol = 0
         var result:[String] = []
