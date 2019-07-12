@@ -1,5 +1,12 @@
+//
+//  Format.swift
+//  SwiftyPyString
+//
+//  Created by 恒川大輝 on 2019/07/12.
+//
 
-class Formatter{
+
+class Formatter {
     
     struct replacement_field {
         
@@ -48,12 +55,12 @@ class Formatter{
      returns 1 on success, 0 on failure.
      if failure, sets the exception
      */
-    private func getInteger(str:String, pos: inout Int,end:Int, result:inout Int) -> Int{
+    private func get_integer(str:String, pos: inout Int,end:Int, result:inout Int) -> Int{
         var accumulator:Int = 0
         var digitval:Int
         var numDigits:Int = 0
         while pos < end {
-            digitval = UNICODE_TO_DECIMAL(str[pos])//TODO:Desimal to int
+            digitval = .init(str[pos].properties.numericValue ?? 0)
             if digitval < 0{
                 break
             }
@@ -64,8 +71,7 @@ class Formatter{
              accumulator > (PY_SSIZE_T_MAX - digitval) / 10.
              */
             if accumulator > Int.max - digitval / 10 {
-                PyErr_Format(PyExc_ValueError,
-                             "Too many decimal digits in format string");
+                // PyErr_Format(PyExc_ValueError, "Too many decimal digits in format string");
                 return -1
             }
             accumulator = accumulator * 10 + digitval
@@ -127,7 +133,7 @@ class Formatter{
             }
             pos += 1
         }
-        consumed = get_integer(format_spec, &pos, end, &format->width)// TODO:Impl
+        consumed = get_integer(str: formatSpec, pos: &pos, end: end, result: &format.width)// TODO:Impl
         
         if consumed == -1 {
             /* Overflow error. Exception already set. */
@@ -141,28 +147,28 @@ class Formatter{
             format.width = -1
         }
         /* Comma signifies add thousands separators */
-        if (end - pos) && formatSpec[pos] == ","{
+        if (end - pos) != 0 && formatSpec[pos] == ","{
             format.thousandsSeparators = .LT_DEFAULT_LOCALE
             pos += 1
         }
         /* Underscore signifies add thousands separators */
-        if (end - pos) && formatSpec[pos] == "_" {
+        if (end - pos) != 0 && formatSpec[pos] == "_" {
             if format.thousandsSeparators != .LT_NO_LOCALE {
-                invalid_comma_and_underscore() // TODO:Impl
+                // invalid_comma_and_underscore() // TODO:Impl
                 return 0
             }
             format.thousandsSeparators = .LT_UNDERSCORE_LOCALE
             pos += 1
         }
-        if (end - pos) && formatSpec[pos] == "," {
-            invalid_comma_and_underscore() // TODO:Impl
+        if (end - pos) != 0 && formatSpec[pos] == "," {
+            // invalid_comma_and_underscore() // TODO:Impl
             return 0
         }
         /* Parse field precision */
-        if (end - pos) && formatSpec[pos] == "." {
+        if (end - pos) != 0 && formatSpec[pos] == "." {
             pos += 1
             
-            consumed = get_integer(format_spec, &pos, end, &format->precision) // TODO:Imple
+            consumed = get_integer(str: formatSpec, pos: &pos, end: end, result: &format.precision) // TODO:Imple
             if consumed == -1{
                 /* Overflow error. Exception already set. */
                 return 0
@@ -170,8 +176,7 @@ class Formatter{
             
             /* Not having a precision after a dot is an error. */
             if consumed == 0 {
-                PyErr_Format(PyExc_ValueError,
-                             "Format specifier missing precision")
+                // PyErr_Format(PyExc_ValueError, "Format specifier missing precision")
                 return 0
             }
             
@@ -180,7 +185,7 @@ class Formatter{
         
         if end-pos > 1 {
             /* More than one char remain, invalid format specifier. */
-            PyErr_Format(PyExc_ValueError, "Invalid format specifier")
+            // PyErr_Format(PyExc_ValueError, "Invalid format specifier")
             return 0
         }
         
@@ -195,19 +200,30 @@ class Formatter{
         if format.thousandsSeparators != .LT_NO_LOCALE {
             switch (format.type) {
             case "d":
+                fallthrough
             case "e":
+                fallthrough
             case "f":
+                fallthrough
             case "g":
+                fallthrough
             case "E":
+                fallthrough
             case "G":
+                fallthrough
             case "%":
+                fallthrough
             case "F":
+                fallthrough
             case "\0":
                 /* These are allowed. See PEP 378.*/
                 break;
             case "b":
+                fallthrough
             case "o":
+                fallthrough
             case "x":
+                fallthrough
             case "X":
                 /* Underscores are allowed in bin/oct/hex. See PEP 515. */
                 if format.thousandsSeparators == .LT_UNDERSCORE_LOCALE {
@@ -217,13 +233,13 @@ class Formatter{
                 }
                 /* fall through */
             default:
-                invalid_thousands_separator_type(format->thousands_separators, format->type);
+                // invalid_thousands_separator_type(format->thousands_separators, format->type);
                 return 0;
             }
         }
         
-        assert (format.align <= 127);
-        assert (format.sign <= 127);
+        assert(format.align <= Character(127));
+        assert(format.sign  <= Character(127));
         return 1;
         
         
@@ -267,7 +283,7 @@ class Formatter{
         
         
     }
-    func isAlignmentToken(c:Character) -> Bool{
+    func isAlignmentToken(_ c:Character) -> Bool{
         switch c {
         case "<":
             return true
@@ -281,7 +297,7 @@ class Formatter{
             return false
         }
     }
-    func isSignElement(c:Character) -> Bool{
+    func isSignElement(_ c:Character) -> Bool{
         switch (c) {
         case " ":
             return true
@@ -293,4 +309,47 @@ class Formatter{
             return false
         }
     }
+}
+
+protocol FormatableNumeric {}
+protocol FormatableInteger:FormatableNumeric {}
+protocol FormatableFloat:FormatableNumeric {}
+extension Int:FormatableInteger {}
+extension Int8:FormatableInteger {}
+extension Int16:FormatableInteger {}
+extension Int32:FormatableInteger {}
+extension Int64:FormatableInteger {}
+extension UInt:FormatableInteger {}
+extension UInt8:FormatableInteger {}
+extension UInt16:FormatableInteger {}
+extension UInt32:FormatableInteger {}
+extension UInt64:FormatableInteger {}
+extension Float:FormatableFloat{}
+extension Double:FormatableFloat{}
+extension Float80:FormatableFloat{}
+
+extension String {
+    public func format(_ args:Any..., kwargs:[String:Any]) -> String {
+        // TODO:Impl
+        for item in args {
+            var str = ""
+            var type = ""
+            if item is FormatableInteger {
+                
+            }
+            else if item is FormatableFloat {
+                
+            }
+            else {
+                
+            }
+        }
+        return self
+    }
+    
+    public func format_map(_ mapping:[String:Any]) -> String {
+        // TODO:Impl
+        return self
+    }
+
 }

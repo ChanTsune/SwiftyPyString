@@ -211,17 +211,6 @@ extension String {
         // }
         return -1
     }
-    
-    public func format(_ args:Any?,kwargs:[String:Any?]) -> String {
-        // TODO:Impl
-        return ""
-    }
-    
-    public func format_map(_mapping:[String:Any?]) -> String {
-        // TODO:Impl
-        return ""
-    }
-    
     public func index(_ sub:String,start:Int?=nil,end:Int?=nil) throws -> Int {
         let i = self.find(sub,start: start,end: end)
         if i == -1 {
