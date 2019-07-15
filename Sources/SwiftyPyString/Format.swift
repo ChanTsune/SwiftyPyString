@@ -888,11 +888,10 @@ func output_markup(field_name:SubString, format_spec:SubString,
  calls other functions to move non-markup text to the output,
  and to perform the markup to the output.
  */
-func
-    do_markup(input:SubString, args:[Any], kwargs:[String:Any],
+func do_markup(input:SubString, args:[Any], kwargs:[String:Any],
               writer:inout _PyUnicodeWriter, recursion_depth:Int, auto_number:inout AutoNumber) -> Bool
 {
-    var iter:MarkupIterator
+    var iter:MarkupIterator = .init(input.str, start: input.start, end: input.end)
     var format_spec_needs_expanding:Bool = false // TODO: un init
     var result:Int = 0 // TODO: un init
     var field_present:Bool = false // TODO: un init
@@ -901,7 +900,6 @@ func
     var format_spec:SubString = .init("", start: 0, end: 0) // TODO: un init
     var conversion:Character = " " // TODO: un init
     
-    iter = .init(input.str, start: input.start, end: input.end);
     while true {
         result = MarkupIterator_next(&iter, literal: &literal, field_present: &field_present,
                                        field_name: &field_name, format_spec: &format_spec,
