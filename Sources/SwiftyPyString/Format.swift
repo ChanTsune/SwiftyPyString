@@ -51,6 +51,9 @@ struct SubString{
         self.start = start;
         self.end = end;
     }
+    func get_substring() -> String {
+        return self.str[self.start,self.end]
+    }
 }
 
 
@@ -112,22 +115,20 @@ func UNICODE_TODECIMAL(_ c:Character) -> Int {
 /***********  Format string parsing -- integers and identifiers *********/
 /************************************************************************/
 
-func get_integer(_ str:SubString) -> Int
+func get_integer(_ str:String) -> Int
 {
-    var accumulator:Int = 0
-    var digitval:Int;
-    var i:Int;
-    
     /* empty string is an error */
-    if (str.start >= str.end){
-        return -1;
+    if str.isEmpty {
+        return -1
     }
-    
-    i = str.start
-    while i < str.end {
-        digitval = UNICODE_TODECIMAL(str.str[i])
-        if (digitval < 0){
-            return -1;
+    var accumulator:Int = 0
+    var digitval:Int = 0
+    var i:Int = 0
+
+    while i < str.count {
+        digitval = UNICODE_TODECIMAL(str[i])
+        if digitval < 0 {
+            return -1
         }
         /*
          Detect possible overflow before it happens:
@@ -139,12 +140,12 @@ func get_integer(_ str:SubString) -> Int
             ValueError("Too many decimal digits in format string");
             return -1;
         }
-        accumulator = accumulator * 10 + digitval;
+        accumulator = accumulator * 10 + digitval
 
         i += 1        // loop count
 
     }
-    return accumulator;
+    return accumulator
 }
 
 /************************************************************************/
@@ -289,7 +290,7 @@ func FieldNameIterator_next(_ self:inout FieldNameIterator, is_attribute:inout I
         if (_FieldNameIterator_item(&self, name: &name) == 0){
             return 0;
         }
-        name_idx = get_integer(name) // TODO:この中でエラーが起きたかのチェックがあるとなお良い
+        name_idx = get_integer(name.get_substring()) // TODO:この中でエラーが起きたかのチェックがあるとなお良い
         if (name_idx == -1){// && PyErr_Occurred()){
             return 0;
         }
@@ -316,14 +317,13 @@ func FieldNameIterator_next(_ self:inout FieldNameIterator, is_attribute:inout I
  it's the value of first converted to an integer
  'rest' is an iterator to return the rest
  */
-func field_name_split(_ str:String, start:Int, end:Int, first:inout SubString,
+func field_name_split(_ str:String, first:inout String,
                       first_idx:inout Int, rest:inout FieldNameIterator,
                       auto_number:inout AutoNumber) -> Int
 {
-    var c:Character;
-    var i:Int = start;
-    var field_name_is_empty:Bool;
-    var using_numeric_index:Bool;
+    var c:Character
+    var i:Int = 0
+    let end = str.count
     
     /* find the part up until the first '.' or '[' */
     while (i < end) {
@@ -345,22 +345,22 @@ func field_name_split(_ str:String, start:Int, end:Int, first:inout SubString,
     
     /* set up the return values */
 //    SubString_init(first, str, start, i);
-    first = .init(str, start:start, end:i)
+    first = str[nil,i]
 
 //    FieldNameIterator_init(rest, str, i, end);
     rest = .init(str, start:i, end:end)
 
     /* see if "first" is an integer, in which case it's used as an index */
     first_idx = get_integer(first)// TODO:この中でエラーが起きたかチェックできるとなお良し
-    if (first_idx == -1){// && PyErr_Occurred()){
-        return 0;
+    if first_idx == -1 {
+        return 0
     }
     
-    field_name_is_empty = first.start >= first.end;
+    let field_name_is_empty = first.isEmpty
     
     /* If the field name is omitted or if we have a numeric index
      specified, then we're doing numeric indexing into args. */
-    using_numeric_index = field_name_is_empty || first_idx != -1;
+    let using_numeric_index = field_name_is_empty || first_idx != -1
     
     /* We always get here exactly one time for each field we're
      processing. And we get here in field order (counting by left
@@ -370,32 +370,28 @@ func field_name_split(_ str:String, start:Int, end:Int, first:inout SubString,
     /* Check if we need to do the auto-numbering. It's not needed if
      we're called from string.Format routines, because it's handled
      in that class by itself. */
-    if auto_number != nil {
-        /* Initialize our auto numbering state if this is the first
-         time we're either auto-numbering or manually numbering. */
-        if (auto_number.an_state == .ANS_INIT && using_numeric_index){
-            auto_number.an_state = field_name_is_empty ? .ANS_AUTO : .ANS_MANUAL;
-        }
-        
-        /* Make sure our state is consistent with what we're doing
-         this time through. Only check if we're using a numeric
-         index. */
-        if (using_numeric_index){
-            if (autonumber_state_error(auto_number.an_state,
-                                       field_name_is_empty)) != 0{
-                return 0;
 
-            }
-
-        }
-        /* Zero length field means we want to do auto-numbering of the
-         fields. */
-        if (field_name_is_empty){
-            first_idx = (auto_number.an_field_number)
-            auto_number.an_field_number += 1
-        }
+    /* Initialize our auto numbering state if this is the first
+     time we're either auto-numbering or manually numbering. */
+    if auto_number.an_state == .ANS_INIT && using_numeric_index {
+        auto_number.an_state = field_name_is_empty ? .ANS_AUTO : .ANS_MANUAL;
     }
     
+    /* Make sure our state is consistent with what we're doing
+     this time through. Only check if we're using a numeric
+     index. */
+    if using_numeric_index {
+        if (autonumber_state_error(auto_number.an_state,
+                                   field_name_is_empty)) != 0{
+            return 0;
+        }
+    }
+    /* Zero length field means we want to do auto-numbering of the
+     fields. */
+    if field_name_is_empty {
+        first_idx = auto_number.an_field_number
+        auto_number.an_field_number += 1
+    }
     return 1;
 }
 
@@ -405,26 +401,23 @@ func field_name_split(_ str:String, start:Int, end:Int, first:inout SubString,
  format_spec.  It handles getindex and getattr lookups and consumes
  the entire input string.
  */
-func get_field_object(_ input:SubString, args:[Any], kwargs:[String:Any],
+func get_field_object(_ input:String, args:[Any], kwargs:[String:Any],
                       auto_number:inout AutoNumber) -> Any?
 {
-    var obj:Any
-    var ok:Int = 0
-    var is_attribute:Int = 0 // TODO: un initt
-    var name:SubString = .init("", start: 0, end: 0) // TODO: un init
-    var first:SubString = .init("", start: 0, end: 0)// TODO: un init
+    var obj:Any?
+    var first:String = ""
     var index:Int = 0 // TODO: un initt
     var rest:FieldNameIterator = .init("", start: 0, end: 0) // TODO: un init
     
-    if (field_name_split(input.str, start: input.start, end: input.end, first: &first,
+    if (field_name_split(input, first: &first,
                           first_idx: &index, rest: &rest, auto_number: &auto_number) == 0) {
         return nil
     }
     
     if (index == -1) {
         /* look up in kwargs */
-        var key:String = SubString_new_object(first);
-        if (kwargs == nil) {
+        var key:String = first
+        if kwargs.isEmpty {
             KeyError(key)
             return nil
         }
@@ -432,7 +425,7 @@ func get_field_object(_ input:SubString, args:[Any], kwargs:[String:Any],
          code is no longer just used with kwargs. It might be passed
          a non-dict when called through format_map. */
         obj = PyObject_GetItem(kwargs, key);
-        if (obj == nil) {
+        if obj == nil {
             return nil
         }
     }
@@ -453,9 +446,11 @@ func get_field_object(_ input:SubString, args:[Any], kwargs:[String:Any],
             return nil
         }
     }
-    
+    var ok:Int = 0
+    var is_attribute:Int = 0 // TODO: un initt
     /* iterate over the rest of the field_name */
     while true {
+        var name:SubString = .init("", start: 0, end: 0) // TODO: un init
         ok = FieldNameIterator_next(&rest, is_attribute: &is_attribute, name_idx: &index,
                                       name: &name)
         if ok != 2{
@@ -830,7 +825,7 @@ func do_conversion(_ obj:Any, conversion:Character) -> String?
  are doing auto field numbering.
  */
 
-func output_markup(field_name:SubString, format_spec:SubString,
+func output_markup(field_name:String, format_spec:SubString,
                    format_spec_needs_expanding:Bool, conversion:Character,
                    writer:inout _PyUnicodeWriter, args:[Any], kwargs:[String:Any],
                    recursion_depth:Int, auto_number:inout AutoNumber) -> Bool
@@ -898,7 +893,7 @@ func do_markup(input:SubString, args:[Any], kwargs:[String:Any],
     var literal:SubString = .init("", start: 0, end: 0) // TODO: un init
     var field_name:SubString = .init("", start: 0, end: 0) // TODO: un init
     var format_spec:SubString = .init("", start: 0, end: 0) // TODO: un init
-    var conversion:Character = " " // TODO: un init
+    var conversion:Character = "\0" // TODO: un init
     
     while true {
         result = MarkupIterator_next(&iter, literal: &literal, field_present: &field_present,
@@ -922,7 +917,8 @@ func do_markup(input:SubString, args:[Any], kwargs:[String:Any],
             if (iter.str.start == iter.str.end){
                 writer.overallocate = false;
             }
-            if (!output_markup(field_name: field_name, format_spec: format_spec,
+            let my_tmp_field_name = field_name.get_substring()
+            if (!output_markup(field_name: my_tmp_field_name, format_spec: format_spec,
                                format_spec_needs_expanding: format_spec_needs_expanding, conversion: conversion, writer: &writer,
                                args: args, kwargs: kwargs, recursion_depth: recursion_depth, auto_number: &auto_number)){
                 return false;
@@ -988,74 +984,6 @@ func do_string_format_map(self:String, obj:[String:Any]) -> String
 {
     return do_string_format(self,kwargs: obj);
 }
-
-/************************************************************************/
-/*********** fieldnameiterator ******************************************/
-/************************************************************************/
-
-
-/* This is used to implement string.Formatter.vparse().  It parses the
- field name into attribute and item values.  It's a Python-callable
- wrapper around FieldNameIterator */
-
-struct fieldnameiterobject {
-    var ob_base:Any
-    var str:String
-    var it_field:FieldNameIterator
-}
-
-
-/* returns a tuple:
- (is_attr, value)
- is_attr is true if we used attribute syntax (e.g., '.foo')
- false if we used index syntax (e.g., '[foo]')
- value is an integer or string
- */
-func
-fieldnameiter_next(it:inout fieldnameiterobject) -> (Bool,Any)?
-{
-    var result:Int = 0
-    var is_attr:Int = 0 // TODO: un initt
-    var idx:Int = 0 // TODO: un initt
-    var name:SubString = .init("", start: 0, end: 0)  // TODO: un initt
-    
-    result = FieldNameIterator_next(&it.it_field, is_attribute: &is_attr,
-                                    name_idx: &idx, name: &name);
-    if (result == 0 || result == 1){
-        /* if 0, error has already been set, if 1, iterator is empty */
-        return nil;
-
-    }
-    else {
-        var is_attr_obj:Bool
-        var obj:Any? = nil;
-        
-        is_attr_obj = is_attr != 0
-        
-        /* either an integer or a string */
-        if (idx != -1){
-            obj = idx
-
-        }
-        else{
-            obj = SubString_new_object(name);
-
-        }
-        if (obj == nil){
-            return nil
-        }
-        
-        /* return a tuple of values */
-        return (is_attr_obj, obj!);
-    }
-}
-
-
-
-/* implements the unicode (as opposed to string) version of the
- built-in formatters for string, int, float.  that is, the versions
- of int.__float__, etc., that take and return unicode objects */
-
 
 /* Raises an exception about an unknown presentation type for this
  * type. */
