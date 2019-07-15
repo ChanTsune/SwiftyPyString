@@ -14,17 +14,11 @@ func cast<A>(_ value:Any,type:A.Type) -> A?{
 }
 
 struct _PyUnicodeWriter {
-    var buffer:String
-    var data:String
-    var maxchar:Character
-    var size:Int
-    var pos:Int
+    var buffer:String = ""
+    var data:String = "" // buffer or data
+    var size:Int = 0
+    var pos:Int = 0
     
-    /* minimum number of allocated characters (default: 0) */
-    var min_length:Int = 0
-    
-    /* minimum character (default: 127, ASCII) */
-    var min_char:Character = .init(127)
     
     /* If non-zero, overallocate the buffer (default: 0). */
     var overallocate:Bool = false
@@ -416,11 +410,11 @@ func get_field_object(_ input:SubString, args:[Any], kwargs:[String:Any],
 {
     var obj:Any
     var ok:Int = 0
-    var is_attribute:Int;
-    var name:SubString;
-    var first:SubString;
-    var index:Int;
-    var rest:FieldNameIterator;
+    var is_attribute:Int = 0 // TODO: un initt
+    var name:SubString = .init("", start: 0, end: 0) // TODO: un init
+    var first:SubString = .init("", start: 0, end: 0)// TODO: un init
+    var index:Int = 0 // TODO: un initt
+    var rest:FieldNameIterator = .init("", start: 0, end: 0) // TODO: un init
     
     if (field_name_split(input.str, start: input.start, end: input.end, first: &first,
                           first_idx: &index, rest: &rest, auto_number: &auto_number) == 0) {
@@ -899,13 +893,13 @@ func
               writer:inout _PyUnicodeWriter, recursion_depth:Int, auto_number:inout AutoNumber) -> Bool
 {
     var iter:MarkupIterator
-    var format_spec_needs_expanding:Bool
-    var result:Int
-    var field_present:Bool
-    var literal:SubString
-    var field_name:SubString
-    var format_spec:SubString
-    var conversion:Character
+    var format_spec_needs_expanding:Bool = false // TODO: un init
+    var result:Int = 0 // TODO: un init
+    var field_present:Bool = false // TODO: un init
+    var literal:SubString = .init("", start: 0, end: 0) // TODO: un init
+    var field_name:SubString = .init("", start: 0, end: 0) // TODO: un init
+    var format_spec:SubString = .init("", start: 0, end: 0) // TODO: un init
+    var conversion:Character = " " // TODO: un init
     
     iter = .init(input.str, start: input.start, end: input.end);
     while true {
@@ -948,7 +942,7 @@ func
 func build_string(input:SubString, args:[Any], kwargs:[String:Any],
                   recursion_depth:Int, auto_number:inout AutoNumber) -> String?
 {
-    var writer:_PyUnicodeWriter;
+    var writer:_PyUnicodeWriter = .init()
     
     /* check the recursion level */
     if (recursion_depth <= 0) {
@@ -957,7 +951,6 @@ func build_string(input:SubString, args:[Any], kwargs:[String:Any],
     }
     
     writer.overallocate = true;
-    writer.min_length = input.str.count + 100;
     
     if (!do_markup(input: input, args: args, kwargs: kwargs, writer: &writer, recursion_depth: recursion_depth,
                    auto_number: &auto_number)) {
@@ -982,7 +975,7 @@ func do_string_format(_ self:String, args:Any..., kwargs:[String:Any]) -> String
      */
     var recursion_depth:Int = 2;
     
-    var auto_number:AutoNumber;
+    var auto_number:AutoNumber = .init()
     
     if self.isEmpty {
         return self;
@@ -1023,10 +1016,10 @@ struct fieldnameiterobject {
 func
 fieldnameiter_next(it:inout fieldnameiterobject) -> (Bool,Any)?
 {
-    var result:Int;
-    var is_attr:Int;
-    var idx:Int;
-    var name:SubString;
+    var result:Int = 0
+    var is_attr:Int = 0 // TODO: un initt
+    var idx:Int = 0 // TODO: un initt
+    var name:SubString = .init("", start: 0, end: 0)  // TODO: un initt
     
     result = FieldNameIterator_next(&it.it_field, is_attribute: &is_attr,
                                     name_idx: &idx, name: &name);
@@ -1110,7 +1103,7 @@ func
     var accumulator:Int = 0
     var digitval:Int = 0
     var pos:Int = ppos;
-    var numdigits:Int;
+    var numdigits:Int = 0 // TODO: un init
     
     while (pos < end) {
         digitval = UNICODE_TODECIMAL(str[pos])
@@ -1429,26 +1422,27 @@ struct LocaleInfo{
 /* describes the layout for an integer, see the comment in
  calc_number_widths() for details */
 struct NumberFieldWidths{
-    var n_lpadding:Int
-    var n_prefix:Int;
-    var n_spadding:Int;
-    var n_rpadding:Int;
-    var sign:Character;
-    var n_sign:Int;      /* number of digits needed for sign (0/1) */
-    var n_grouped_digits:Int; /* Space taken up by the digits, including
+    var n_lpadding:Int = 0
+    var n_prefix:Int = 0
+    var n_spadding:Int = 0
+    var n_rpadding:Int = 0
+    var sign:Character = .init(0)
+    var n_sign:Int = 0      /* number of digits needed for sign (0/1) */
+    var n_grouped_digits:Int = 0  /* Space taken up by the digits, including
      any grouping chars. */
-    var n_decimal:Int;   /* 0 if only an integer */
-    var n_remainder:Int; /* Digits in decimal and/or exponent part,
+    var n_decimal:Int = 0   /* 0 if only an integer */
+    var n_remainder:Int = 0 /* Digits in decimal and/or exponent part,
      excluding the decimal itself, if
      present. */
     
     /* These 2 are not the widths of fields, but are needed by
      STRINGLIB_GROUPING. */
-    var n_digits:Int;    /* The number of digits before a decimal
+    var n_digits:Int = 0    /* The number of digits before a decimal
      or exponent. */
-    var n_min_width:Int; /* The min_width we used when we computed
+    var n_min_width:Int = 0 /* The min_width we used when we computed
      the n_grouped_digits width. */
-} ;
+    
+}
 
 
 /* Given a number of the form:
@@ -1884,12 +1878,12 @@ func format_long_internal(value:Any, format:InternalFormatSpec,
     var n_prefix:Int = 0;   /* Count of prefix chars, (e.g., '0x') */
     var n_total:Int;
     var prefix:Int = 0;
-    var spec:NumberFieldWidths
+    var spec:NumberFieldWidths = .init()
     var x:Int
     
     /* Locale settings, either from the actual locale or
      from a hard-code pseudo-locale */
-    var locale:LocaleInfo
+    var locale:LocaleInfo = .init()
     
     /* no precision allowed on integers */
     if (format.precision != -1) {
@@ -2046,16 +2040,16 @@ func
 {
     var buf:String = ""      /* buffer returned from PyOS_double_to_string */
     var n_digits:Int
-    var n_remainder:Int
+    var n_remainder:Int = 0
     var n_total:Int
-    var has_decimal:Bool
+    var has_decimal:Bool = false
     var val:Double // big float
-    var precision:Int
+    var precision:Int = 0
     var default_precision:Int = 6;
     var type:Character = format.type;
     var add_pct:Bool = false;
-    var index:Int
-    var spec:NumberFieldWidths
+    var index:Int = 0
+    var spec:NumberFieldWidths = .init()
     var flags:Int = 0;
     var result:Int = -1;
     var maxchar:Character = .init(127);
@@ -2065,7 +2059,7 @@ func
     
     /* Locale settings, either from the actual locale or
      from a hard-code pseudo-locale */
-    var locale:LocaleInfo
+    var locale:LocaleInfo = .init()
     
     if (format.precision > Int.max) {
         ValueError("precision too big")
@@ -2436,7 +2430,7 @@ func
                                     obj:String,format_spec:String,
                                     start:Int, end:Int) -> Int
 {
-    var format:InternalFormatSpec
+    var format:InternalFormatSpec = .init(align: "\0", type: "\0") // TODO: un init
     
     /* check for the special case of zero length format spec, make
      it equivalent to str(obj) */
@@ -2477,7 +2471,7 @@ func
 {
     var tmp:Any? = nil
     var str:String
-    var format:InternalFormatSpec
+    var format:InternalFormatSpec = .init(align: "\0", type: "\0")
     var result:Int = -1;
     
     /* check for the special case of zero length format spec, make
@@ -2551,7 +2545,7 @@ func
                                   obj:Any,format_spec:String,
                                   start:Int, end:Int) -> Int
 {
-    var format:InternalFormatSpec
+    var format:InternalFormatSpec = .init(align: "\0", type: "\0")
     
     /* check for the special case of zero length format spec, make
      it equivalent to str(obj) */
