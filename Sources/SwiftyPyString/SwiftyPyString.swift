@@ -38,7 +38,15 @@ extension Character {
     public var isTitlecase:Bool {
         return self.toTitle() == self
     }
-    
+    public func isdecimal() -> Bool {
+        return self.properties.generalCategory == .decimalNumber
+    }
+    public func isdigit() -> Bool {
+        if let numericType = self.properties.numericType {
+            return numericType == .decimal || numericType == .digit
+        }
+        return false
+    }
 }
 
 public let PYTHON_VERSION = "3.7.2"
@@ -76,16 +84,18 @@ public func adjustIndex(start:Int?,end:Int?,len:Int) -> (Int,Int) {
 }
 
 public class BaseException : Error {
-    
+    init(_ message:String){
+        debugPrint(message)
+    }
 }
+public class Exception : BaseException {}
+public class ValueError : Exception {}
+public class KeyError : Exception {}
+public class IndexError : Exception {}
+public class TypeError : Exception {}
+public class SystemError : Exception {}
+public class OverflowError :Exception {}
 
-public class Exception : BaseException {
-    
-}
-
-public class ValueError : Exception {
-    
-}
 extension String {
     
     public subscript (_ i: Int) -> Character {
@@ -214,7 +224,7 @@ extension String {
     public func index(_ sub:String,start:Int?=nil,end:Int?=nil) throws -> Int {
         let i = self.find(sub,start: start,end: end)
         if i == -1 {
-            throw ValueError()
+            throw ValueError("")
         }
         return i
     }
@@ -443,7 +453,7 @@ extension String {
     public func rindex(_ sub:String,start:Int?=nil,end:Int?=nil) throws -> Int {
         let i = self.rfind(sub,start: start,end:end)
         if i == -1 {
-            throw ValueError()
+            throw ValueError("")
         }
         return i;
     }
