@@ -64,9 +64,14 @@ enum AutoNumberState:Int {
 }   /* Keep track if we're auto-numbering fields */
 
 /* Keeps track of our auto-numbering state, and which number field we're on */
-struct AutoNumber{
+class AutoNumber{
     var an_state:AutoNumberState = .ANS_INIT
     var an_field_number:Int = 0
+    
+    func increment() -> Int {
+        self.an_field_number += 1
+        return self.an_field_number
+    }
 }
 
 
@@ -75,36 +80,22 @@ struct AutoNumber{
 /************************************************************************/
 
 
-/* return a new string.  if str->str is NULL, return None */
-func SubString_new_object(_ str:SubString) -> String
-{
-    return str.str[str.start,str.end] // ガチのサブストリング
-}
-
-/* return a new string.  if str->str is NULL, return a new empty string */
-func SubString_new_object_or_empty(_ str:SubString) -> String
-{
-    return SubString_new_object(str)
-}
-
 /* Return 1 if an error has been detected switching between automatic
  field numbering and manual field specification, else return 0. Set
  ValueError on error. */
-func autonumber_state_error(_ state:AutoNumberState, _ field_name_is_empty:Bool) -> Int
+func autonumber_state_error(_ state:AutoNumberState, _ field_name_is_empty:Bool) throws -> Void
 {
     if (state == .ANS_MANUAL) {
         if field_name_is_empty {
-            ValueError("cannot switch from manual field specification to automatic field numbering")
-            return 1;
+            throw ValueError("cannot switch from manual field specification to automatic field numbering")
         }
     }
     else {
         if !field_name_is_empty {
-            ValueError("cannot switch from automatic field numbering to manual field specification");
-            return 1;
+            throw ValueError("cannot switch from automatic field numbering to manual field specification");
         }
     }
-    return 0;
+    return ;
 }
 
 func UNICODE_TODECIMAL(_ c:Character) -> Int {
@@ -115,7 +106,7 @@ func UNICODE_TODECIMAL(_ c:Character) -> Int {
 /***********  Format string parsing -- integers and identifiers *********/
 /************************************************************************/
 
-func get_integer(_ str:String) -> Int
+func get_integer(_ str:String) throws -> Int
 {
     /* empty string is an error */
     if str.isEmpty {
@@ -137,8 +128,7 @@ func get_integer(_ str:String) -> Int
          accumulator > (PY_SSIZE_T_MAX - digitval) / 10.
          */
         if (accumulator > (Int.max - digitval) / 10) {
-            ValueError("Too many decimal digits in format string");
-            return -1;
+            throw ValueError("Too many decimal digits in format string")
         }
         accumulator = accumulator * 10 + digitval
 
@@ -206,70 +196,9 @@ struct FieldNameIterator {
 }
 
 
-func _FieldNameIterator_attr(_ self:inout FieldNameIterator, name:inout SubString) -> Int
-{
-    var c:Character
-    
-    name.str = self.str.str;
-    name.start = self.index;
-    
-    /* return everything until '.' or '[' */
-    while (self.index < self.str.end) {
-        c = self.str.str[self.index]
-        self.index += 1
-        switch (c) {
-        case "[":
-            fallthrough
-        case ".":
-            /* backup so that we this character will be seen next time */
-            self.index -= 1
-            break;
-        default:
-            continue;
-        }
-        break;
-    }
-    /* end of string is okay */
-    name.end = self.index;
-    return 1;
-}
-
-func _FieldNameIterator_item(_ self:inout FieldNameIterator, name:inout SubString) -> Int
-{
-    var bracket_seen:Bool = false;
-    var c:Character;
-    
-    name.str = self.str.str;
-    name.start = self.index;
-    
-    /* return everything until ']' */
-    while (self.index < self.str.end) {
-        c = self.str.str[self.index]
-        self.index += 1
-        switch (c) {
-        case "]":
-            bracket_seen = true;
-            break;
-        default:
-            continue;
-        }
-        break;
-    }
-    /* make sure we ended with a ']' */
-    if (!bracket_seen) {
-        ValueError("Missing ']' in format string")
-        return 0;
-    }
-    
-    /* end of string is okay */
-    /* don't include the ']' */
-    name.end = self.index-1;
-    return 1;
-}
-
 /* returns 0 on error, 1 on non-error termination, and 2 if it returns a value */
-func FieldNameIterator_next(_ self:inout FieldNameIterator, is_attribute:inout Int,
-                            name_idx:inout Int, name:inout SubString) -> Int
+func FieldNameIterator_next(_ self:inout FieldNameIterator, is_attribute:inout Bool,
+                            name_idx:inout Int, name:inout String) throws -> Int
 {
     /* check at end of input */
     if (self.index >= self.str.end){
@@ -279,31 +208,82 @@ func FieldNameIterator_next(_ self:inout FieldNameIterator, is_attribute:inout I
     self.index += 1
     switch (c) {
     case ".":
-        is_attribute = 1;
-        if (_FieldNameIterator_attr(&self, name: &name) == 0){
-            return 0;
+        is_attribute = true
+
+        var c:Character
+        
+        let start = self.index
+        
+        /* return everything until '.' or '[' */
+        while (self.index < self.str.end) {
+            c = self.str.str[self.index]
+            self.index += 1
+            switch (c) {
+            case "[":
+                fallthrough
+            case ".":
+                /* backup so that we this character will be seen next time */
+                self.index -= 1
+                break;
+            default:
+                continue;
+            }
+            break;
         }
+        /* end of string is okay */
+        name = self.str.str[start,self.index]
+
         name_idx = -1;
         break;
     case "[":
-        is_attribute = 0;
-        if (_FieldNameIterator_item(&self, name: &name) == 0){
+        is_attribute = false
+
+        var bracket_seen:Bool = false
+        var c:Character
+        
+        let start = self.index
+        
+        /* return everything until ']' */
+        while (self.index < self.str.end) {
+            c = self.str.str[self.index]
+            self.index += 1
+            switch (c) {
+            case "]":
+                bracket_seen = true;
+                break;
+            default:
+                continue;
+            }
+            break;
+        }
+        /* make sure we ended with a ']' */
+        if (!bracket_seen) {
+            throw ValueError("Missing ']' in format string")
             return 0;
         }
-        name_idx = get_integer(name.get_substring()) // TODO:この中でエラーが起きたかのチェックがあるとなお良い
-        if (name_idx == -1){// && PyErr_Occurred()){
-            return 0;
+        
+        /* end of string is okay */
+        /* don't include the ']' */
+        name = self.str.str[start,self.index-1]
+        
+        do {
+            try name_idx = get_integer(name)
+            if (name_idx == -1){
+                return 0;
+            }
+        } catch {
+            return 0
         }
         break;
     default:
         /* Invalid character follows ']' */
-        ValueError("Only '.' or '[' may follow ']' in format field specifier")
+        throw ValueError("Only '.' or '[' may follow ']' in format field specifier")
         return 0;
     }
     
     /* empty string is an error */
-    if (name.start == name.end) {
-        ValueError("Empty attribute in format string")
+    if name.isEmpty {
+        throw ValueError("Empty attribute in format string")
         return 0;
     }
     
@@ -344,15 +324,17 @@ func field_name_split(_ str:String, first:inout String,
     }
     
     /* set up the return values */
-//    SubString_init(first, str, start, i);
     first = str[nil,i]
 
-//    FieldNameIterator_init(rest, str, i, end);
     rest = .init(str, start:i, end:end)
 
     /* see if "first" is an integer, in which case it's used as an index */
-    first_idx = get_integer(first)// TODO:この中でエラーが起きたかチェックできるとなお良し
-    if first_idx == -1 {
+    do {
+        try first_idx = get_integer(first) // TODO:ERR
+        if first_idx == -1 {
+            return 0
+        }
+    }catch {
         return 0
     }
     
@@ -381,8 +363,10 @@ func field_name_split(_ str:String, first:inout String,
      this time through. Only check if we're using a numeric
      index. */
     if using_numeric_index {
-        if (autonumber_state_error(auto_number.an_state,
-                                   field_name_is_empty)) != 0{
+        do {
+            try autonumber_state_error(auto_number.an_state,
+                                       field_name_is_empty)
+        } catch {
             return 0;
         }
     }
@@ -402,7 +386,7 @@ func field_name_split(_ str:String, first:inout String,
  the entire input string.
  */
 func get_field_object(_ input:String, args:[Any], kwargs:[String:Any],
-                      auto_number:inout AutoNumber) -> Any?
+                      auto_number:inout AutoNumber) throws -> Any?
 {
     var obj:Any?
     var first:String = ""
@@ -418,7 +402,7 @@ func get_field_object(_ input:String, args:[Any], kwargs:[String:Any],
         /* look up in kwargs */
         var key:String = first
         if kwargs.isEmpty {
-            KeyError(key)
+            throw KeyError(key)
             return nil
         }
         /* Use PyObject_GetItem instead of PyDict_GetItem because this
@@ -435,37 +419,42 @@ func get_field_object(_ input:String, args:[Any], kwargs:[String:Any],
          used with format_map(), where positional arguments are not
          allowed. */
         if args.isEmpty {
-            ValueError("Format string contains positional fields")
+            throw ValueError("Format string contains positional fields")
             return nil
         }
         
         /* look up in args */
         obj = PySequence_GetItem(args, index);
         if (obj == nil) {
-            IndexError("Replacement index %zd out of range for positional args tuple \(index)")
+            throw IndexError("Replacement index %zd out of range for positional args tuple \(index)")
             return nil
         }
     }
     var ok:Int = 0
-    var is_attribute:Int = 0 // TODO: un initt
+    var is_attribute:Bool = false // TODO: un initt
     /* iterate over the rest of the field_name */
     while true {
-        var name:SubString = .init("", start: 0, end: 0) // TODO: un init
-        ok = FieldNameIterator_next(&rest, is_attribute: &is_attribute, name_idx: &index,
-                                      name: &name)
+        var name:String = ""
+        do {
+            try ok = FieldNameIterator_next(&rest, is_attribute: &is_attribute, name_idx: &index,
+                                        name: &name)
+        }
+        catch {
+            break
+        }
         if ok != 2{
             break;
         }
         var tmp:Any?
         
-        if (is_attribute != 0){
+        if is_attribute {
             /* getattr lookup "." */
-            tmp = getattr(obj, name: name.str[name.start,name.end]);
+            tmp = getattr(obj, name: name);
         }
         else{
             /* getitem lookup "[]" */
             if (index == -1){
-                tmp = getitem_str(obj: obj, name: name.str[name.start,name.end]);
+                tmp = getitem_str(obj: obj, name: name);
 
             }
             else{
@@ -523,8 +512,9 @@ func render_field(_ fieldobj:Any, format_spec:SubString, writer:inout _PyUnicode
     /* If we know the type exactly, skip the lookup of __format__ and just
      call the formatter directly. */
     if fieldobj is String {
-        err = _PyUnicode_FormatAdvancedWriter(writer: &writer, obj: fieldobj as! String, format_spec: format_spec.str,
-                                              start: format_spec.start, end: format_spec.end)
+        do {
+            try! err = _PyUnicode_FormatAdvancedWriter(writer: &writer, obj: fieldobj as! String, format_spec: format_spec.str, start: format_spec.start, end: format_spec.end)
+        }
         return (err == 0)
     }
     else if fieldobj is FormatableInteger {
@@ -561,7 +551,7 @@ func render_field(_ fieldobj:Any, format_spec:SubString, writer:inout _PyUnicode
 }
 
 func parse_field(str:inout SubString, field_name:inout SubString, format_spec:inout SubString,
-                 format_spec_needs_expanding:inout Bool, conversion:inout Character) -> Bool
+                 format_spec_needs_expanding:inout Bool, conversion:inout Character) throws -> Bool
 {
     /* Note this function works if the field name is zero length,
      which is good.  Zero length field names are handled later, in
@@ -582,7 +572,7 @@ func parse_field(str:inout SubString, field_name:inout SubString, format_spec:in
         str.start += 1
         switch (c) {
         case "{":
-            ValueError("unexpected '{' in field name")
+            throw ValueError("unexpected '{' in field name")
             return false;
         case "[":
             while str.start < str.end {
@@ -614,7 +604,7 @@ func parse_field(str:inout SubString, field_name:inout SubString, format_spec:in
         if (c == "!") {
             /* there must be another character present */
             if (str.start >= str.end) {
-                ValueError("end of string while looking for conversion specifier")
+                throw ValueError("end of string while looking for conversion specifier")
                 return false;
             }
             conversion = str.str[str.start]
@@ -626,7 +616,7 @@ func parse_field(str:inout SubString, field_name:inout SubString, format_spec:in
                     return true;
                 }
                 if (c != ":") {
-                    ValueError("expected ':' after conversion specifier")
+                    throw ValueError("expected ':' after conversion specifier")
                     return false;
                 }
             }
@@ -654,11 +644,11 @@ func parse_field(str:inout SubString, field_name:inout SubString, format_spec:in
             }
         }
         
-        ValueError("unmatched '{' in format spec")
+        throw ValueError("unmatched '{' in format spec")
         return false;
     }
     else if (c != "}") {
-        ValueError("expected '}' before end of string")
+        throw ValueError("expected '}' before end of string")
         return false;
     }
     
@@ -688,7 +678,7 @@ struct MarkupIterator {
 func MarkupIterator_next(_ self:inout MarkupIterator, literal:inout SubString,
                          field_present:inout Bool, field_name:inout SubString,
                          format_spec:inout SubString, conversion:inout Character,
-                         format_spec_needs_expanding:inout Bool) -> Int
+                         format_spec_needs_expanding:inout Bool) throws -> Int
 {
     var at_end:Bool;
     var c:Character = "\0";
@@ -701,8 +691,8 @@ func MarkupIterator_next(_ self:inout MarkupIterator, literal:inout SubString,
     field_name = .init("", start:0, end:0)
     format_spec = .init("", start:0, end:0)
 
-    conversion = "\0";
-    format_spec_needs_expanding = false;
+    conversion = "\0"
+    format_spec_needs_expanding = false
     field_present = false
     
     /* No more input, end of iterator.  This is the normal exit
@@ -740,11 +730,11 @@ func MarkupIterator_next(_ self:inout MarkupIterator, literal:inout SubString,
     
     if (c == "}") && (at_end ||
         (c != self.str.str[self.str.start])) {
-        ValueError("Single '}' encountered in format string");
+        throw ValueError("Single '}' encountered in format string");
         return 0;
     }
     if (at_end && c == "{") {
-        ValueError("Single '{' encountered in format string");
+        throw ValueError("Single '{' encountered in format string");
         return 0;
     }
     if (!at_end) {
@@ -770,10 +760,12 @@ func MarkupIterator_next(_ self:inout MarkupIterator, literal:inout SubString,
     
     /* this is markup; parse the field */
     field_present = true
-    if (!parse_field(str: &self.str, field_name: &field_name, format_spec: &format_spec,
-                     format_spec_needs_expanding: &format_spec_needs_expanding, conversion: &conversion)){
-        return 0;
+    do{
+        try parse_field(str: &self.str, field_name: &field_name, format_spec: &format_spec,
+                    format_spec_needs_expanding: &format_spec_needs_expanding, conversion: &conversion)
 
+    } catch {
+        return 0
     }
     return 2;
 }
@@ -787,7 +779,7 @@ func PyObject_ASCII(_ obj:Any) -> String {
     return String(describing: obj)
 }
 /* do the !r or !s conversion on obj */
-func do_conversion(_ obj:Any, conversion:Character) -> String?
+func do_conversion(_ obj:Any, conversion:Character) throws -> String
 {
     /* XXX in pre-3.0, do we need to convert this to unicode, since it
      might have returned a string? */
@@ -803,12 +795,11 @@ func do_conversion(_ obj:Any, conversion:Character) -> String?
             /* It's the ASCII subrange; casting to char is safe
              (assuming the execution character set is an ASCII
              superset). */
-            ValueError("Unknown conversion specifier \(conversion)")
+            throw ValueError("Unknown conversion specifier \(conversion)")
         } else {
-            ValueError("Unknown conversion specifier \\x\(conversion)")
-
+            throw ValueError("Unknown conversion specifier \\x\(conversion)")
         }
-        return nil;
+        return "nil";
     }
 }
 
@@ -836,11 +827,15 @@ func output_markup(field_name:String, format_spec:SubString,
     var actual_format_spec:SubString;
     var result:Bool = false;
     
-    /* convert field_name to an object */
-    fieldobj = get_field_object(field_name, args: args, kwargs: kwargs, auto_number: &auto_number);
+    do {
+        /* convert field_name to an object */
+        try! fieldobj = get_field_object(field_name, args: args, kwargs: kwargs, auto_number: &auto_number)
+    }
     
     if (conversion != "\0") {
-        tmp = do_conversion(fieldobj, conversion: conversion)
+        do {
+            try! tmp = do_conversion(fieldobj, conversion: conversion)
+        }
         if (tmp == nil){
             return result
         }
@@ -851,8 +846,10 @@ func output_markup(field_name:String, format_spec:SubString,
     
     /* if needed, recurively compute the format_spec */
     if (format_spec_needs_expanding) {
-        tmp = build_string(input: format_spec, args: args, kwargs: kwargs, recursion_depth: recursion_depth-1,
-                           auto_number: &auto_number);
+        do {
+            try! tmp = build_string(input: format_spec, args: args, kwargs: kwargs, recursion_depth: recursion_depth-1,
+                               auto_number: &auto_number);
+        }
         if (tmp == nil ){
             return result
         }
@@ -896,10 +893,12 @@ func do_markup(input:SubString, args:[Any], kwargs:[String:Any],
     var conversion:Character = "\0" // TODO: un init
     
     while true {
-        result = MarkupIterator_next(&iter, literal: &literal, field_present: &field_present,
-                                       field_name: &field_name, format_spec: &format_spec,
-                                       conversion: &conversion,
-                                       format_spec_needs_expanding: &format_spec_needs_expanding)
+        do {
+            try! result = MarkupIterator_next(&iter, literal: &literal, field_present: &field_present,
+                                         field_name: &field_name, format_spec: &format_spec,
+                                         conversion: &conversion,
+                                         format_spec_needs_expanding: &format_spec_needs_expanding)
+        }
         if result != 2 {
             break
         }
@@ -934,21 +933,21 @@ func do_markup(input:SubString, args:[Any], kwargs:[String:Any],
  calls do_markup to do the heavy lifting.
  */
 func build_string(input:SubString, args:[Any], kwargs:[String:Any],
-                  recursion_depth:Int, auto_number:inout AutoNumber) -> String?
+                  recursion_depth:Int, auto_number:inout AutoNumber) throws -> String
 {
     var writer:_PyUnicodeWriter = .init()
     
     /* check the recursion level */
     if (recursion_depth <= 0) {
-        ValueError("Max string recursion exceeded");
-        return nil;
+        throw ValueError("Max string recursion exceeded");
+        return "nil"
     }
     
     writer.overallocate = true;
     
     if (!do_markup(input: input, args: args, kwargs: kwargs, writer: &writer, recursion_depth: recursion_depth,
                    auto_number: &auto_number)) {
-        return nil;
+        return "nil"
     }
     
     return writer.buffer
@@ -967,7 +966,7 @@ func do_string_format(_ self:String, args:Any..., kwargs:[String:Any]) -> String
      "{0:{1}}".format('abc', 's')            # works
      "{0:{1:{2}}}".format('abc', 's', '')    # fails
      */
-    var recursion_depth:Int = 2;
+    let recursion_depth:Int = 2;
     
     var auto_number:AutoNumber = .init()
     
@@ -976,44 +975,42 @@ func do_string_format(_ self:String, args:Any..., kwargs:[String:Any]) -> String
     }
     
     input = .init(self, start:0, end:self.count)
-    
-    return build_string(input: input, args: args, kwargs: kwargs, recursion_depth: recursion_depth, auto_number: &auto_number)!;
-}
-
-func do_string_format_map(self:String, obj:[String:Any]) -> String
-{
-    return do_string_format(self,kwargs: obj);
+    do {
+        return try build_string(input: input, args: args, kwargs: kwargs, recursion_depth: recursion_depth, auto_number: &auto_number)
+    }catch {
+        return "nil"
+    }
 }
 
 /* Raises an exception about an unknown presentation type for this
  * type. */
 
-func unknown_presentation_type(presentation_type:Character, type_name:String)
+func unknown_presentation_type(presentation_type:Character, type_name:String) throws
 {
     /* %c might be out-of-range, hence the two cases. */
     if (presentation_type > Character(32) && presentation_type < Character(128)){
-        ValueError("Unknown format code '\(presentation_type)' for object of type '\(type_name)'")
+        throw ValueError("Unknown format code '\(presentation_type)' for object of type '\(type_name)'")
 
     }
     else{
-        ValueError("Unknown format code '\\x\(presentation_type)' for object of type '\(type_name)'")
+        throw ValueError("Unknown format code '\\x\(presentation_type)' for object of type '\(type_name)'")
     }
 }
 
-func invalid_thousands_separator_type(specifier:Character, presentation_type:Character)
+func invalid_thousands_separator_type(specifier:Character, presentation_type:Character) throws
 {
     assert(specifier == "," || specifier == "_");
     if (presentation_type > Character(32) && presentation_type < Character(128)){
-        ValueError("Cannot specify '\(specifier)' with '\(presentation_type)'.")
+        throw ValueError("Cannot specify '\(specifier)' with '\(presentation_type)'.")
     }
     else{
-        ValueError("Cannot specify '\(specifier)' with '\\x\(presentation_type)'.")
+        throw ValueError("Cannot specify '\(specifier)' with '\\x\(presentation_type)'.")
     }
 }
 
-func invalid_comma_and_underscore()
+func invalid_comma_and_underscore() throws
 {
-    ValueError("Cannot specify both ',' and '_'.")
+    throw ValueError("Cannot specify both ',' and '_'.")
 }
 
 /*
@@ -1024,7 +1021,7 @@ func invalid_comma_and_underscore()
  returns -1 on error.
  */
 func
-    get_integer(str:String, ppos:inout Int, end:Int,result:inout Int) -> Int
+    get_integer(str:String, ppos:inout Int, end:Int,result:inout Int) throws -> Int
 {
     var accumulator:Int = 0
     var digitval:Int = 0
@@ -1043,7 +1040,7 @@ func
          accumulator > (PY_SSIZE_T_MAX - digitval) / 10.
          */
         if (accumulator > (Int.max - digitval) / 10) {
-            ValueError("Too many decimal digits in format string")
+            throw ValueError("Too many decimal digits in format string")
             ppos = pos;
             return -1;
         }
@@ -1128,7 +1125,7 @@ func parse_internal_render_format_spec(format_spec:String,
                                        start:Int, end:Int,
                                     format:inout InternalFormatSpec,
                                     default_type:Character,
-                                    default_align:Character) -> Bool
+                                    default_align:Character) throws -> Bool
 {
     var pos:Int = start
     /* end-pos is used throughout this code to specify the length of
@@ -1177,11 +1174,14 @@ func parse_internal_render_format_spec(format_spec:String,
         }
         pos += 1
     }
-    
-    consumed = get_integer(str: format_spec, ppos: &pos, end: end, result: &format.width);
-    if (consumed == -1){
-        /* Overflow error. Exception already set. */
-        return false;
+    do {
+        try consumed = get_integer(str: format_spec, ppos: &pos, end: end, result: &format.width);
+        if (consumed == -1){
+            /* Overflow error. Exception already set. */
+            return false;
+        }
+    }catch {
+        return false
     }
     
     /* If consumed is 0, we didn't consume any characters for the
@@ -1200,14 +1200,14 @@ func parse_internal_render_format_spec(format_spec:String,
     /* Underscore signifies add thousands separators */
     if (end-pos != 0 && format_spec[pos] == "_") {
         if (format.thousands_separators != .LT_NO_LOCALE) {
-            invalid_comma_and_underscore();
+            try invalid_comma_and_underscore();
             return false;
         }
         format.thousands_separators = .LT_UNDERSCORE_LOCALE;
         pos += 1;
     }
     if (end-pos != 0 && format_spec[pos] == ",") {
-        invalid_comma_and_underscore();
+        try invalid_comma_and_underscore();
         return false;
     }
     
@@ -1215,15 +1215,18 @@ func parse_internal_render_format_spec(format_spec:String,
     if (end-pos != 0 && format_spec[pos] == ".") {
         pos += 1
         
-        consumed = get_integer(str: format_spec, ppos: &pos, end: end, result: &format.precision);
+        do {
+        try consumed = get_integer(str: format_spec, ppos: &pos, end: end, result: &format.precision);
         if (consumed == -1){
             /* Overflow error. Exception already set. */
             return false;
         }
-        
+        }catch{
+            return false
+        }
         /* Not having a precision after a dot is an error. */
         if (consumed == 0) {
-            ValueError("Format specifier missing precision")
+            throw ValueError("Format specifier missing precision")
             return false;
         }
         
@@ -1233,7 +1236,7 @@ func parse_internal_render_format_spec(format_spec:String,
     
     if (end-pos > 1) {
         /* More than one char remain, invalid format specifier. */
-        ValueError("Invalid format specifier")
+        throw ValueError("Invalid format specifier")
         return false;
     }
     
@@ -1282,7 +1285,10 @@ func parse_internal_render_format_spec(format_spec:String,
             }
             /* fall through */
         default:
-            invalid_thousands_separator_type(specifier: format.thousands_separators.rawValue, presentation_type: format.type);
+            do {
+                
+            try invalid_thousands_separator_type(specifier: format.thousands_separators.rawValue, presentation_type: format.type);
+            }
             return false;
         }
     }
@@ -1725,7 +1731,7 @@ func get_locale_info(type:LocaleType, locale_info:inout LocaleInfo) -> Int
 /************************************************************************/
 
 func format_string_internal(value:String, format:InternalFormatSpec,
-                            writer:inout _PyUnicodeWriter) -> Int
+                            writer:inout _PyUnicodeWriter) throws -> Int
 {
     var len:Int
     var result:Int = -1;
@@ -1735,19 +1741,19 @@ func format_string_internal(value:String, format:InternalFormatSpec,
     
     /* sign is not allowed on strings */
     if (format.sign != "\0") {
-        ValueError("Sign not allowed in string format specifier")
+        throw ValueError("Sign not allowed in string format specifier")
         return result
     }
     
     /* alternate is not allowed on strings */
     if (format.alternate != 0) {
-        ValueError("Alternate form (#) not allowed in string format specifier")
+        throw ValueError("Alternate form (#) not allowed in string format specifier")
         return result
     }
     
     /* '=' alignment not allowed on strings */
     if (format.align == "=") {
-        ValueError("'=' alignment not allowed in string format specifier")
+        throw ValueError("'=' alignment not allowed in string format specifier")
         return result
     }
     
@@ -1791,7 +1797,7 @@ func format_string_internal(value:String, format:InternalFormatSpec,
 /************************************************************************/
 
 func format_long_internal(value:Any, format:InternalFormatSpec,
-                          writer:inout _PyUnicodeWriter) -> Int
+                          writer:inout _PyUnicodeWriter) throws -> Int
 {
     var result:Int = -1;
     var maxchar:Character = .init(127)
@@ -1813,7 +1819,7 @@ func format_long_internal(value:Any, format:InternalFormatSpec,
     
     /* no precision allowed on integers */
     if (format.precision != -1) {
-        ValueError("Precision not allowed in integer format specifier")
+        throw ValueError("Precision not allowed in integer format specifier")
         return result
     }
     
@@ -1821,12 +1827,12 @@ func format_long_internal(value:Any, format:InternalFormatSpec,
     if (format.type == "c") {
         /* error to specify a sign */
         if (format.sign != "\0") {
-            ValueError("Sign not allowed with integer format specifier 'c'")
+            throw ValueError("Sign not allowed with integer format specifier 'c'")
             return result
         }
         /* error to request alternate format */
         if (format.alternate != 0) {
-            ValueError("Alternate form (#) not allowed with integer format specifier 'c'");
+            throw ValueError("Alternate form (#) not allowed with integer format specifier 'c'");
             return result
         }
         
@@ -1835,7 +1841,7 @@ func format_long_internal(value:Any, format:InternalFormatSpec,
         x = value as! Int // できるだけ精度が高い方が望ましい
 
         if (x < 0 || x > 0x10ffff) {
-            OverflowError("\(value) arg not in range(0x110000)");
+            throw OverflowError("\(value) arg not in range(0x110000)");
             return result
         }
         tmp = String(Character(x)) // <- Unicode 文字
@@ -1962,7 +1968,7 @@ let Py_DTST_NAN = 2
 func
     format_float_internal(value:Any,
                           format:InternalFormatSpec,
-                          writer:inout _PyUnicodeWriter) -> Int
+                          writer:inout _PyUnicodeWriter) throws -> Int
 {
     var buf:String = ""      /* buffer returned from PyOS_double_to_string */
     var n_digits:Int
@@ -1988,7 +1994,7 @@ func
     var locale:LocaleInfo = .init()
     
     if (format.precision > Int.max) {
-        ValueError("precision too big")
+        throw ValueError("precision too big")
         return result
     }
     precision = format.precision;
@@ -2341,8 +2347,7 @@ func
 /************************************************************************/
 /*********** built in formatters ****************************************/
 /************************************************************************/
-func
-    format_obj(obj:Any, writer:inout _PyUnicodeWriter) -> Int
+func format_obj(obj:Any, writer:inout _PyUnicodeWriter) -> Int
 {
     let str:String = .init(describing: obj)
 
@@ -2351,10 +2356,9 @@ func
     return 0; // 0 is true mean
 }
 
-func
-    _PyUnicode_FormatAdvancedWriter(writer:inout _PyUnicodeWriter ,
+func _PyUnicode_FormatAdvancedWriter(writer:inout _PyUnicodeWriter ,
                                     obj:String,format_spec:String,
-                                    start:Int, end:Int) -> Int
+                                    start:Int, end:Int) throws -> Int
 {
     var format:InternalFormatSpec = .init(align: "\0", type: "\0") // TODO: un init
     
@@ -2372,8 +2376,11 @@ func
     }
     
     /* parse the format_spec */
-    if (!parse_internal_render_format_spec(format_spec: format_spec, start: start, end: end,
-                                           format: &format, default_type: "s", default_align: "<")){
+    do {
+        try parse_internal_render_format_spec(format_spec: format_spec, start: start, end: end,
+                                          format: &format, default_type: "s", default_align: "<")
+    }
+    catch {
         return -1;
     }
     
@@ -2381,10 +2388,12 @@ func
     switch (format.type) {
     case "s":
         /* no type conversion needed, already a string.  do the formatting */
-        return format_string_internal(value: obj, format: format, writer: &writer);
+        return try format_string_internal(value: obj, format: format, writer: &writer);
     default:
         /* unknown */
-        unknown_presentation_type(presentation_type: format.type, type_name: String(describing:type(of:obj)))
+        do {
+            try! unknown_presentation_type(presentation_type: format.type, type_name: String(describing:type(of:obj)))
+        }
         return -1;
     }
 }
@@ -2412,8 +2421,10 @@ func
     }
     
     /* parse the format_spec */
-    if (!parse_internal_render_format_spec(format_spec: format_spec, start: start, end: end,
-                                           format: &format, default_type: "d", default_align: ">")){
+    do {
+        try parse_internal_render_format_spec(format_spec: format_spec, start: start, end: end,
+                                          format: &format, default_type: "d", default_align: ">")
+    }catch {
         return result
     }
     
@@ -2433,8 +2444,11 @@ func
         fallthrough
     case "n":
         /* no type conversion needed, already an int.  do the formatting */
-        result = format_long_internal(value: obj, format: format, writer: &writer);
-        break;
+        do {
+            try result = format_long_internal(value: obj, format: format, writer: &writer);
+        }catch{
+            break;
+        }
         
     case "e":
         fallthrough
@@ -2454,13 +2468,20 @@ func
         if (tmp == nil){
             return result
         }
-        result = format_float_internal(value: tmp, format: format, writer: &writer);
+        do {
+            try result = format_float_internal(value: tmp, format: format, writer: &writer);
+        }catch{
+            
+        }
         break;
         
     default:
         /* unknown */
-        unknown_presentation_type(presentation_type: format.type, type_name: String(describing: type(of: obj)));
-        return result
+        do {
+            try unknown_presentation_type(presentation_type: format.type, type_name: String(describing: type(of: obj)))
+        }catch{
+            return result
+        }
     }
     
     return result;
@@ -2480,8 +2501,10 @@ func
     }
     
     /* parse the format_spec */
-    if (!parse_internal_render_format_spec(format_spec: format_spec, start: start, end: end,
-                                           format: &format, default_type: "\0", default_align: ">")){
+    do {
+        try parse_internal_render_format_spec(format_spec: format_spec, start: start, end: end,
+                                          format: &format, default_type: "\0", default_align: ">")
+    }catch{
         return -1;
     }
     
@@ -2505,13 +2528,23 @@ func
         fallthrough
     case "%":
         /* no conversion, already a float.  do the formatting */
-        return format_float_internal(value: obj, format: format, writer: &writer);
+        do {
+            return try format_float_internal(value: obj, format: format, writer: &writer);
+        }catch{
+            
+        }
         
     default:
         /* unknown */
-        unknown_presentation_type(presentation_type: format.type, type_name: String(describing: type(of: obj)));
+        do {
+            try unknown_presentation_type(presentation_type: format.type, type_name: String(describing: type(of: obj)));
+        }
+        catch {
+            
+        }
         return -1;
     }
+    return -1;
 }
 
 //func
@@ -2585,27 +2618,46 @@ extension Double:FormatableFloat{}
 extension Float80:FormatableFloat{}
 
 extension String {
-    public func format(_ args:Any..., kwargs:[String:Any]) -> String {
-        // TODO:Impl
-        for item in args {
-            var str = ""
-            var type = ""
-            if item is FormatableInteger {
-                
-            }
-            else if item is FormatableFloat {
-                
-            }
-            else {
-                
+    private func do_markup(_ str:String,args:[Any],kwargs:[String:Any],recursion_depth:Int,auto_number:AutoNumber) -> String {
+        var buffer:String = ""
+        while true {
+            var format_spec_needs_expanding:Bool = false // TODO: un init
+            var result:Int = 0 // TODO: un init
+            var field_present:Bool = false // TODO: un init
+            var literal:String = ""
+            var field_name:String = ""
+            var format_spec:String = ""
+            var conversion:Character = "\0" // TODO: un init
+
+            if false {
+                break;
             }
         }
-        return self
+
+        return buffer
+    }
+    private func build_string(_ str:String, args:[Any],kwargs:[String:Any],recursion_depth:Int,auto_number:AutoNumber) -> String {
+        /* check the recursion level */
+        if recursion_depth <= 0 {
+            throw ValueError("Max string recursion exceeded")
+        }
+        return do_markup(str, args: args, kwargs: kwargs, recursion_depth: recursion_depth, auto_number: auto_number)
+    }
+    public func format(_ args:Any..., kwargs:[String:Any]) -> String {
+        /* PEP 3101 says only 2 levels, so that
+         "{0:{1}}".format('abc', 's')            # works
+         "{0:{1:{2}}}".format('abc', 's', '')    # fails
+         */
+        let recursion_depth:Int = 2
+        let auto_number:AutoNumber = .init()
+        if self.isEmpty {
+            return self
+        }
+        return build_string(self,args:args,kwargs: kwargs,recursion_depth: recursion_depth,auto_number: auto_number)
     }
     
     public func format_map(_ mapping:[String:Any]) -> String {
-        // TODO:Impl
-        return self
+        return self.format([], kwargs: mapping)
     }
 
 }
