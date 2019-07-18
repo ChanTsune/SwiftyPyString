@@ -83,18 +83,16 @@ public func adjustIndex(start:Int?,end:Int?,len:Int) -> (Int,Int) {
             underIndex(i: overIndex(i: backIndex(i: end ?? len, l: len), l: len), l: len))
 }
 
-public class BaseException : Error {
-    init(_ message:String){
-        debugPrint(message)
-    }
+enum PyException : Error {
+    case BaseException(String)
+    case Exception(String)
+    case ValueError(String)
+    case KeyError(String)
+    case IndexError(String)
+    case TypeError(String)
+    case SystemError(String)
+    case OverflowError(String)
 }
-public class Exception : BaseException {}
-public class ValueError : Exception {}
-public class KeyError : Exception {}
-public class IndexError : Exception {}
-public class TypeError : Exception {}
-public class SystemError : Exception {}
-public class OverflowError :Exception {}
 
 extension String {
     
@@ -224,7 +222,7 @@ extension String {
     public func index(_ sub:String,start:Int?=nil,end:Int?=nil) throws -> Int {
         let i = self.find(sub,start: start,end: end)
         if i == -1 {
-            throw ValueError("")
+            throw PyException.ValueError("substring not found")
         }
         return i
     }
@@ -442,7 +440,6 @@ extension String {
         s -= 1
         var fin = e - sub.count
         while fin != s {
-            print(self[fin, fin + sub.count ])
             if self[fin, fin + sub.count ] == sub {
                 return fin
             }
@@ -453,7 +450,7 @@ extension String {
     public func rindex(_ sub:String,start:Int?=nil,end:Int?=nil) throws -> Int {
         let i = self.rfind(sub,start: start,end:end)
         if i == -1 {
-            throw ValueError("")
+            throw PyException.ValueError("substring not found")
         }
         return i;
     }
