@@ -84,6 +84,7 @@ public func adjustIndex(start:Int?,end:Int?,len:Int) -> (Int,Int) {
 }
 
 enum PyException : Error {
+    case AttributeError(String)
     case BaseException(String)
     case Exception(String)
     case ValueError(String)
