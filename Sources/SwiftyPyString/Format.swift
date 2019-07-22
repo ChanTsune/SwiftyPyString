@@ -1148,21 +1148,15 @@ func get_integer(_ str:PyObject, _ ppos:inout Py_ssize_t, _ end:Py_ssize_t, resu
 /************************************************************************/
 
 /* returns true if this character is a specifier alignment token */
-func is_alignment_token(_ c:Py_UCS4) -> int
+func is_alignment_token(_ c:Py_UCS4) -> Bool
 {
-    if ("<>=^".contains(c)) {
-        return 1
-    }
-    return 0
+    return "<>=^".contains(c)
 }
 
 /* returns true if this character is a sign element */
-func is_sign_element(_ c:Py_UCS4) -> int
+func is_sign_element(_ c:Py_UCS4) -> Bool
 {
-    if (" +-".contains(c)) {
-        return 1
-    }
-    return 0
+    return " +-".contains(c)
 }
 
 /* Locale type codes. LT_NO_LOCALE must be zero. */
@@ -1175,13 +1169,13 @@ enum LocaleType : Character {
 }
 
 struct InternalFormatSpec{
-    var fill_char:Py_UCS4
+    var fill_char:Py_UCS4 = " "
     var align:Py_UCS4
-    var alternate:int
-    var sign:Py_UCS4
-    var width:Py_ssize_t
-    var thousands_separators:LocaleType
-    var precision:Py_ssize_t
+    var alternate:int = 0
+    var sign:Py_UCS4 = "\0"
+    var width:Py_ssize_t = -1
+    var thousands_separators:LocaleType = .LT_NO_LOCALE
+    var precision:Py_ssize_t = -1
     var type:Py_UCS4
 }
 
@@ -1208,7 +1202,7 @@ func DEBUG_PRINT_FORMAT_SPEC(_ format:InternalFormatSpec)
  returns 1 on success, 0 on failure.
  if failure, sets the exception
  */
-func parse_internal_render_format_spec(_ format_spec:PyObject,
+func parse_internal_render_format_spec(_ format_spec:String,
                                        _ start:Py_ssize_t, _ end:Py_ssize_t,
                                        _ format:inout InternalFormatSpec,
                                        _ default_type:Character,_ default_align:Character) -> Result<int,PyException>
@@ -1219,16 +1213,10 @@ func parse_internal_render_format_spec(_ format_spec:PyObject,
     
     
     var consumed:Py_ssize_t
-    var align_specified:int = 0
-    var fill_char_specified:int = 0;
+    var align_specified = false
+    var fill_char_specified = false
     
-    format.fill_char = " ";
     format.align = default_align;
-    format.alternate = 0;
-    format.sign = "\0";
-    format.width = -1;
-    format.thousands_separators = .LT_NO_LOCALE;
-    format.precision = -1;
     format.type = default_type;
     
     /* If the second char is an alignment token,
@@ -1236,13 +1224,13 @@ func parse_internal_render_format_spec(_ format_spec:PyObject,
     if (end-pos >= 2 && is_alignment_token(format_spec[pos+1])) {
         format.align = format_spec[pos+1]
         format.fill_char = format_spec[pos]
-        fill_char_specified = 1;
-        align_specified = 1;
+        fill_char_specified = true
+        align_specified = true
         pos += 2;
     }
     else if (end-pos >= 1 && is_alignment_token(format_spec[pos])) {
         format.align = format_spec[pos]
-        align_specified = 1;
+        align_specified = true
         pos += 1
     }
     
@@ -2182,7 +2170,7 @@ func PyOS_double_to_string(_ val:double,
 /*********** string formatting ******************************************/
 /************************************************************************/
 
-func format_string_internal(_ value:PyObject, _ format:InternalFormatSpec,
+func format_string_internal(_ value:String, _ format:InternalFormatSpec,
                             _ writer:inout _PyUnicodeWriter) -> Result<int,PyException>
 {
     var lpad:Py_ssize_t
@@ -2249,7 +2237,7 @@ func format_long_internal(_ value:PyObject, _ format:InternalFormatSpec,
                           _ writer:inout _PyUnicodeWriter) -> Result<int,PyException>
 {
     var result:int = -1;
-    var tmp:PyObject = NULL;
+    var tmp:PyObject
     var inumeric_chars:Py_ssize_t
     var sign_char:Py_UCS4 = "\0"
     var n_digits:Py_ssize_t       /* count of digits need from the computed string */
@@ -2401,7 +2389,7 @@ func format_long_internal(_ value:PyObject, _ format:InternalFormatSpec,
 /************************************************************************/
 
 /* much of this is taken from unicodeobject.c */
-func format_float_internal(_ value:PyObject,
+func format_float_internal(_ value:Float80,
                            _ format:InternalFormatSpec,
                            _ writer:inout _PyUnicodeWriter) -> Result<int,PyException>
 {
@@ -2836,13 +2824,10 @@ func _PyUnicode_FormatAdvancedWriter(_ writer:inout _PyUnicodeWriter,
 
 func _PyLong_FormatAdvancedWriter(_ writer:inout _PyUnicodeWriter,
                                   _ obj:PyObject,
-                                  _ format_spec:PyObject,
+                                  _ format_spec:String,
                                   _ start:Py_ssize_t, _ end:Py_ssize_t) -> Result<int,PyException>
 {
-    var tmp:PyObject
-    var str:PyObject
     var format:InternalFormatSpec
-    var result:int = -1;
     
     /* check for the special case of zero length format spec, make
      it equivalent to str(obj) */
@@ -2868,23 +2853,22 @@ func _PyLong_FormatAdvancedWriter(_ writer:inout _PyUnicodeWriter,
     /* type conversion? */
     if "bcdoxXn".contains(format.type){
         /* no type conversion needed, already an int.  do the formatting */
-        result = format_long_internal(obj, format, &writer);
+        return format_long_internal(obj, format, &writer)
     } else if "eEfFgG%".contains(format.type){
         /* convert to float */
-        tmp = PyNumber_Float(obj);
-        if (tmp == NULL){
-            return result;
-        }
-        result = format_float_internal(tmp, format, &writer);
+        
+        let tmp = obj as! Float80 // 精度の高い少数型へ変換
+
+        return format_float_internal(tmp, format, &writer)
     } else {
         return unknown_presentation_type(format.type, obj)
     }
-    return .success(result)
+    return .success(0)
 }
 
 func _PyFloat_FormatAdvancedWriter(_ writer:inout _PyUnicodeWriter,
                                    _ obj:PyObject,
-                                   _ format_spec:PyObject,
+                                   _ format_spec:String,
     _ start:Py_ssize_t, _ end:Py_ssize_t) -> Result<int,PyException>
 {
     var format:InternalFormatSpec
@@ -2916,7 +2900,7 @@ func _PyFloat_FormatAdvancedWriter(_ writer:inout _PyUnicodeWriter,
 
 func _PyComplex_FormatAdvancedWriter(_ writer:inout _PyUnicodeWriter,
                                      _ obj:PyObject,
-    _ format_spec:PyObject,
+    _ format_spec:String,
     _ start:Py_ssize_t, _ end:Py_ssize_t) -> Result<int,PyException>
 {
     var format:InternalFormatSpec
