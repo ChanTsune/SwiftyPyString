@@ -140,6 +140,9 @@ func PyUnicode_Substring(_ str:PyObject,_ start:Py_ssize_t,_ end:Py_ssize_t) -> 
     return tmp[start,end]
 }
 
+func PyObject_Format(_ obj:Any,_ format_spec:String) -> String {
+    return String(describing: obj)
+}
 
 /* return a new string.  if str->str is NULL, return None */
 func SubString_new_object(_ str:SubString) -> String
@@ -321,7 +324,7 @@ func _FieldNameIterator_attr(_ self:inout FieldNameIterator, _ name:inout SubStr
 
 func _FieldNameIterator_item(_ self:inout FieldNameIterator, name:inout SubString) -> Result<int,PyException>
 {
-    var bracket_seen:Int = 0;
+    var bracket_seen = false
     var c:Py_UCS4
     
     name.str = self.str.str;
@@ -333,7 +336,7 @@ func _FieldNameIterator_item(_ self:inout FieldNameIterator, name:inout SubStrin
         self.index += 1
         switch (c) {
         case "]":
-            bracket_seen = 1;
+            bracket_seen = true
             break;
         default:
             continue;
@@ -1171,7 +1174,7 @@ enum LocaleType : Character {
 struct InternalFormatSpec{
     var fill_char:Py_UCS4 = " "
     var align:Py_UCS4
-    var alternate:int = 0
+    var alternate:Bool = false
     var sign:Py_UCS4 = "\0"
     var width:Py_ssize_t = -1
     var thousands_separators:LocaleType = .LT_NO_LOCALE
@@ -1243,7 +1246,7 @@ func parse_internal_render_format_spec(_ format_spec:String,
     /* If the next character is #, we're in alternate mode.  This only
      applies to integers. */
     if (end-pos >= 1 && format_spec[pos] == "#") {
-        format.alternate = 1;
+        format.alternate = true
         pos += 1
     }
     
@@ -1273,24 +1276,24 @@ func parse_internal_render_format_spec(_ format_spec:String,
     }
     
     /* Comma signifies add thousands separators */
-    if (end-pos && format_spec[pos] == ",") {
+    if  (end-pos) != 0 && format_spec[pos] == "," {
         format.thousands_separators = .LT_DEFAULT_LOCALE;
         pos += 1
     }
     /* Underscore signifies add thousands separators */
-    if (end-pos && format_spec[pos] == "_") {
+    if (end-pos) != 0 && format_spec[pos] == "_" {
         if (format.thousands_separators != .LT_NO_LOCALE) {
             return invalid_comma_and_underscore()
         }
         format.thousands_separators = .LT_UNDERSCORE_LOCALE;
         pos += 1
     }
-    if (end-pos && format_spec[pos] == ",") {
+    if (end-pos) != 0 && format_spec[pos] == "," {
         return invalid_comma_and_underscore()
     }
     
     /* Parse field precision */
-    if (end-pos && format_spec[pos] == ".") {
+    if (end-pos) != 0 && format_spec[pos] == "." {
         pos += 1
         
         switch get_integer(format_spec, &pos, end, result: &format.precision) {
@@ -1325,24 +1328,23 @@ func parse_internal_render_format_spec(_ format_spec:String,
      specifier.  Do not take into account what type of formatting
      we're doing (int, float, string). */
     
-    if (format.thousands_separators) {
-        switch (format.type) {
-        case "d", "e", "f", "g", "E", "G", "%", "F", "\0":
-            /* These are allowed. See PEP 378.*/
+    switch format.type {
+    case "d", "e", "f", "g", "E", "G", "%", "F", "\0":
+        /* These are allowed. See PEP 378.*/
+        break;
+    case "b", "o", "x", "X":
+        /* Underscores are allowed in bin/oct/hex. See PEP 515. */
+        if format.thousands_separators == .LT_UNDERSCORE_LOCALE {
+            /* Every four digits, not every three, in bin/oct/hex. */
+            format.thousands_separators = .LT_UNDER_FOUR_LOCALE
             break;
-        case "b", "o", "x", "X":
-            /* Underscores are allowed in bin/oct/hex. See PEP 515. */
-            if (format.thousands_separators == .LT_UNDERSCORE_LOCALE) {
-                /* Every four digits, not every three, in bin/oct/hex. */
-                format.thousands_separators = .LT_UNDER_FOUR_LOCALE;
-                break;
-            }
-            /* fall through */
-            fallthrough
-        default:
-            return invalid_thousands_separator_type(format.thousands_separators.rawValue, format.type)
         }
+        /* fall through */
+        fallthrough
+    default:
+        return invalid_thousands_separator_type(format.thousands_separators.rawValue, format.type)
     }
+    
     
     assert(format.align <= .init(127))
     assert(format.sign <= .init(127))
@@ -1396,15 +1398,15 @@ func fill_padding(_ writer:inout _PyUnicodeWriter,
     var pos:Py_ssize_t
     
     /* Pad on left. */
-    if (n_lpadding) {
+    if (n_lpadding != 0) {
         pos = writer.pos;
-        _PyUnicode_FastFill(writer.buffer, pos, n_lpadding, fill_char);
+        _PyUnicode_FastFill(&writer.buffer, pos, n_lpadding, fill_char);
     }
     
     /* Pad on right. */
-    if (n_rpadding) {
+    if (n_rpadding != 0) {
         pos = writer.pos + nchars + n_lpadding;
-        _PyUnicode_FastFill(writer.buffer, pos, n_rpadding, fill_char);
+        _PyUnicode_FastFill(&writer.buffer, pos, n_rpadding, fill_char);
     }
     
     /* Pointer to the user content. */
@@ -2389,7 +2391,7 @@ func format_long_internal(_ value:PyObject, _ format:InternalFormatSpec,
 /************************************************************************/
 
 /* much of this is taken from unicodeobject.c */
-func format_float_internal(_ value:Float80,
+func format_float_internal(_ value:double,
                            _ format:InternalFormatSpec,
                            _ writer:inout _PyUnicodeWriter) -> Result<int,PyException>
 {
@@ -2409,7 +2411,7 @@ func format_float_internal(_ value:Float80,
     var result:int = -1
     var sign_char:Py_UCS4 = "\0"
     var float_type:int /* Used to see if we have a nan, inf, or regular float. */
-    var unicode_tmp:PyObject = NULL;
+    var unicode_tmp:String
     
     /* Locale settings, either from the actual locale or
      from a hard-code pseudo-locale */
@@ -2439,10 +2441,7 @@ func format_float_internal(_ value:Float80,
         type = "g";
     }
     
-    val = PyFloat_AsDouble(value);
-    if (val == -1.0 && PyErr_Occurred()){
-        return result;
-    }
+    val = value
     
     if (type == "%") {
         type = "f"
@@ -2857,7 +2856,7 @@ func _PyLong_FormatAdvancedWriter(_ writer:inout _PyUnicodeWriter,
     } else if "eEfFgG%".contains(format.type){
         /* convert to float */
         
-        let tmp = obj as! Float80 // 精度の高い少数型へ変換
+        let tmp = obj as! double // 精度の高い少数型へ変換
 
         return format_float_internal(tmp, format, &writer)
     } else {
