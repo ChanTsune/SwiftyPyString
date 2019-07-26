@@ -64,7 +64,7 @@ public class Slice {
     init(start:Int?,end:Int?,step:Int?=nil){
         self.start = start
         self.end = end
-        self.step = nil
+        self.step = step
     }
 }
 
@@ -95,10 +95,27 @@ enum PyException : Error {
     case OverflowError(String)
 }
 
+public func * (str:String,n:Int) -> String {
+    return String(repeating: str, count: n)
+}
+public func * (n:Int,str:String) -> String {
+    return String(repeating: str, count: n)
+}
+public func *= (str:inout String,n:Int) {
+    str = String(repeating: str, count: n)
+}
+
+
 extension String {
     
     public subscript (_ i: Int) -> Character {
-        return self[self.index(self.startIndex, offsetBy: backIndex(i: i, l: self.count))]
+        get {
+            return self[self.index(self.startIndex, offsetBy: backIndex(i: i, l: self.count))]
+        } set(c) {
+            let v = self.index(self.startIndex,offsetBy: backIndex(i: i, l: self.count))
+            let v2 = self.index(v,offsetBy: 1)
+            self.replaceSubrange(v..<v2, with: [c])
+        }
     }
     public subscript (_ start:Int?,end:Int?,step:Int?) -> String {
         let step_:Int = step ?? 1
