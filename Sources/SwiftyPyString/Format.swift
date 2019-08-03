@@ -3120,21 +3120,88 @@ func _PyComplex_FormatAdvancedWriter(_ writer:inout _PyUnicodeWriter,
 }
 
 protocol FormatableNumeric {}
-protocol FormatableInteger:FormatableNumeric {}
-protocol FormatableFloat:FormatableNumeric {}
-extension Int:FormatableInteger {}
-extension Int8:FormatableInteger {}
-extension Int16:FormatableInteger {}
-extension Int32:FormatableInteger {}
-extension Int64:FormatableInteger {}
-extension UInt:FormatableInteger {}
-extension UInt8:FormatableInteger {}
-extension UInt16:FormatableInteger {}
-extension UInt32:FormatableInteger {}
-extension UInt64:FormatableInteger {}
-extension Float:FormatableFloat {}
-extension Double:FormatableFloat {}
-extension Float80:FormatableFloat {}
+protocol FormatableSignedInteger:FormatableNumeric {
+    func toInt64() -> Int64;
+}
+protocol FormatableUnSignedInteger:FormatableNumeric {
+    func toUInt64() -> UInt64;
+}
+protocol FormatableFloat:FormatableNumeric {
+    func toDouble() -> Double;
+    func nround(_ ndigits:Int) -> Double;
+}
+extension FormatableFloat {
+    func nround(_ ndigits:Int=0) -> Double {
+        let ndigits = Double(ndigits)
+        let n = pow(10,ndigits)
+        return round(self.toDouble() * n) / n
+    }
+}
+extension Int:FormatableSignedInteger {
+    func toInt64() -> Int64 {
+        return Int64(self)
+    }
+}
+extension Int8:FormatableSignedInteger {
+    func toInt64() -> Int64 {
+        return Int64(self)
+    }
+}
+extension Int16:FormatableSignedInteger {
+    func toInt64() -> Int64 {
+        return Int64(self)
+    }
+}
+extension Int32:FormatableSignedInteger {
+    func toInt64() -> Int64 {
+        return Int64(self)
+    }
+}
+extension Int64:FormatableSignedInteger {
+    func toInt64() -> Int64 {
+        return Int64(self)
+    }
+}
+extension UInt:FormatableUnSignedInteger {
+    func toUInt64() -> UInt64 {
+        return UInt64(self)
+    }
+}
+extension UInt8:FormatableUnSignedInteger {
+    func toUInt64() -> UInt64 {
+        return UInt64(self)
+    }
+}
+extension UInt16:FormatableUnSignedInteger {
+    func toUInt64() -> UInt64 {
+        return UInt64(self)
+    }
+}
+extension UInt32:FormatableUnSignedInteger {
+    func toUInt64() -> UInt64 {
+        return UInt64(self)
+    }
+}
+extension UInt64:FormatableUnSignedInteger {
+    func toUInt64() -> UInt64 {
+        return UInt64(self)
+    }
+}
+extension Float:FormatableFloat {
+    func toDouble() -> Double {
+        return Double(self)
+    }
+}
+extension Double:FormatableFloat {
+    func toDouble() -> Double {
+        return Double(self)
+    }
+}
+extension Float80:FormatableFloat {
+    func toDouble() -> Double {
+        return Double(self)
+    }
+}
 
 extension String {
     public func format(_ args:Any..., kwargs:[String:Any]) -> String {
