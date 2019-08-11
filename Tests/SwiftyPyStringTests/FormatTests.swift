@@ -8,8 +8,15 @@ import XCTest
 
 final class FormatTests : XCTestCase {
     func testFormat() throws {
-//        let str = "{{abc}}{:}".format(["abc"] ,kwargs: [:])
-//        XCTAssertEqual(str, "{abc}abc")
+        let fstr = "{}{:5}"
+        XCTAssertEqual(fstr.format("12","93"), "12   93")
+    }
+    func testFormatFloat() throws {
+        let str = FloatFormatter.SpecifiedFloatNumberFormat(1.112,accuracy: 0)
+        let str2 = FloatFormatter.SpecifiedFloatNumberFormat(1.112,accuracy: 1)
+        XCTAssertEqual(str, "1")
+        XCTAssertEqual(str2, "1.1")
+        
     }
     
     /// Returns path to the built products directory.
