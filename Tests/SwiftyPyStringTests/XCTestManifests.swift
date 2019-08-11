@@ -5,7 +5,6 @@ public func allTests() -> [XCTestCaseEntry] {
     return [
         testCase(SliceTests.allTests),
         testCase(SwiftyPyStringTests.allTests),
-        testCase(FormatTests.allTests),
     ]
 }
 #endif

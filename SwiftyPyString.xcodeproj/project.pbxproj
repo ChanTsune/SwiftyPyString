@@ -24,8 +24,6 @@
 		B51620C022CF9FB700D2BF10 /* SwiftyPyStringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_12 /* SwiftyPyStringTests.swift */; };
 		B51620C322D3862B00D2BF10 /* SwiftyPyString.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_9 /* SwiftyPyString.swift */; };
 		B51620C722D7230D00D2BF10 /* casefoldTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = B51620C622D7230D00D2BF10 /* casefoldTable.swift */; };
-		B51620C922D85B7600D2BF10 /* Format.swift in Sources */ = {isa = PBXBuildFile; fileRef = B51620C822D85B7600D2BF10 /* Format.swift */; };
-		B51620CE22E04D0200D2BF10 /* FormatTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B51620CD22E04D0100D2BF10 /* FormatTests.swift */; };
 		B54DDD6422EAD8870083970A /* SliceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B54DDD6322EAD8870083970A /* SliceTests.swift */; };
 		OBJ_33 /* Package.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_6 /* Package.swift */; };
 		OBJ_45 /* XCTestManifests.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_13 /* XCTestManifests.swift */; };
@@ -50,8 +48,6 @@
 
 /* Begin PBXFileReference section */
 		B51620C622D7230D00D2BF10 /* casefoldTable.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = casefoldTable.swift; sourceTree = "<group>"; };
-		B51620C822D85B7600D2BF10 /* Format.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Format.swift; sourceTree = "<group>"; };
-		B51620CD22E04D0100D2BF10 /* FormatTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FormatTests.swift; sourceTree = "<group>"; };
 		B54DDD6322EAD8870083970A /* SliceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SliceTests.swift; sourceTree = "<group>"; };
 		OBJ_12 /* SwiftyPyStringTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftyPyStringTests.swift; sourceTree = "<group>"; };
 		OBJ_13 /* XCTestManifests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XCTestManifests.swift; sourceTree = "<group>"; };
@@ -95,7 +91,6 @@
 				OBJ_12 /* SwiftyPyStringTests.swift */,
 				OBJ_13 /* XCTestManifests.swift */,
 				B54DDD6322EAD8870083970A /* SliceTests.swift */,
-				B51620CD22E04D0100D2BF10 /* FormatTests.swift */,
 			);
 			name = SwiftyPyStringTests;
 			path = Tests/SwiftyPyStringTests;
@@ -135,7 +130,6 @@
 			children = (
 				B51620C622D7230D00D2BF10 /* casefoldTable.swift */,
 				OBJ_9 /* SwiftyPyString.swift */,
-				B51620C822D85B7600D2BF10 /* Format.swift */,
 			);
 			name = SwiftyPyString;
 			path = Sources/SwiftyPyString;
@@ -228,7 +222,6 @@
 			files = (
 				B51620C322D3862B00D2BF10 /* SwiftyPyString.swift in Sources */,
 				B51620C722D7230D00D2BF10 /* casefoldTable.swift in Sources */,
-				B51620C922D85B7600D2BF10 /* Format.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -247,7 +240,6 @@
 				OBJ_45 /* XCTestManifests.swift in Sources */,
 				B51620C022CF9FB700D2BF10 /* SwiftyPyStringTests.swift in Sources */,
 				B54DDD6422EAD8870083970A /* SliceTests.swift in Sources */,
-				B51620CE22E04D0200D2BF10 /* FormatTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
