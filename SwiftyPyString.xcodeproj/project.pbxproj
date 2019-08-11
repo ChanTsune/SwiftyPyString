@@ -56,9 +56,7 @@
 		OBJ_12 /* SwiftyPyStringTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftyPyStringTests.swift; sourceTree = "<group>"; };
 		OBJ_13 /* XCTestManifests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XCTestManifests.swift; sourceTree = "<group>"; };
 		OBJ_17 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
-		OBJ_18 /* UnicodeData.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = UnicodeData.txt; sourceTree = "<group>"; };
 		OBJ_19 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		OBJ_20 /* makeunicodedata.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = makeunicodedata.py; sourceTree = "<group>"; };
 		OBJ_6 /* Package.swift */ = {isa = PBXFileReference; explicitFileType = sourcecode.swift; path = Package.swift; sourceTree = "<group>"; };
 		OBJ_9 /* SwiftyPyString.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftyPyString.swift; sourceTree = "<group>"; };
 		"SwiftyPyString::SwiftyPyString::Product" /* SwiftyPyString.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = SwiftyPyString.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -120,9 +118,7 @@
 				OBJ_10 /* Tests */,
 				OBJ_14 /* Products */,
 				OBJ_17 /* LICENSE */,
-				OBJ_18 /* UnicodeData.txt */,
 				OBJ_19 /* README.md */,
-				OBJ_20 /* makeunicodedata.py */,
 			);
 			sourceTree = "<group>";
 		};
