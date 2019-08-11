@@ -9,19 +9,19 @@ import XCTest
 
 final class SliceTests : XCTestCase {
     func testSliceInit() throws {
-        let slice1 = Slice(end: 1)
+        let slice1 = Slice(stop: 1)
         XCTAssertNil(slice1.start)
-        XCTAssertEqual(slice1.end, 1)
+        XCTAssertEqual(slice1.stop, 1)
         XCTAssertNil(slice1.step)
 
-        let slice2 = Slice(start: 1, end: 2)
+        let slice2 = Slice(start: 1, stop: 2)
         XCTAssertEqual(slice2.start, 1)
-        XCTAssertEqual(slice2.end, 2)
+        XCTAssertEqual(slice2.stop, 2)
         XCTAssertNil(slice2.step)
 
-        let slice3 = Slice(start: 1, end: 2,step: 3)
+        let slice3 = Slice(start: 1, stop: 2,step: 3)
         XCTAssertEqual(slice3.start, 1)
-        XCTAssertEqual(slice3.end, 2)
+        XCTAssertEqual(slice3.stop, 2)
         XCTAssertEqual(slice3.step, 3)
     }
     
