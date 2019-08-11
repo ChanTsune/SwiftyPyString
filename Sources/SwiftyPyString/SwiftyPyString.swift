@@ -38,90 +38,168 @@ extension Character {
     public var isTitlecase:Bool {
         return self.toTitle() == self
     }
-    
+    public func isdecimal() -> Bool {
+        return self.properties.generalCategory == .decimalNumber
+    }
+    public func isdigit() -> Bool {
+        if let numericType = self.properties.numericType {
+            return numericType == .decimal || numericType == .digit
+        }
+        return false
+    }
 }
 
 public let PYTHON_VERSION = "3.7.2"
 
 public class Slice {
-    var start:Int?
-    var end:Int?
-    var step:Int?
+    var start:Int? = nil
+    var stop:Int?
+    var step:Int? = nil
     
-    init(end:Int?){
-        self.start = nil
-        self.end = end
-        self.step = nil
+    init(stop:Int?){
+        self.stop = stop
     }
-    init(start:Int?,end:Int?,step:Int?=nil){
+    init(start:Int?,stop:Int?,step:Int?=nil){
         self.start = start
-        self.end = end
-        self.step = nil
+        self.stop = stop
+        self.step = step
+    }
+    func adjustIndex(_ length:Int) -> (Int,Int,Int,Int) {
+        func _PyLong_Sign(_ n:Int) -> Int {
+            if n == 0 { return 0 }
+            else if (n > 0) { return 1 }
+            else { return -1 }
+        }
+        let step:Int = self.step ?? 1
+        var start:Int = 0
+        var stop:Int = 0
+        var upper:Int = 0
+        var lower:Int = 0
+        
+        // Convert step to an integer; raise for zero step.
+        let step_sign:Int = _PyLong_Sign(step)
+        let step_is_negative:Bool = step_sign < 0
+        
+        /* Find lower and upper bounds for start and stop. */
+        if (step_is_negative) {
+            lower = -1
+            upper = length + lower
+        }
+        else {
+            lower = 0
+            upper = length
+        }
+        
+        // Compute start.
+        if let s = self.start {
+            start = s
+            
+            if (_PyLong_Sign(start) < 0) {
+                start += length
+                
+                if (start < lower /* Py_LT */) {
+                    start = lower
+                }
+            }
+            else {
+                if (start > upper /* Py_GT */) {
+                    start = upper
+                }
+            }
+        }
+        else {
+            start = step_is_negative ? upper : lower
+        }
+        
+        // Compute stop.
+        if let s = self.stop {
+            stop = s
+            
+            if (_PyLong_Sign(stop) < 0) {
+                stop += length
+                if (stop < lower /* Py_LT */) {
+                    stop = lower
+                }
+            }
+            else {
+                if (stop > upper /* Py_GT */) {
+                    stop = upper
+                }
+            }
+        }
+        else {
+            stop = step_is_negative ? lower : upper
+        }
+        var len = 0
+        if (step < 0) {
+            if (stop < start) {
+                len = (start - stop - 1) / (-step) + 1
+            }
+        }
+        else {
+            if (start < stop) {
+                len = (stop - start - 1) / step + 1
+            }
+        }
+        return (start,stop,step,len)
     }
 }
 
 func backIndex(i:Int,l:Int) -> Int{
     return i < 0 ? l + i : i
 }
-func overIndex(i:Int,l:Int) -> Int{
-    return l < i ? l : i
-}
-func underIndex(i:Int,l:Int) -> Int{
-    return i < 0 ? 0 : i
+
+enum PyException : Error {
+    case AttributeError(String)
+    case BaseException(String)
+    case Exception(String)
+    case ValueError(String)
+    case KeyError(String)
+    case IndexError(String)
+    case TypeError(String)
+    case SystemError(String)
+    case OverflowError(String)
 }
 
-public func adjustIndex(start:Int?,end:Int?,len:Int) -> (Int,Int) {
-    return (underIndex(i: overIndex(i: backIndex(i: start ?? 0, l: len), l: len), l: len),
-            underIndex(i: overIndex(i: backIndex(i: end ?? len, l: len), l: len), l: len))
+public func * (str:String,n:Int) -> String {
+    return String(repeating: str, count: n)
+}
+public func * (n:Int,str:String) -> String {
+    return String(repeating: str, count: n)
+}
+public func *= (str:inout String,n:Int) {
+    str = String(repeating: str, count: n)
 }
 
-public class BaseException : Error {
-    
-}
 
-public class Exception : BaseException {
-    
-}
-
-public class ValueError : Exception {
-    
-}
 extension String {
     
     public subscript (_ i: Int) -> Character {
-        return self[self.index(self.startIndex, offsetBy: backIndex(i: i, l: self.count))]
+        get {
+            return self[self.index(self.startIndex, offsetBy: backIndex(i: i, l: self.count))]
+        } set(c) {
+            let v = self.index(self.startIndex,offsetBy: backIndex(i: i, l: self.count))
+            let v2 = self.index(v,offsetBy: 1)
+            self.replaceSubrange(v..<v2, with: [c])
+        }
     }
-    public subscript (_ start:Int?,end:Int?,step:Int?) -> String {
-        let step_:Int = step ?? 1
-        if step_ == 1 {
-            return self[start,end]
-        }
-        let (start_,end_) = adjustIndex(start: start, end: end, len: self.count)
-        var str:String = ""
-        var index = start_
-        if step_ < 0 {
-            let revself = String(self.reversed())
-            if step_ == -1 {
-                return revself
-            }
-            while index < end_ {
-                str.append(revself[index])
-                index -= step_
-            }
-            return str
-        }
-        while index < end_ {
-            str.append(self[index])
-            index += step_
-        }
-        return str
+    public subscript (_ start:Int?,_ stop:Int?,_ step:Int?) -> String {
+        return self[Slice(start: start, stop: stop, step: step)]
     }
-    public subscript (_ start:Int?,end:Int?) -> String {
-        let (s,e) = adjustIndex(start: start, end: end, len: self.count)
-        return String(self.prefix(e).dropFirst(s))
+    public subscript (_ start:Int?,_ end:Int?) -> String {
+        return self[start,end,nil]
     }
     public subscript (_ slice:Slice) -> String {
-        return self[slice.start,slice.end,slice.step]
+        var (start,stop,step,loop) = slice.adjustIndex(self.count)
+        if step == 0 {
+            return String(self.prefix(stop).dropFirst(start))
+        }
+        var result = ""
+        for _ in 0..<loop {
+            result.append(self[start])
+            start += step
+        }
+        return result
     }
     public func capitalize() -> String {
         return self.prefix(1).uppercased() + self.dropFirst(1).lowercased();
@@ -134,7 +212,7 @@ extension String {
         return folded
     }
     public func center(_ width:Int,fillchar:Character=" ") -> String {
-        if self.count >= width{
+        if self.count >= width {
             return self
         }
         let left = width - self.count
@@ -182,7 +260,7 @@ extension String {
     public func find(_ sub:String, start:Int?=nil,end:Int?=nil) -> Int {
         // BMH algorithm
         
-        let (s, e) = adjustIndex(start: start, end: end, len: self.count)
+        let (s, e,_,_) = Slice(start: start, stop: end).adjustIndex(self.count)
         var i = s
         let fin = e - sub.count
         while i <= fin {
@@ -214,7 +292,7 @@ extension String {
     public func index(_ sub:String,start:Int?=nil,end:Int?=nil) throws -> Int {
         let i = self.find(sub,start: start,end: end)
         if i == -1 {
-            throw ValueError()
+            throw PyException.ValueError("substring not found")
         }
         return i
     }
@@ -428,11 +506,10 @@ extension String {
     }
     public func rfind(_ sub:String,start:Int?=nil,end:Int?=nil) -> Int {
         // TODO:Impl
-        var (s, e) = adjustIndex(start: start, end: end, len: self.count)
+        var (s, e,_,_) = Slice(start: start, stop: end).adjustIndex(self.count)
         s -= 1
         var fin = e - sub.count
         while fin != s {
-            print(self[fin, fin + sub.count ])
             if self[fin, fin + sub.count ] == sub {
                 return fin
             }
@@ -443,7 +520,7 @@ extension String {
     public func rindex(_ sub:String,start:Int?=nil,end:Int?=nil) throws -> Int {
         let i = self.rfind(sub,start: start,end:end)
         if i == -1 {
-            throw ValueError()
+            throw PyException.ValueError("substring not found")
         }
         return i;
     }
