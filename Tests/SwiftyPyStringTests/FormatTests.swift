@@ -9,6 +9,7 @@ import XCTest
 final class FormatTests : XCTestCase {
     func testFormat() throws {
         let fstr = "{}{:5}"
+        XCTAssertEqual(fstr.format(nil,nil), "nilnil")
         XCTAssertEqual(fstr.format("12","93"), "12   93")
     }
     func testFormatFloat() throws {
