@@ -149,7 +149,7 @@ func backIndex(i: Int, l: Int) -> Int {
     return i < 0 ? l + i : i
 }
 
-enum PyException: Error {
+public enum PyException: Error {
     case AttributeError(String)
     case BaseException(String)
     case Exception(String)
