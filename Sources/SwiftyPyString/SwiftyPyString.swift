@@ -56,10 +56,10 @@ public class Slice {
     var stop:Int?
     var step:Int? = nil
     
-    init(stop:Int?){
+    public init(stop:Int?){
         self.stop = stop
     }
-    init(start:Int?,stop:Int?,step:Int?=nil){
+    public init(start:Int?,stop:Int?,step:Int?=nil){
         self.start = start
         self.stop = stop
         self.step = step
