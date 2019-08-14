@@ -2,8 +2,7 @@
 //  SwiftyPyString.swift
 //  SwiftyPyString
 //
-//  Created by 恒川大輝 on 2019/07/05.
-//
+
 extension Character {
     public init(_ i: Int) {
         self.self = Character(UnicodeScalar(i)!)

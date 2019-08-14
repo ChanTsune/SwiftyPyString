@@ -1324,6 +1324,6 @@ let casefoldTable:[UInt32:String] = [
 
 ]
 
-func getFolded(_ c:Character) -> String {
-    return casefoldTable[c.unicode.value,default:String(c)]
+func getFolded(_ c: Character) -> String {
+    return casefoldTable[c.unicode.value, default: String(c)]
 }
