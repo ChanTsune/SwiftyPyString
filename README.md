@@ -1,14 +1,35 @@
 # SwiftyPyString  
+![Cocoapods](https://img.shields.io/cocoapods/l/SwiftyPyString)
+![GitHub release](https://img.shields.io/github/release/ChanTsune/SwiftyPyString)
+![Cocoapods platforms](https://img.shields.io/cocoapods/p/SwiftyPyString)
+![Swift Version](https://img.shields.io/badge/Swift-5-blue.svg)
+  
 SwiftyPyString is a string extension for Swift.  
 This library provide Python compliant String operation methods.  
 
 ## Installation  
 
 ### Cocoapods  
-```
+```ruby
 pod 'SwiftyPyString'
 ```
 
+### Carthage  
+```bash
+github 'ChanTsune/SwiftyPyString'
+```
+
+### Swift Package Manager
+```swift
+import PackageDescription
+
+let package = Package(
+    name: "YourProject",
+    dependencies: [
+        .Package(url: "https://github.com/ChanTsune/SwiftyPyString.git", from: "1.0.1")
+    ]
+)
+```
 ## Usage  
 ```swift
 import SwiftyPyString
@@ -82,8 +103,8 @@ str[nil,nil,-1]
 Use Slice object case 
 ```swift
 let str = "0123456789"
-var slice = Slice(start:0,stop:5)
-var sliceStep = Slice(start:0,stop:8,step:2)
+var slice = Slice(start:0, stop:5)
+var sliceStep = Slice(start:0, stop:8, step:2)
 
 str[slice]
 // 01234
@@ -97,3 +118,7 @@ var s = "Hello World! " * 2
 
 // Hello World! Hello World! 
 ```
+
+## License
+
+SwiftPyString is available under the MIT license. See the LICENSE file for more info.  
