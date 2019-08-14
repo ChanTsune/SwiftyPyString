@@ -125,6 +125,16 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertFalse("lower Case string".islower())
         XCTAssertFalse("小文字では無い".islower())
     }
+    func testIsPrintable() throws {
+        XCTAssertTrue("".isprintable())
+        XCTAssertTrue("abc".isprintable())
+        XCTAssertFalse("\u{060D}".isprintable())
+    }
+    func testIsApace() throws {
+        XCTAssertTrue(" ".isspace())
+        XCTAssertFalse("".isspace())
+        XCTAssertFalse("Speace".isspace())
+    }
     func testIsNumeric() throws {
         XCTAssertTrue("123".isnumeric())
         XCTAssertTrue("１２３４５".isnumeric())
@@ -138,6 +148,11 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertFalse("not Title Case String".istitle())
         XCTAssertFalse("NotTitleCaseString".istitle())
         XCTAssertFalse("Not Title case String".istitle())
+    }
+    func testIsUpper() throws {
+        XCTAssertTrue("UPPER CASE STRING".isupper())
+        XCTAssertFalse("Upper Case String".isupper())
+        XCTAssertFalse("大文字では無い".isupper())
     }
     func testJoin() throws {
         let arry = ["abc","def","ghi"]
