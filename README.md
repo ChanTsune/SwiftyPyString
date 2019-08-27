@@ -1,6 +1,7 @@
 # SwiftyPyString  
 
 ![Cocoapods](https://img.shields.io/cocoapods/l/SwiftyPyString)
+![carthage](https://img.shields.io/badge/carthage-compatible-brightgreen.svg)
 ![GitHub release](https://img.shields.io/github/release/ChanTsune/SwiftyPyString)
 ![Cocoapods platforms](https://img.shields.io/cocoapods/p/SwiftyPyString)
 ![Swift Version](https://img.shields.io/badge/Swift-5-blue.svg)
