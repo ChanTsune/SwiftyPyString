@@ -4,28 +4,6 @@ import XCTest
 final class SwiftyPyStringTests: XCTestCase {
 
     func test_CompileTime() throws { }
-    func testSlice() throws {
-        let str = "0123456789"
-        XCTAssertEqual(str[1, 1], "")
-        XCTAssertEqual(str[1, 2], "1")
-        XCTAssertEqual(str[0, 20], "0123456789")
-        XCTAssertEqual(str[0, 10, 2], "02468")
-        XCTAssertEqual(str[0, 10, 3], "0369")
-    }
-    func testSliceNil() throws {
-        let str = "0123456789"
-        XCTAssertEqual(str[1, nil], "123456789")
-        XCTAssertEqual(str[nil, nil, 2], "02468")
-        XCTAssertEqual(str[nil, 5], "01234")
-        XCTAssertEqual(str[nil, nil, nil], "0123456789")
-    }
-    func testSliceNegate() throws {
-        let str = "0123456789"
-        XCTAssertEqual(str[-5, -1], "5678")
-        XCTAssertEqual(str[-5, -20], "")
-        XCTAssertEqual(str[nil, nil, -1], "9876543210")
-        XCTAssertEqual(str[nil, nil, -2], "97531")
-    }
     func testCapitalize() throws {
         let case1 = "hello world!"
         let case2 = "Hello World!"
