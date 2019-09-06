@@ -42,7 +42,9 @@ let package = Package(
 import SwiftyPyString
 ```
 
-### String sliceing subscript  
+### String extension
+
+#### String sliceing subscript  
 
 ```swift
 let str = "0123456789"
@@ -50,8 +52,13 @@ str[0]
 // 0
 str[-1]
 // 9
+```
 
-// slice
+#### Slice String
+
+```swift
+let str = "0123456789"
+
 str[0,5]
 // 01234
 str[0,8,2]
@@ -73,7 +80,7 @@ str[sliceStep]
 // 0246
 ```
 
-### String Multiplication  
+#### String Multiplication  
 
 ```swift
 var s = "Hello World! " * 2
@@ -81,21 +88,21 @@ var s = "Hello World! " * 2
 // "Hello World! Hello World! "
 ```
 
-## Methods  
+### Methods  
 
-### capitalize()  
+#### capitalize()  
 
 ```swift
 "hello world!".capitalize() // "Hello world!"
 ```
 
-### casefold()  
+#### casefold()  
 
 ```swift
 "ß".casefold() // "ss"
 ```
 
-### center(width [,fillchar])  
+#### center(width [,fillchar])  
 
 ```swift
 "1234".center(10) // "   1234   "
@@ -104,7 +111,7 @@ var s = "Hello World! " * 2
 "123"center(10,fillchar:"0") // "0001230000"
 ```
 
-### count(sub [,start [,end]])  
+#### count(sub [,start [,end]])  
 
 ```swift
 "abc abc abc".count("abc") // 3
@@ -112,7 +119,7 @@ var s = "Hello World! " * 2
 "bbbbbbbbbb".count("bb", end:8) // 4
 ```
 
-### endswith(suffix [,start [,end]])  
+#### endswith(suffix [,start [,end]])  
 
 ```swift
 "hello world!".endswith("!") // true
@@ -121,14 +128,14 @@ var s = "Hello World! " * 2
 "hello".endswith(["hello","world","!"]) // true
 ```
 
-### expandtabs(tabsize=8)  
+#### expandtabs(tabsize=8)  
 
 ```swift
 "abc\tabc\t".expandtabs() // "abc        abc        "
 "abc\tabc\t".expandtabs(4) // "abc    abc    "
 ```
 
-### find(sub [,start [,end]])  
+#### find(sub [,start [,end]])  
 
 ```swift
 "123412312312345".find("123") // 0
@@ -138,7 +145,7 @@ var s = "Hello World! " * 2
 "123412312312345".find("0") // -1
 ```
 
-### index(sub [,start [,end]]) throws  
+#### index(sub [,start [,end]]) throws  
 
 ```swift
 "123412312312345".index("123") // 0
@@ -148,7 +155,7 @@ var s = "Hello World! " * 2
 "123412312312345".index("0") // throw PyException.ValueError
 ```
 
-### isalnum()  
+#### isalnum()  
 
 ```swift
 "123abc".isalnum() // true
@@ -157,7 +164,7 @@ var s = "Hello World! " * 2
 "abc 123".isalnum() // false
 ```
 
-### isalpha()  
+#### isalpha()  
 
 ```swift
 "I have pen.".isalpha() // false
@@ -167,7 +174,7 @@ var s = "Hello World! " * 2
 "".isalpha() // false
 ```
 
-### isascii()  
+#### isascii()  
 
 ```swift
 "I have pen.".isascii() // trur
@@ -177,7 +184,7 @@ var s = "Hello World! " * 2
 "非ASCII文字列".isascii() // false
 ```
 
-### isdecimal()  
+#### isdecimal()  
 
 ```swift
 "123".isdecimal() // true
@@ -186,7 +193,7 @@ var s = "Hello World! " * 2
 "".isdecimal() // false
 ```
 
-### isdigit()  
+#### isdigit()  
 
 ```swift
 "123".isdigit() // true
@@ -195,7 +202,7 @@ var s = "Hello World! " * 2
 "".isdigit() // true
 ```
 
-### islower()  
+#### islower()  
 
 ```swift
 "lower case string".islower() // true
@@ -205,7 +212,7 @@ var s = "Hello World! " * 2
 "小文字では無い".islower() // false
 ```
 
-### isnumeric()  
+#### isnumeric()  
 
 ```swift
 "123".isnumeric() // true
@@ -214,7 +221,7 @@ var s = "Hello World! " * 2
 "".isnumeric() // false
 ```
 
-### isprintable()  
+#### isprintable()  
 
 ```swift
 "".isprintable() // true
@@ -222,7 +229,7 @@ var s = "Hello World! " * 2
 "\u{060D}".isprintable() // false
 ```
 
-### isspace()  
+#### isspace()  
 
 ```swift
 " ".isspace() // true
@@ -230,7 +237,7 @@ var s = "Hello World! " * 2
 "Speace".isspace() // false
 ```
 
-### istitle()  
+#### istitle()  
 
 ```swift
 "Title Case String".istitle() // true
@@ -241,7 +248,7 @@ var s = "Hello World! " * 2
 "Not Title case String".istitle() // false
 ```
 
-### isupper()  
+#### isupper()  
 
 ```swift
 "UPPER CASE STRING".isupper() // true
@@ -249,7 +256,7 @@ var s = "Hello World! " * 2
 "大文字では無い".isupper() // false
 ```
 
-### join(iterable)  
+#### join(iterable)  
 
 ```swift
 let array = ["abc","def","ghi"]
@@ -258,7 +265,7 @@ let array = ["abc","def","ghi"]
 "++".join(array) // "abc++def++ghi"
 ```
 
-### ljust(width [,fillchar])  
+#### ljust(width [,fillchar])  
 
 ```swift
 "abc".ljust(1) // "abc"
@@ -266,14 +273,14 @@ let array = ["abc","def","ghi"]
 "abc".ljust(5, fillchar:"$") // "$$abc"
 ```
 
-### lower()  
+#### lower()  
 
 ```swift
 "ABCDE".lower() // "abcde"
 "あいうえお".lower() // "あいうえお"
 ```
 
-### lstrip(chars=nil)  
+#### lstrip(chars=nil)  
 
 ```swift
 "  lstrip sample".lstrip() // "lstrip sample"
@@ -281,7 +288,7 @@ let array = ["abc","def","ghi"]
 "lstrip sample".lstrip() // "lstrip sample"
 ```
 
-### maketrans(x [,y [,x]])  
+#### maketrans(x [,y [,x]])  
 
 ```swift
 String.maketrans([97:"A",98:nil,99:"String"]) // ["a":"A","b":"","c":"String"]
@@ -290,21 +297,21 @@ String.maketrans("abc",y: "ABC") // ["a":"A","b":"B","c":"C"]
 String.maketrans("abc", y: "ABC", z: "xyz") // ["a":"A","b":"B","c":"C","x":"","y":"","z":""]
 ```
 
-### partition(sep)  
+#### partition(sep)  
 
 ```swift
 "a,b,c".partition(",") // ("a",",","b,c")
 "a,b,c".partition("x") // ("a,b,c","","")
 ```
 
-### replace(old, new [,count])  
+#### replace(old, new [,count])  
 
 ```swift
 "abc".replace("bc", new: "bcd") // "abcd"
 "Python python python python".replace("python", new: "Swift", count: 2) // "Python Swift Swift python"
 ```
 
-### rfind(sub [,start [,end]])  
+#### rfind(sub [,start [,end]])  
 
 ```swift
 "0123456789".rfind("0") // 0
@@ -313,7 +320,7 @@ String.maketrans("abc", y: "ABC", z: "xyz") // ["a":"A","b":"B","c":"C","x":"","
 "0123454321".rfind("1", end: -1) // 1
 ```
 
-### rindex(sub [,start [,end]]) throws  
+#### rindex(sub [,start [,end]]) throws  
 
 ```swift
 "0123456789".rindex("0") // 0
@@ -322,7 +329,7 @@ String.maketrans("abc", y: "ABC", z: "xyz") // ["a":"A","b":"B","c":"C","x":"","
 "0123454321".rindex("1", end: -1) // 1
 ```
 
-### rjust(width [,fillchar])  
+#### rjust(width [,fillchar])  
 
 ```swift
 "abc".rjust(1) // "abc"
@@ -330,14 +337,14 @@ String.maketrans("abc", y: "ABC", z: "xyz") // ["a":"A","b":"B","c":"C","x":"","
 "abc"rjust(5,fillchar:"z") // "abczz"
 ```
 
-### rpartition(sep)  
+#### rpartition(sep)  
 
 ```swift
 "a,b,c".rpartition(",") // ("a,b", ",", "c")
 "a,b,c".rpartition("x") // ("", "", "a,b,c")
 ```
 
-### rsplit(sep=nil [,maxsplit])  
+#### rsplit(sep=nil [,maxsplit])  
 
 ```swift
 "a,b,c,d,".rsplit(",") // ["a", "b", "c", "d", ""]
@@ -347,7 +354,7 @@ String.maketrans("abc", y: "ABC", z: "xyz") // ["a":"A","b":"B","c":"C","x":"","
 "aabbxxaabbaaddbb".rsplit("aa", maxsplit: 2) // ["aabbxx", "bb", "ddbb"]
 ```
 
-### rstrip(chars=nil)  
+#### rstrip(chars=nil)  
 
 ```swift
 "rstrip sample   ".rstrip() // "rstrip sample"
@@ -355,7 +362,7 @@ String.maketrans("abc", y: "ABC", z: "xyz") // ["a":"A","b":"B","c":"C","x":"","
 "  rstrip sample".rstrip() // "  rstrip sample"
 ```
 
-### split(sep=nil [,maxsplit])  
+#### split(sep=nil [,maxsplit])  
 
 ```swift
 "a,b,c,d,".split(",") // ["a", "b", "c", "d", ""]
@@ -365,7 +372,7 @@ String.maketrans("abc", y: "ABC", z: "xyz") // ["a":"A","b":"B","c":"C","x":"","
 "aabbxxaabbaaddbb".split("aa", maxsplit: 2) // ["", "bbxx", "bbaaddbb"]
 ```
 
-### splitlines([keepends])  
+#### splitlines([keepends])  
 
 ```swift
 "abc\nabc".splitlines() // ["abc", "abc"]
@@ -374,7 +381,7 @@ String.maketrans("abc", y: "ABC", z: "xyz") // ["a":"A","b":"B","c":"C","x":"","
 "abc\r\nabc\n".splitlines(true) // ["abc\r\n", "abc\n"]
 ```
 
-### startswith(prefix [,start [,end]])  
+#### startswith(prefix [,start [,end]])  
 
 ```swift
 "hello world!".startswith("hello") // true
@@ -383,14 +390,14 @@ String.maketrans("abc", y: "ABC", z: "xyz") // ["a":"A","b":"B","c":"C","x":"","
 "hello".startswith(["hello", "world", "!"]) // true
 ```
 
-### strip(chars=nil)  
+#### strip(chars=nil)  
 
 ```swift
 "   spacious   ".strip() // "spacious"
 "www.example.com".strip("cmowz.") // "example"
 ```
 
-### swapcase()  
+#### swapcase()  
 
 ```swift
 "aBcDe".swapcase() // "AbCdE"
@@ -398,7 +405,7 @@ String.maketrans("abc", y: "ABC", z: "xyz") // ["a":"A","b":"B","c":"C","x":"","
 "あいうえお".swapcase() // "あいうえお"
 ```
 
-### title()  
+#### title()  
 
 ```swift
 "Title letter".title() // "Title Letter"
@@ -406,7 +413,7 @@ String.maketrans("abc", y: "ABC", z: "xyz") // ["a":"A","b":"B","c":"C","x":"","
 "abc  abC _ aBC".title() // "Abc  Abc _ Abc"
 ```
 
-### translate(transtable)  
+#### translate(transtable)  
 
 ```swift
 let table = String.maketrans("", y: "", z: "swift")
@@ -415,14 +422,14 @@ let table = String.maketrans("", y: "", z: "swift")
 // "I ll make Pyhon lke rng operaon lbrary"
 ```
 
-### upper()  
+#### upper()  
 
 ```swift
 "abcde".upper() // "ABCDE"
 "あいうえお".upper() // "あいうえお"
 ```
 
-### zfill()  
+#### zfill()  
 
 ```swift
 "abc".zfill(1) // "abc"
@@ -435,6 +442,43 @@ let table = String.maketrans("", y: "", z: "swift")
 For more detail please refer below link  
 [https://docs.python.org/3/library/stdtypes.html#string-methods](https://docs.python.org/3/library/stdtypes.html#string-methods)  
 
+### Sliceable protocol  
+
+```swift
+protocol Sliceable : Collection {
+    init() /* Required. */
+    subscript (_ start: Int?, _ stop: Int?, _ step: Int?) -> Self { get }
+    subscript (_ start: Int?, _ end: Int?) -> Self { get }
+    subscript (_ i:Int) -> Self.Element { get } /* Required. */
+    subscript (_ slice: Slice) -> Self { get }
+    mutating func append(_ newElement: Self.Element) /* Required. */
+}
+```
+
+With the introduction of SwiftyPyString, String conforms to the `Sliceable` protocol.  
+
+By conforming to `Sliceable` protocol, you can get partial sequences as introduced in [Slice String](#Slice-String).  
+
+If the conforming type conforms to　`RangeReplaceableCollection`, it can be used simply by defining `subscript (_ i:Int) -> Self.Element { get }`.  
+
+In addition, if `associatedtype Index` of `Collection` is `Int`, you can conform to `Sliceable` with a very short code as follows, like `Array`.  
+
+```swift
+extension Array : Sliceable { }
+```
+
+```swift
+let arr = [1, 2, 3, 4, 5]
+
+arr[0, 3]
+// [0, 1, 2]
+
+let slice = Slice(step:2)
+
+arr[slice]
+// [1, 3, 5]
+
+```
 ## License
 
-SwiftPyString is available under the MIT license. See the LICENSE file for more info.  
+SwiftPyString is available under the MIT license. See the LICENSE file for more information.  
