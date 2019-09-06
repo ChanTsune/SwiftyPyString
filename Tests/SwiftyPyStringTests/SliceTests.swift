@@ -23,6 +23,14 @@ final class SliceTests: XCTestCase {
         XCTAssertEqual(slice3.stop, 2)
         XCTAssertEqual(slice3.step, 3)
     }
+    func testSubscriptByInt() {
+        let str = "0123456789"
+        XCTAssertEqual(str[1], "1")
+        XCTAssertEqual(str[2], "2")
+        XCTAssertEqual(str[-1], "9")
+        XCTAssertEqual(str[-2], "8")
+        XCTAssertEqual(str[-3], "7")
+    }
     func testSlice() throws {
         let str = "0123456789"
         XCTAssertEqual(str[1, 1], "")
@@ -48,6 +56,7 @@ final class SliceTests: XCTestCase {
     func testSliceable() throws {
         let list = [1, 2, 3]
         XCTAssertEqual(list[nil, nil, -1], [3, 2, 1])
+        XCTAssertEqual(list[0],1)
     }
     /// Returns path to the built products directory.
     var productsDirectory: URL {
@@ -62,14 +71,4 @@ final class SliceTests: XCTestCase {
     }
 }
 
-extension Array: Sliceable {
-    public subscript (_ slice: Slice) -> Array {
-        var (start, _, step, loop) = slice.adjustIndex(self.count)
-        var result: Array = []
-        for _ in 0..<loop {
-            result.append(self[start])
-            start += step
-        }
-        return result
-    }
-}
+extension Array: Sliceable {}

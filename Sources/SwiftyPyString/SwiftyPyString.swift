@@ -75,15 +75,6 @@ public func *= (str: inout String, n: Int) {
 
 extension String {
 
-    public subscript (_ i: Int) -> Character {
-        get {
-            return self[self.index(self.startIndex, offsetBy: backIndex(i: i, l: self.count))]
-        } set(c) {
-            let v = self.index(self.startIndex, offsetBy: backIndex(i: i, l: self.count))
-            let v2 = self.index(v, offsetBy: 1)
-            self.replaceSubrange(v..<v2, with: [c])
-        }
-    }
     public func capitalize() -> String {
         return self.prefix(1).uppercased() + self.dropFirst(1).lowercased()
     }
