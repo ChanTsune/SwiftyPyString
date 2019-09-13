@@ -455,11 +455,12 @@ protocol Sliceable : Collection {
 }
 ```
 
-With the introduction of SwiftyPyString, String conforms to the `Sliceable` protocol.  
+With the introduction of `SwiftyPyString`, `String` conforms to the `Sliceable` protocol.  
 
-By conforming to `Sliceable` protocol, you can get partial sequences as introduced in [Slice String](#Slice-String).  
+By conforming to `Sliceable` protocol, it can get partial sequences as introduced in [Slice String](#Slice-String).  
 
-If the conforming type conforms to　`RangeReplaceableCollection`, it can be used simply by defining `subscript (_ i:Int) -> Self.Element { get }`.  
+
+If the type you want to conform to `Sliceable` is conforms to `RangeReplaceableCollection`, it can be used simply by defining `subscript (_ i:Int) -> Self.Element { get }`.  
 
 In addition, if `associatedtype Index` of `Collection` is `Int`, you can conform to `Sliceable` with a very short code as follows, like `Array`.  
 
