@@ -28,6 +28,8 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual(a.count("a"), 10)
         XCTAssertEqual(bb.count("bb"), 5)
         XCTAssertEqual(words.count("abc"), 3)
+        XCTAssertEqual("".count(""), 1)
+        XCTAssertEqual("abc".count(""), 4)
     }
     func testEndswith() throws {
         let s1: String = "hello"
