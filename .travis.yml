@@ -3,3 +3,4 @@ osx_image: xcode10.3
 xcode_project: SwiftyPyString.xcodeproj
 script:
   - swift test
+  - pod spec lint SwiftyPyString.podspec
