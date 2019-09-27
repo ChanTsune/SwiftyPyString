@@ -136,8 +136,9 @@ extension String {
     }
 
     public func find(_ sub: String, start: Int? = nil, end: Int? = nil) -> Int {
-        // BMH algorithm
-
+        if sub.isEmpty {
+            return 0
+        }
         let (s, e, _, _) = Slice(start: start, stop: end).adjustIndex(self.count)
         var i = s
         let fin = e - sub.count
@@ -384,6 +385,9 @@ extension String {
     }
     public func rfind(_ sub: String, start: Int? = nil, end: Int? = nil) -> Int {
         // TODO:Impl
+        if sub.isEmpty {
+            return self.count
+        }
         var (s, e, _, _) = Slice(start: start, stop: end).adjustIndex(self.count)
         s -= 1
         var fin = e - sub.count
