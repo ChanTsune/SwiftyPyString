@@ -1,5 +1,6 @@
 # SwiftyPyString  
 
+[![Build Status](https://travis-ci.org/ChanTsune/SwiftyPyString.svg?branch=master)](https://travis-ci.org/ChanTsune/SwiftyPyString)
 ![Cocoapods](https://img.shields.io/cocoapods/l/SwiftyPyString)
 ![carthage](https://img.shields.io/badge/carthage-compatible-brightgreen.svg)
 ![GitHub release](https://img.shields.io/github/release/ChanTsune/SwiftyPyString)
@@ -31,7 +32,7 @@ import PackageDescription
 let package = Package(
     name: "YourProject",
     dependencies: [
-        .Package(url: "https://github.com/ChanTsune/SwiftyPyString.git", from: "1.1.0")
+        .Package(url: "https://github.com/ChanTsune/SwiftyPyString.git", from: "1.1.1")
     ]
 )
 ```

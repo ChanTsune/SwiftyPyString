@@ -28,6 +28,8 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual(a.count("a"), 10)
         XCTAssertEqual(bb.count("bb"), 5)
         XCTAssertEqual(words.count("abc"), 3)
+        XCTAssertEqual("".count(""), 1)
+        XCTAssertEqual("abc".count(""), 4)
     }
     func testEndswith() throws {
         let s1: String = "hello"
@@ -58,6 +60,8 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual(str2.find("123"), 0)
         XCTAssertEqual(str2.find("12345"), 10)
         XCTAssertEqual(str2.find("31"), 6)
+
+        XCTAssertEqual(str2.find(""), 0)
     }
     func testMakeTable() throws {
         let p = "qwertyuiop"
@@ -169,10 +173,12 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual("Python python python python".replace("python", new: "Swift", count: 2), "Python Swift Swift python")
     }
     func testRfind() throws {
-        XCTAssertEqual("0123456789".rfind("0"), 0)
-        XCTAssertEqual("0123456789".rfind("02"), -1)
-        XCTAssertEqual("0123456789".rfind("23"), 2)
-        XCTAssertEqual("0123456789".rfind("0", start: 1), -1)
+        let s = "0123456789"
+        XCTAssertEqual(s.rfind("0"), 0)
+        XCTAssertEqual(s.rfind("02"), -1)
+        XCTAssertEqual(s.rfind("23"), 2)
+        XCTAssertEqual(s.rfind("0", start: 1), -1)
+        XCTAssertEqual(s.rfind(""), s.count)
     }
     func testRjust() throws {
         let str = "abc"

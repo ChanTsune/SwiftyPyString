@@ -94,6 +94,10 @@ extension String {
         return String(repeating: fillchar, count: left - right) + self + String(repeating: fillchar, count: right)
     }
     public func count(_ sub: String, start: Int? = nil, end: Int? = nil) -> Int {
+        let (start,end,_,length) = Slice(start: start,stop: end).adjustIndex(self.count)
+        if sub.count == 0 {
+            return length + 1
+        }
         var n = self.find(sub, start: start, end: end)
         var c = 0
         while n != -1 {
@@ -132,8 +136,9 @@ extension String {
     }
 
     public func find(_ sub: String, start: Int? = nil, end: Int? = nil) -> Int {
-        // BMH algorithm
-
+        if sub.isEmpty {
+            return 0
+        }
         let (s, e, _, _) = Slice(start: start, stop: end).adjustIndex(self.count)
         var i = s
         let fin = e - sub.count
@@ -380,6 +385,9 @@ extension String {
     }
     public func rfind(_ sub: String, start: Int? = nil, end: Int? = nil) -> Int {
         // TODO:Impl
+        if sub.isEmpty {
+            return self.count
+        }
         var (s, e, _, _) = Slice(start: start, stop: end).adjustIndex(self.count)
         s -= 1
         var fin = e - sub.count
