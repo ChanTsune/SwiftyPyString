@@ -32,7 +32,7 @@ import PackageDescription
 let package = Package(
     name: "YourProject",
     dependencies: [
-        .Package(url: "https://github.com/ChanTsune/SwiftyPyString.git", from: "1.1.0")
+        .Package(url: "https://github.com/ChanTsune/SwiftyPyString.git", from: "1.1.1")
     ]
 )
 ```
