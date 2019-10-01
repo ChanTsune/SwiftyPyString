@@ -30,6 +30,23 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual(words.count("abc"), 3)
         XCTAssertEqual("".count(""), 1)
         XCTAssertEqual("abc".count(""), 4)
+        var b = "mississippi"
+        var i = "i"
+        var p = "p"
+        var w = "w"
+        XCTAssertEqual(b.count("i"), 4)
+        XCTAssertEqual(b.count("ss"), 2)
+        XCTAssertEqual(b.count("w"), 0)
+        XCTAssertEqual(b.count(i), 4)
+        XCTAssertEqual(b.count(w), 0)
+        XCTAssertEqual(b.count("i", start:6), 2)
+        XCTAssertEqual(b.count("p", start:6), 2)
+        XCTAssertEqual(b.count("i", start:1, end:3), 1)
+        XCTAssertEqual(b.count("p", start:7, end:9), 1)
+        XCTAssertEqual(b.count(i, start:6), 2)
+        XCTAssertEqual(b.count(p, start:6), 2)
+        XCTAssertEqual(b.count(i, start:1, end:3), 1)
+        XCTAssertEqual(b.count(p, start:7, end:9), 1)
     }
     func testEndswith() throws {
         let s1: String = "hello"
@@ -179,6 +196,19 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual(s.rfind("23"), 2)
         XCTAssertEqual(s.rfind("0", start: 1), -1)
         XCTAssertEqual(s.rfind(""), s.count)
+        let b = "mississippi"
+        let i = "i"
+        let w = "w"
+        XCTAssertEqual(b.rfind("ss"), 5)
+        XCTAssertEqual(b.rfind("w"), -1)
+        XCTAssertEqual(b.rfind("mississippian"), -1)
+        XCTAssertEqual(b.rfind(i), 10)
+        XCTAssertEqual(b.rfind(w), -1)
+        XCTAssertEqual(b.rfind("ss", start:3), 5)
+        XCTAssertEqual(b.rfind("ss", start:0, end:6), 2)
+        XCTAssertEqual(b.rfind(i, start:1, end:3), 1)
+        XCTAssertEqual(b.rfind(i, start:3, end:9), 7)
+        XCTAssertEqual(b.rfind(w, start:1, end:3), -1)
     }
     func testRjust() throws {
         let str = "abc"
