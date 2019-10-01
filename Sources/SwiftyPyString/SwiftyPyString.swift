@@ -389,6 +389,9 @@ extension String {
             return self.count
         }
         var (s, e, _, _) = Slice(start: start, stop: end).adjustIndex(self.count)
+        if (e - s) < sub.count {
+            return -1;
+        }
         s -= 1
         var fin = e - sub.count
         while fin != s {
