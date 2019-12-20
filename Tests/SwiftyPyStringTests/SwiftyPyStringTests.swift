@@ -30,10 +30,10 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual(words.count("abc"), 3)
         XCTAssertEqual("".count(""), 1)
         XCTAssertEqual("abc".count(""), 4)
-        var b = "mississippi"
-        var i = "i"
-        var p = "p"
-        var w = "w"
+        let b = "mississippi"
+        let i = "i"
+        let p = "p"
+        let w = "w"
         XCTAssertEqual(b.count("i"), 4)
         XCTAssertEqual(b.count("ss"), 2)
         XCTAssertEqual(b.count("w"), 0)
@@ -171,6 +171,7 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual("あいうえお".lower(), "あいうえお")
     }
     func testLstrip() throws {
+        XCTAssertEqual("".lstrip(), "")
         XCTAssertEqual("  lstrip sample".lstrip(), "lstrip sample")
         XCTAssertEqual("  lstrip sample".lstrip(" ls"), "trip sample")
         XCTAssertEqual("lstrip sample".lstrip(), "lstrip sample")
@@ -228,6 +229,7 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual("aabbxxaabbaaddbb".rsplit("aa", maxsplit: 2), ["aabbxx", "bb", "ddbb"])
     }
     func testRstrip() throws {
+        XCTAssertEqual("".rstrip(), "")
         XCTAssertEqual("rstrip sample   ".rstrip(), "rstrip sample")
         XCTAssertEqual("rstrip sample   ".rstrip("sample "), "rstri")
         XCTAssertEqual("  rstrip sample".rstrip(), "  rstrip sample")
@@ -256,6 +258,7 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertTrue(s2.startswith("h"))
     }
     func testStrip() throws {
+        XCTAssertEqual("".strip(), "")
         XCTAssertEqual("   spacious   ".strip(), "spacious")
         XCTAssertEqual("www.example.com".strip("cmowz."), "example")
     }
