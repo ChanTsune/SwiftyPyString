@@ -30,10 +30,10 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual(words.count("abc"), 3)
         XCTAssertEqual("".count(""), 1)
         XCTAssertEqual("abc".count(""), 4)
-        var b = "mississippi"
-        var i = "i"
-        var p = "p"
-        var w = "w"
+        let b = "mississippi"
+        let i = "i"
+        let p = "p"
+        let w = "w"
         XCTAssertEqual(b.count("i"), 4)
         XCTAssertEqual(b.count("ss"), 2)
         XCTAssertEqual(b.count("w"), 0)
