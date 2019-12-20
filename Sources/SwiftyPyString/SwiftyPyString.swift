@@ -329,6 +329,9 @@ extension String {
         return self.lowercased()
     }
     public func lstrip(_ chars: String? = nil) -> String {
+        if self.isEmpty {
+            return ""
+        }
         var i = 0
         if let chars = chars {
             while chars.contains(self[i]) {
@@ -488,6 +491,9 @@ extension String {
         return self._rsplit(maxsplit: maxsplit)
     }
     public func rstrip(_ chars: String? = nil) -> String {
+        if self.isEmpty {
+            return ""
+        }
         var i = -1
         if let chars = chars {
             while chars.contains(self[i]) {
