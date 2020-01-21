@@ -384,6 +384,9 @@ extension String {
     }
 
     public func replace(_ old: String, new: String, count: Int = Int.max) -> String {
+        if self.isEmpty && old.isEmpty && count == Int.max {
+            return new
+        }
         return new.join(self.split(old, maxsplit: count))
     }
     public func rfind(_ sub: String, start: Int? = nil, end: Int? = nil) -> Int {
