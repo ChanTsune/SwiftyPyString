@@ -53,10 +53,18 @@ final class SliceTests: XCTestCase {
         XCTAssertEqual(str[nil, nil, -1], "9876543210")
         XCTAssertEqual(str[nil, nil, -2], "97531")
     }
+    func testSliceEmpty() throws {
+        let empty = ""
+        XCTAssertEqual(empty[0, 0], "")
+        XCTAssertEqual(empty[0, -1], "")
+        XCTAssertEqual(empty[0, 1], "")
+        XCTAssertEqual(empty[-1, 0], "")
+        XCTAssertEqual(empty[1, 0], "")
+    }
     func testSliceable() throws {
         let list = [1, 2, 3]
         XCTAssertEqual(list[nil, nil, -1], [3, 2, 1])
-        XCTAssertEqual(list[0],1)
+        XCTAssertEqual(list[0], 1)
     }
     /// Returns path to the built products directory.
     var productsDirectory: URL {
