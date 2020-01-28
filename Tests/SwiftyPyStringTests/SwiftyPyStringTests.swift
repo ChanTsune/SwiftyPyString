@@ -189,11 +189,6 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual("abc".replace("bc", new: "bcd"), "abcd")
         XCTAssertEqual("Python python python python".replace("python", new: "Swift", count: 2), "Python Swift Swift python")
     }
-    func testReplaceEmpty() throws {
-        XCTAssertEqual("".replace("", new: "p"), "p")
-        XCTAssertEqual("".replace("", new: "p", count: 0), "")
-        XCTAssertEqual("".replace("", new: "p", count: 1), "")
-    }
     func testRfind() throws {
         let s = "0123456789"
         XCTAssertEqual(s.rfind("0"), 0)
