@@ -431,7 +431,11 @@ extension String {
         return (tmp[0], sep, tmp[1])
     }
     func _rsplit(_ sep: String, maxsplit: Int) -> [String] {
+        if self.isEmpty {
+            return [self]
+        }
         if sep.isEmpty {
+            // error
             return self._rsplit(maxsplit: maxsplit)
         }
         var result: [String] = []
@@ -510,7 +514,11 @@ extension String {
         return self[nil, i == -1 ? nil : i + 1]
     }
     func _split(_ sep: String, maxsplit: Int) -> [String] {
+        if self.isEmpty {
+            return [self]
+        }
         if sep.isEmpty {
+            // error
             return self._split(maxsplit: maxsplit)
         }
         var maxsplit = maxsplit
