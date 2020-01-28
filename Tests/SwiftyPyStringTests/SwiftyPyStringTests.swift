@@ -128,7 +128,7 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertTrue("abc".isprintable())
         XCTAssertFalse("\u{060D}".isprintable())
     }
-    func testIsApace() throws {
+    func testIsSpace() throws {
         XCTAssertTrue(" ".isspace())
         XCTAssertFalse("".isspace())
         XCTAssertFalse("Speace".isspace())
