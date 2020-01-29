@@ -384,6 +384,9 @@ extension String {
     }
 
     public func replace(_ old: String, new: String, count: Int = Int.max) -> String {
+        if self.isEmpty && old.isEmpty && count == Int.max {
+            return new
+        }
         return new.join(self.split(old, maxsplit: count))
     }
     public func rfind(_ sub: String, start: Int? = nil, end: Int? = nil) -> Int {
@@ -428,7 +431,11 @@ extension String {
         return (tmp[0], sep, tmp[1])
     }
     func _rsplit(_ sep: String, maxsplit: Int) -> [String] {
+        if self.isEmpty {
+            return [self]
+        }
         if sep.isEmpty {
+            // error
             return self._rsplit(maxsplit: maxsplit)
         }
         var result: [String] = []
@@ -507,7 +514,11 @@ extension String {
         return self[nil, i == -1 ? nil : i + 1]
     }
     func _split(_ sep: String, maxsplit: Int) -> [String] {
+        if self.isEmpty {
+            return [self]
+        }
         if sep.isEmpty {
+            // error
             return self._split(maxsplit: maxsplit)
         }
         var maxsplit = maxsplit

@@ -3,7 +3,6 @@ import XCTest
 
 final class SwiftyPyStringTests: XCTestCase {
 
-    func test_CompileTime() throws { }
     func testCapitalize() throws {
         let case1 = "hello world!"
         let case2 = "Hello World!"
@@ -39,14 +38,14 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual(b.count("w"), 0)
         XCTAssertEqual(b.count(i), 4)
         XCTAssertEqual(b.count(w), 0)
-        XCTAssertEqual(b.count("i", start:6), 2)
-        XCTAssertEqual(b.count("p", start:6), 2)
-        XCTAssertEqual(b.count("i", start:1, end:3), 1)
-        XCTAssertEqual(b.count("p", start:7, end:9), 1)
-        XCTAssertEqual(b.count(i, start:6), 2)
-        XCTAssertEqual(b.count(p, start:6), 2)
-        XCTAssertEqual(b.count(i, start:1, end:3), 1)
-        XCTAssertEqual(b.count(p, start:7, end:9), 1)
+        XCTAssertEqual(b.count("i", start: 6), 2)
+        XCTAssertEqual(b.count("p", start: 6), 2)
+        XCTAssertEqual(b.count("i", start: 1, end: 3), 1)
+        XCTAssertEqual(b.count("p", start: 7, end: 9), 1)
+        XCTAssertEqual(b.count(i, start: 6), 2)
+        XCTAssertEqual(b.count(p, start: 6), 2)
+        XCTAssertEqual(b.count(i, start: 1, end: 3), 1)
+        XCTAssertEqual(b.count(p, start: 7, end: 9), 1)
     }
     func testEndswith() throws {
         let s1: String = "hello"
@@ -129,7 +128,7 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertTrue("abc".isprintable())
         XCTAssertFalse("\u{060D}".isprintable())
     }
-    func testIsApace() throws {
+    func testIsSpace() throws {
         XCTAssertTrue(" ".isspace())
         XCTAssertFalse("".isspace())
         XCTAssertFalse("Speace".isspace())
@@ -205,11 +204,11 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual(b.rfind("mississippian"), -1)
         XCTAssertEqual(b.rfind(i), 10)
         XCTAssertEqual(b.rfind(w), -1)
-        XCTAssertEqual(b.rfind("ss", start:3), 5)
-        XCTAssertEqual(b.rfind("ss", start:0, end:6), 2)
-        XCTAssertEqual(b.rfind(i, start:1, end:3), 1)
-        XCTAssertEqual(b.rfind(i, start:3, end:9), 7)
-        XCTAssertEqual(b.rfind(w, start:1, end:3), -1)
+        XCTAssertEqual(b.rfind("ss", start: 3), 5)
+        XCTAssertEqual(b.rfind("ss", start: 0, end: 6), 2)
+        XCTAssertEqual(b.rfind(i, start: 1, end: 3), 1)
+        XCTAssertEqual(b.rfind(i, start: 3, end: 9), 7)
+        XCTAssertEqual(b.rfind(w, start: 1, end: 3), -1)
     }
     func testRjust() throws {
         let str = "abc"
@@ -294,13 +293,13 @@ final class SwiftyPyStringTests: XCTestCase {
 
     /// Returns path to the built products directory.
     var productsDirectory: URL {
-      #if os(macOS)
-        for bundle in Bundle.allBundles where bundle.bundlePath.hasSuffix(".xctest") {
-            return bundle.bundleURL.deletingLastPathComponent()
-        }
-        fatalError("couldn't find the products directory")
-      #else
-        return Bundle.main.bundleURL
-      #endif
+        #if os(macOS)
+            for bundle in Bundle.allBundles where bundle.bundlePath.hasSuffix(".xctest") {
+                return bundle.bundleURL.deletingLastPathComponent()
+            }
+            fatalError("couldn't find the products directory")
+        #else
+            return Bundle.main.bundleURL
+        #endif
     }
 }
