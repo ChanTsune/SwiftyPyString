@@ -26,6 +26,7 @@
 		B51620C722D7230D00D2BF10 /* casefoldTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = B51620C622D7230D00D2BF10 /* casefoldTable.swift */; };
 		B54DDD6422EAD8870083970A /* SliceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B54DDD6322EAD8870083970A /* SliceTests.swift */; };
 		B551D6BF2316DD270070B5B8 /* Slice.swift in Sources */ = {isa = PBXBuildFile; fileRef = B551D6BE2316DD270070B5B8 /* Slice.swift */; };
+		B5B8D06423E6A48E007BC242 /* EmptyStringTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B8D06123E6A48E007BC242 /* EmptyStringTest.swift */; };
 		OBJ_33 /* Package.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_6 /* Package.swift */; };
 		OBJ_45 /* XCTestManifests.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_13 /* XCTestManifests.swift */; };
 /* End PBXBuildFile section */
@@ -51,6 +52,7 @@
 		B51620C622D7230D00D2BF10 /* casefoldTable.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = casefoldTable.swift; sourceTree = "<group>"; };
 		B54DDD6322EAD8870083970A /* SliceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SliceTests.swift; sourceTree = "<group>"; };
 		B551D6BE2316DD270070B5B8 /* Slice.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Slice.swift; sourceTree = "<group>"; };
+		B5B8D06123E6A48E007BC242 /* EmptyStringTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EmptyStringTest.swift; sourceTree = "<group>"; };
 		OBJ_12 /* SwiftyPyStringTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftyPyStringTests.swift; sourceTree = "<group>"; };
 		OBJ_13 /* XCTestManifests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XCTestManifests.swift; sourceTree = "<group>"; };
 		OBJ_17 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
@@ -92,6 +94,7 @@
 			children = (
 				OBJ_12 /* SwiftyPyStringTests.swift */,
 				OBJ_13 /* XCTestManifests.swift */,
+				B5B8D06123E6A48E007BC242 /* EmptyStringTest.swift */,
 				B54DDD6322EAD8870083970A /* SliceTests.swift */,
 			);
 			name = SwiftyPyStringTests;
@@ -196,6 +199,11 @@
 			attributes = {
 				LastSwiftMigration = 9999;
 				LastUpgradeCheck = 9999;
+				TargetAttributes = {
+					"SwiftyPyString::SwiftyPyStringPackageTests::ProductTarget" = {
+						LastSwiftMigration = 1130;
+					};
+				};
 			};
 			buildConfigurationList = OBJ_2 /* Build configuration list for PBXProject "SwiftyPyString" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -243,6 +251,7 @@
 			files = (
 				OBJ_45 /* XCTestManifests.swift in Sources */,
 				B51620C022CF9FB700D2BF10 /* SwiftyPyStringTests.swift in Sources */,
+				B5B8D06423E6A48E007BC242 /* EmptyStringTest.swift in Sources */,
 				B54DDD6422EAD8870083970A /* SliceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -367,12 +376,19 @@
 		OBJ_36 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
 		};
 		OBJ_37 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
 		};

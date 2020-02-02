@@ -8,6 +8,11 @@ public class Slice {
     var stop: Int?
     var step: Int? = nil
 
+    public func indices(_ length: Int) -> (Int, Int, Int) {
+        let (a, b, c, _) = self.adjustIndex(length)
+        return (a, b, c)
+    }
+
     public init(stop: Int?) {
         self.stop = stop
     }
@@ -17,11 +22,6 @@ public class Slice {
         self.step = step
     }
     func adjustIndex(_ length: Int) -> (Int, Int, Int, Int) {
-        func _PyLong_Sign(_ n: Int) -> Int {
-            if n == 0 { return 0 }
-            else if (n > 0) { return 1 }
-            else { return -1 }
-        }
         let step: Int = (self.step == 0) ? 1 : self.step ?? 1
         var start: Int = 0
         var stop: Int = 0
@@ -29,7 +29,7 @@ public class Slice {
         var lower: Int = 0
 
         // Convert step to an integer; raise for zero step.
-        let step_sign: Int = _PyLong_Sign(step)
+        let step_sign: Int = step.signum()
         let step_is_negative: Bool = step_sign < 0
 
         /* Find lower and upper bounds for start and stop. */
@@ -46,7 +46,7 @@ public class Slice {
         if let s = self.start {
             start = s
 
-            if (_PyLong_Sign(start) < 0) {
+            if (start.signum() < 0) {
                 start += length
 
                 if (start < lower /* Py_LT */) {
@@ -67,7 +67,7 @@ public class Slice {
         if let s = self.stop {
             stop = s
 
-            if (_PyLong_Sign(stop) < 0) {
+            if (stop.signum() < 0) {
                 stop += length
                 if (stop < lower /* Py_LT */) {
                     stop = lower
@@ -101,11 +101,11 @@ func backIndex(i: Int, l: Int) -> Int {
     return i < 0 ? l + i : i
 }
 
-public protocol Sliceable : Collection {
+public protocol Sliceable: Collection {
     init()
     subscript (_ start: Int?, _ stop: Int?, _ step: Int?) -> Self { get }
     subscript (_ start: Int?, _ end: Int?) -> Self { get }
-    subscript (_ i:Int) -> Self.Element { get }
+    subscript (_ i: Int) -> Self.Element { get }
     subscript (_ slice: Slice) -> Self { get }
     mutating func append(_ newElement: Self.Element)
 }
@@ -125,9 +125,10 @@ extension Sliceable {
             start += step
         }
         return result
-    }}
+    }
+}
 
-extension String : Sliceable {
+extension String: Sliceable {
     public subscript (_ i: Int) -> Character {
         get {
             return self[self.index(self.startIndex, offsetBy: backIndex(i: i, l: self.count))]

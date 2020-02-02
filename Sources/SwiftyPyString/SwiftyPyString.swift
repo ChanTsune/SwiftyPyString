@@ -63,13 +63,13 @@ public enum PyException: Error {
 }
 
 public func * (str: String, n: Int) -> String {
-    return String(repeating: str, count: n)
+    return String(repeating: str, count: n > 0 ? n : 0)
 }
 public func * (n: Int, str: String) -> String {
-    return String(repeating: str, count: n)
+    return String(repeating: str, count: n > 0 ? n : 0)
 }
 public func *= (str: inout String, n: Int) {
-    str = String(repeating: str, count: n)
+    str = String(repeating: str, count: n > 0 ? n : 0)
 }
 
 
@@ -80,8 +80,8 @@ extension String {
     }
     public func casefold() -> String {
         var folded = ""
-        for chr in self {
-            folded.append(getFolded(chr))
+        for c in self {
+            folded.append(casefoldTable[c.unicode.value, default: String(c)])
         }
         return folded
     }
@@ -94,7 +94,7 @@ extension String {
         return String(repeating: fillchar, count: left - right) + self + String(repeating: fillchar, count: right)
     }
     public func count(_ sub: String, start: Int? = nil, end: Int? = nil) -> Int {
-        let (start,end,_,length) = Slice(start: start,stop: end).adjustIndex(self.count)
+        let (start, end, _, length) = Slice(start: start, stop: end).adjustIndex(self.count)
         if sub.count == 0 {
             return length + 1
         }
@@ -396,7 +396,7 @@ extension String {
         }
         var (s, e, _, _) = Slice(start: start, stop: end).adjustIndex(self.count)
         if (e - s) < sub.count {
-            return -1;
+            return -1
         }
         s -= 1
         var fin = e - sub.count
