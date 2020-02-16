@@ -33,9 +33,18 @@ var PY_SSIZE_T_MAX = Int.max
    A SubString consists of the characters between two string or
    unicode pointers.
 */
-struct SubString {
-    PyObject *str; /* borrowed reference */
-    Py_ssize_t start, end;
+class SubString {
+    var str: PyObject? /* borrowed reference */
+    var start: Py_ssize_t
+    var end: Py_ssize_t
+    
+    /* fill in a SubString from a pointer and length */
+    init(_ s: PyObject?, _ start: Py_ssize_t, _ end: Py_ssize_t)
+    {
+        self.str = s
+        self.start = start
+        self.end = end
+    }
 }
 
 
@@ -46,39 +55,91 @@ enum AutoNumberState {
 }   /* Keep track if we're auto-numbering fields */
 
 /* Keeps track of our auto-numbering state, and which number field we're on */
-struct AutoNumber {
+class AutoNumber {
     var an_state: AutoNumberState = .ANS_INIT
     var an_field_number: int = 0
 }
 
-
+func PyUnicode_GET_LENGTH(_ str:PyObject) -> Int{
+    return (str as! String).count
+}
+func _Py_RETURN_UNICODE_EMPTY() -> String {
+    return ""
+}
+func unicode_result_unchanged(_ unicode:PyObject) -> PyObject?
+{
+    return unicode
+}
+func PyUnicode_IS_ASCII(_ str:PyObject?) -> Bool {
+    return (str as! String).isascii()
+}
+func _PyUnicode_FromASCII(const char *buffer, Py_ssize_t size) -> PyObject?
+{
+    const unsigned char *s = (const unsigned char *)buffer;
+    PyObject *unicode;
+    if (size == 1) {
+        return get_latin1_char(s[0]);
+    }
+    unicode = PyUnicode_New(size, 127);
+    if (!unicode)
+        return NULL;
+    memcpy(PyUnicode_1BYTE_DATA(unicode), s, size);
+    assert(_PyUnicode_CheckConsistency(unicode, 1));
+    return unicode;
+}
 /************************************************************************/
 /**************************  Utility  functions  ************************/
 /************************************************************************/
-
-/* fill in a SubString from a pointer and length */
-Py_LOCAL_INLINE(void)
-SubString_init(SubString *str, PyObject *s, Py_ssize_t start, Py_ssize_t end)
+func PyUnicode_Substring(_ self:PyObject?, _ start:Py_ssize_t, _ end:Py_ssize_t) -> PyObject?
 {
-    str->str = s;
-    str->start = start;
-    str->end = end;
+    unsigned char *data;
+    var kind: int
+    var length: Py_ssize_t
+
+    length = PyUnicode_GET_LENGTH(self);
+    end = min(end, length)
+
+    if (start == 0 && end == length){
+        return unicode_result_unchanged(self);
+    }
+
+    if (start < 0 || end < 0) {
+        PyErr_SetString(PyExc_IndexError, "string index out of range");
+        return nil
+    }
+    if (start >= length || end < start){
+        return _Py_RETURN_UNICODE_EMPTY();
+    }
+
+    length = end - start;
+    if (PyUnicode_IS_ASCII(self)) {
+        data = PyUnicode_1BYTE_DATA(self);// 先頭アドレスの取得
+        return _PyUnicode_FromASCII((char*)(data + start), length);
+    }
+    else {
+        kind = PyUnicode_KIND(self);
+        data = PyUnicode_1BYTE_DATA(self);
+        return PyUnicode_FromKindAndData(kind,
+                                         data + kind * start,
+                                         length);
+    }
 }
 
 /* return a new string.  if str->str is NULL, return None */
-Py_LOCAL_INLINE(PyObject *)
-SubString_new_object(SubString *str)
+func SubString_new_object(_ str: SubString) -> PyObject?
 {
-    if (str->str == NULL)
-        Py_RETURN_NONE;
-    return PyUnicode_Substring(str->str, str->start, str->end);
+    if (str.str == nil){
+        return nil
+    }
+    return PyUnicode_Substring(str.str, str.start, str.end);
 }
-
+func PyUnicode_New(_ n:Int,_ l:Int) -> String {
+    return ""
+}
 /* return a new string.  if str->str is NULL, return a new empty string */
-Py_LOCAL_INLINE(PyObject *)
-SubString_new_object_or_empty(SubString *str)
+func SubString_new_object_or_empty(_ str:SubString) -> PyObject?
 {
-    if (str->str == NULL) {
+    if (str.str == nil) {
         return PyUnicode_New(0, 0);
     }
     return SubString_new_object(str);
@@ -91,7 +152,7 @@ func
     autonumber_state_error(_ state:AutoNumberState, _ field_name_is_empty:int) -> int
 {
     if (state == .ANS_MANUAL) {
-        if (field_name_is_empty) {
+        if (field_name_is_empty.asBool) {
             PyErr_SetString(PyExc_ValueError, "cannot switch from "
                             "manual field specification to "
                             "automatic field numbering");
@@ -99,7 +160,7 @@ func
         }
     }
     else {
-        if (!field_name_is_empty) {
+        if (!field_name_is_empty.asBool) {
             PyErr_SetString(PyExc_ValueError, "cannot switch from "
                             "automatic field numbering to "
                             "manual field specification");
@@ -108,29 +169,37 @@ func
     }
     return 0;
 }
-
+func Py_UNICODE_TODECIMAL(_ c:Character) -> Int{
+    if c.isdecimal(),let n = c.unicode.properties.numericValue {
+        return Int(n)
+    }
+    return -1
+}
+func PyUnicode_READ_CHAR(_ str:PyObject?,_ index: Int) -> Character{
+    return (str as! String)[index]
+}
 
 /************************************************************************/
 /***********  Format string parsing -- integers and identifiers *********/
 /************************************************************************/
 
-func
-get_integer(const SubString *str) -> Py_ssize_t
+func get_integer(_ str: SubString) -> Py_ssize_t
 {
     var accumulator:Py_ssize_t = 0
     var digitval:Py_ssize_t
     var i:Py_ssize_t
 
     /* empty string is an error */
-    if (str->start >= str->end){
+    if (str.start >= str.end){
         return -1;
 
     }
-
-    for (i = str->start; i < str->end; i++) {
-        digitval = Py_UNICODE_TODECIMAL(PyUnicode_READ_CHAR(str->str, i));
-        if (digitval < 0)
+    i = str.start
+    while i < str.end {
+        digitval = Py_UNICODE_TODECIMAL(PyUnicode_READ_CHAR(str.str, i));
+        if (digitval < 0){
             return -1;
+        }
         /*
            Detect possible overflow before it happens:
 
@@ -143,31 +212,64 @@ get_integer(const SubString *str) -> Py_ssize_t
             return -1;
         }
         accumulator = accumulator * 10 + digitval;
+        i++
     }
     return accumulator;
 }
+
+func PyObject_GetAttr(_ v:PyObject?, _ name:PyObject?) -> PyObject?
+{
+    let mirror = Mirror(reflecting: v)
+    let c = mirror.children
+    var keyMap:[String:Any]
+    for i in c {
+        keyMap[i.label!] = i.value
+    }
+
+    if (!PyUnicode_Check(name)) {
+        PyErr_Format(PyExc_TypeError,
+                     "attribute name must be string, not '%.200s'",
+                     name->ob_type->tp_name);
+        return NULL;
+    }
+    PyErr_Format(PyExc_AttributeError,
+                 "'%.50s' object has no attribute '%U'",
+                 tp->tp_name, name);
+    return nil;
+}
+func PySequence_GetItem(_ s:PyObject, _ i:Py_ssize_t) -> PyObject?
+{
+
+    if (s == nil) {
+        return null_error();
+    }
+
+    return (s as! Array)[i]
+    if (s->ob_type->tp_as_mapping && s->ob_type->tp_as_mapping->mp_subscript) {
+        return type_error("%.200s is not a sequence", s);
+    }
+    return type_error("'%.200s' object does not support indexing", s);
+}
+
 
 /************************************************************************/
 /******** Functions to get field objects and specification strings ******/
 /************************************************************************/
 
 /* do the equivalent of obj.name */
-func
-    getattr(_ obj:PyObject?, SubString *name) -> PyObject?
+func getattr(_ obj:PyObject?, _ name:SubString) -> PyObject?
 {
-    PyObject *newobj;
-    PyObject *str = SubString_new_object(name);
-    if (str == NULL){
+    var newobj:PyObject?
+    var str:PyObject? = SubString_new_object(name);
+    if (str == nil){
         return nil
     }
     newobj = PyObject_GetAttr(obj, str);
-    Py_DECREF(str);
     return newobj;
 }
 
 /* do the equivalent of obj[idx], where obj is a sequence */
-static PyObject *
-getitem_sequence(PyObject *obj, Py_ssize_t idx)
+func getitem_sequence(_ obj:PyObject, _ idx:Py_ssize_t) -> PyObject?
 {
     return PySequence_GetItem(obj, idx);
 }
@@ -202,20 +304,16 @@ struct FieldNameIterator {
     /* the entire string we're parsing.  we assume that someone else
        is managing its lifetime, and that it will exist for the
        lifetime of the iterator.  can be empty */
-    SubString str;
+    var str:SubString
 
     /* index to where we are inside field_name */
     var index:Py_ssize_t
-}
-
-
-static int
-FieldNameIterator_init(FieldNameIterator *self, PyObject *s,
-                       Py_ssize_t start, Py_ssize_t end)
-{
-    SubString_init(&self->str, s, start, end);
-    self->index = start;
-    return 1;
+    
+    init(_ s:PyObject,
+         _ start:Py_ssize_t, _ end:Py_ssize_t){
+        self.str = .init(s, start, end)
+        self.index = start;
+    }
 }
 
 static int
@@ -230,8 +328,7 @@ _FieldNameIterator_attr(FieldNameIterator *self, SubString *name)
     while (self->index < self->str.end) {
         c = PyUnicode_READ_CHAR(self->str.str, self->index++);
         switch (c) {
-        case '[':
-        case '.':
+        case "[", ".":
             /* backup so that we this character will be seen next time */
             self->index--;
             break;
@@ -258,7 +355,7 @@ _FieldNameIterator_item(FieldNameIterator *self, SubString *name)
     while (self->index < self->str.end) {
         c = PyUnicode_READ_CHAR(self->str.str, self->index++);
         switch (c) {
-        case ']':
+        case "]":
             bracket_seen = 1;
             break;
         default:
@@ -288,13 +385,13 @@ FieldNameIterator_next(FieldNameIterator *self, int *is_attribute,
         return 1;
 
     switch (PyUnicode_READ_CHAR(self->str.str, self->index++)) {
-    case '.':
+    case ".":
         *is_attribute = 1;
         if (_FieldNameIterator_attr(self, name) == 0)
             return 0;
         *name_idx = -1;
         break;
-    case '[':
+    case "[":
         *is_attribute = 0;
         if (_FieldNameIterator_item(self, name) == 0)
             return 0;
@@ -330,16 +427,15 @@ field_name_split(PyObject *str, Py_ssize_t start, Py_ssize_t end, SubString *fir
                  Py_ssize_t *first_idx, FieldNameIterator *rest,
                  AutoNumber *auto_number)
 {
-    Py_UCS4 c;
-    Py_ssize_t i = start;
+    var c:Py_UCS4
+    var i:Py_ssize_t = start;
     int field_name_is_empty;
     int using_numeric_index;
 
     /* find the part up until the first '.' or '[' */
     while (i < end) {
         switch (c = PyUnicode_READ_CHAR(str, i++)) {
-        case "[":
-        case ".":
+        case "[", ".":
             /* backup so that we this character is available to the
                "rest" iterator */
             i--;
@@ -351,8 +447,8 @@ field_name_split(PyObject *str, Py_ssize_t start, Py_ssize_t end, SubString *fir
     }
 
     /* set up the return values */
-    SubString_init(first, str, start, i);
-    FieldNameIterator_init(rest, str, i, end);
+    first = .init(str, start, i)
+    rest = .init(str, i, end)
 
     /* see if "first" is an integer, in which case it's used as an index */
     *first_idx = get_integer(first);
@@ -377,20 +473,21 @@ field_name_split(PyObject *str, Py_ssize_t start, Py_ssize_t end, SubString *fir
         /* Initialize our auto numbering state if this is the first
            time we're either auto-numbering or manually numbering. */
         if (auto_number.an_state == .ANS_INIT && using_numeric_index)
-        auto_number.an_state = field_name_is_empty ?
-        .ANS_AUTO : .ANS_MANUAL;
+        {
+            auto_number.an_state = field_name_is_empty ? .ANS_AUTO : .ANS_MANUAL;
+        }
 
         /* Make sure our state is consistent with what we're doing
            this time through. Only check if we're using a numeric
            index. */
-        if (using_numeric_index)
+        if (using_numeric_index){
             if (autonumber_state_error(auto_number->an_state,
                                        field_name_is_empty))
-                return 0;
+                {return 0;}}
         /* Zero length field means we want to do auto-numbering of the
            fields. */
         if (field_name_is_empty)
-            *first_idx = (auto_number->an_field_number)++;
+            {*first_idx = (auto_number->an_field_number)++;}
     }
 
     return 1;
@@ -572,7 +669,7 @@ parse_field(SubString *str, SubString *field_name, SubString *format_spec,
 
     /* initialize these, as they may be empty */
     *conversion = "\0";
-    SubString_init(format_spec, NULL, 0, 0);
+    format_spec = .init(nil, 0, 0);
 
     /* Search for the field name.  it's terminated by the end of
        the string, or a ':' or '!' */
@@ -620,7 +717,7 @@ parse_field(SubString *str, SubString *field_name, SubString *format_spec,
             if (str->start < str->end) {
                 c = PyUnicode_READ_CHAR(str->str, str->start++);
                 if (c == "}")
-                    return 1;
+                    {return 1;}
                 if (c != ":") {
                     PyErr_SetString(PyExc_ValueError,
                                     "expected ':' after conversion specifier");
@@ -670,15 +767,12 @@ parse_field(SubString *str, SubString *field_name, SubString *format_spec,
    use with the Formatter class */
 
 struct MarkupIterator {
-    SubString str;
-}
-
-static int
-MarkupIterator_init(MarkupIterator *self, PyObject *str,
-                    Py_ssize_t start, Py_ssize_t end)
-{
-    SubString_init(&self->str, str, start, end);
-    return 1;
+    var str:SubString
+    
+    init(_ str:PyObject,
+         _ start:Py_ssize_t, _ end:Py_ssize_t){
+        self.str = .init(str, start, end)
+    }
 }
 
 /* returns 0 on error, 1 on non-error termination, and 2 if it got a
@@ -689,24 +783,24 @@ MarkupIterator_next(MarkupIterator *self, SubString *literal,
                     SubString *format_spec, Py_UCS4 *conversion,
                     int *format_spec_needs_expanding)
 {
-    int at_end;
-    Py_UCS4 c = 0;
-    Py_ssize_t start;
-    Py_ssize_t len;
+    var at_end:int
+    var start:Py_ssize_t
+    var len:Py_ssize_t
     int markup_follows = 0;
 
     /* initialize all of the output variables */
-    SubString_init(literal, NULL, 0, 0);
-    SubString_init(field_name, NULL, 0, 0);
-    SubString_init(format_spec, NULL, 0, 0);
+    literal = .init(nil, 0, 0)
+    field_name = .init(nil, 0, 0)
+    format_spec = .init(nil, 0, 0)
     *conversion = "\0";
     *format_spec_needs_expanding = 0;
     *field_present = 0;
 
     /* No more input, end of iterator.  This is the normal exit
        path. */
-    if (self->str.start >= self->str.end)
+    if (self->str.start >= self->str.end){
         return 1;
+    }
 
     start = self->str.start;
 
@@ -717,10 +811,11 @@ MarkupIterator_next(MarkupIterator *self, SubString *literal,
        including the brace, but no format object.  The next time
        through, we'll return the rest of the literal, skipping past
        the second consecutive brace. */
+    var c:Py_UCS4 = 0
     while (self->str.start < self->str.end) {
-        switch (c = PyUnicode_READ_CHAR(self->str.str, self->str.start++)) {
-        case "{":
-        case "}":
+        c = PyUnicode_READ_CHAR(self->str.str, self->str.start++)
+        switch c {
+        case "{", "}":
             markup_follows = 1;
             break;
         default:
@@ -856,7 +951,7 @@ output_markup(SubString *field_name, SubString *format_spec,
         /* note that in the case we're expanding the format string,
            tmp must be kept around until after the call to
            render_field. */
-        SubString_init(&expanded_format_spec, tmp, 0, PyUnicode_GET_LENGTH(tmp));
+        expanded_format_spec = .init(tmp, 0, PyUnicode_GET_LENGTH(tmp));
         actual_format_spec = &expanded_format_spec;
     }
     else{
@@ -894,7 +989,7 @@ do_markup(SubString *input, PyObject *args, PyObject *kwargs,
     SubString format_spec;
     Py_UCS4 conversion;
 
-    MarkupIterator_init(&iter, input->str, input->start, input->end);
+    iter =.init( input->str, input->start, input->end)
     while ((result = MarkupIterator_next(&iter, &literal, &field_present,
                                          &field_name, &format_spec,
                                          &conversion,
@@ -924,9 +1019,8 @@ do_markup(SubString *input, PyObject *args, PyObject *kwargs,
     build_string allocates the output string and then
     calls do_markup to do the heavy lifting.
 */
-static PyObject *
-build_string(SubString *input, PyObject *args, PyObject *kwargs,
-             int recursion_depth, AutoNumber *auto_number)
+func build_string(_ input:SubString, _ args:PyObject, _ kwargs:PyObject,
+                  _ recursion_depth:int, _ auto_number: AutoNumber) -> PyObject?
 {
     _PyUnicodeWriter writer;
 
@@ -934,17 +1028,17 @@ build_string(SubString *input, PyObject *args, PyObject *kwargs,
     if (recursion_depth <= 0) {
         PyErr_SetString(PyExc_ValueError,
                         "Max string recursion exceeded");
-        return NULL;
+        return nil;
     }
 
     _PyUnicodeWriter_Init(&writer);
     writer.overallocate = 1;
-    writer.min_length = PyUnicode_GET_LENGTH(input->str) + 100;
+    writer.min_length = PyUnicode_GET_LENGTH(input.str) + 100;
 
     if (!do_markup(input, args, kwargs, &writer, recursion_depth,
                    auto_number)) {
         _PyUnicodeWriter_Dealloc(&writer);
-        return NULL;
+        return nil;
     }
 
     return _PyUnicodeWriter_Finish(&writer);
@@ -955,31 +1049,20 @@ build_string(SubString *input, PyObject *args, PyObject *kwargs,
 /************************************************************************/
 
 /* this is the main entry point */
-static PyObject *
-do_string_format(PyObject *self, PyObject *args, PyObject *kwargs)
+func do_string_format(_ self:PyObject, _ args:PyObject, _ kwargs:PyObject) -> PyObject?
 {
-    SubString input;
 
     /* PEP 3101 says only 2 levels, so that
        "{0:{1}}".format('abc', 's')            # works
        "{0:{1:{2}}}".format('abc', 's', '')    # fails
     */
-    int recursion_depth = 2;
+    var recursion_depth: int = 2
 
-    AutoNumber auto_number;
+    var auto_number: AutoNumber
 
-    if (PyUnicode_READY(self) == -1)
-        return NULL;
 
-    AutoNumber_Init(&auto_number);
-    SubString_init(&input, self, 0, PyUnicode_GET_LENGTH(self));
-    return build_string(&input, args, kwargs, recursion_depth, &auto_number);
-}
-
-static PyObject *
-do_string_format_map(PyObject *self, PyObject *obj)
-{
-    return do_string_format(self, NULL, obj);
+    var input:SubString = .init(self, 0, (self as! String).count);
+    return build_string(input, args, kwargs, recursion_depth, auto_number);
 }
 
 
@@ -1134,15 +1217,14 @@ formatter_parser(PyObject *ignored, PyObject *self)
         return NULL;
 
     it = PyObject_New(formatteriterobject, &PyFormatterIter_Type);
-    if (it == NULL)
-        return NULL;
+    if (it == NULL){return nil}
 
     /* take ownership, give the object to the iterator */
     Py_INCREF(self);
     it->str = self;
 
     /* initialize the contained MarkupIterator */
-    MarkupIterator_init(&it->it_markup, (PyObject*)self, 0, PyUnicode_GET_LENGTH(self));
+    it->it_markup = .init( (PyObject*)self, 0, PyUnicode_GET_LENGTH(self));
     return (PyObject *)it;
 }
 
@@ -1157,17 +1239,11 @@ formatter_parser(PyObject *ignored, PyObject *self)
    wrapper around FieldNameIterator */
 
 struct fieldnameiterobject {
-    PyObject ob_base
-    PyObject *str;
-    FieldNameIterator it_field;
+    var ob_base:PyObject
+    var str:PyObject
+    var it_field:FieldNameIterator
 }
 
-static void
-fieldnameiter_dealloc(fieldnameiterobject *it)
-{
-    Py_XDECREF(it->str);
-    PyObject_FREE(it);
-}
 
 /* returns a tuple:
    (is_attr, value)
@@ -1318,13 +1394,17 @@ done:
 
 /* Raises an exception about an unknown presentation type for this
  * type. */
-
-static void
-unknown_presentation_type(Py_UCS4 presentation_type,
+extension Py_UCS4 {
+    var isRegularASCII: Bool {
+        let v = self.unicode.value
+        return 32 < v && v < 128
+    }
+}
+func unknown_presentation_type(_ presentation_type:Py_UCS4,
                           const char* type_name)
 {
     /* %c might be out-of-range, hence the two cases. */
-    if (presentation_type > 32 && presentation_type < 128)
+    if (presentation_type.isRegularASCII )
         PyErr_Format(PyExc_ValueError,
                      "Unknown format code '%c' "
                      "for object of type '%.200s'",
@@ -1338,11 +1418,10 @@ unknown_presentation_type(Py_UCS4 presentation_type,
                      type_name);
 }
 
-static void
-invalid_thousands_separator_type(char specifier, Py_UCS4 presentation_type)
+func invalid_thousands_separator_type(_ specifier:Character, _ presentation_type:Py_UCS4)
 {
     assert(specifier == "," || specifier == "_");
-    if (presentation_type > 32 && presentation_type < 128){
+    if (presentation_type.isRegularASCII){
         PyErr_Format(PyExc_ValueError,
                      "Cannot specify '%c' with '%c'.",
                      specifier, (char)presentation_type);
@@ -1489,10 +1568,10 @@ parse_internal_render_format_spec(PyObject *format_spec,
     int align_specified = 0;
     int fill_char_specified = 0;
 
-    format->fill_char = ' ';
+    format->fill_char = " ";
     format->align = default_align;
     format->alternate = 0;
-    format->sign = '\0';
+    format->sign = "\0";
     format->width = -1;
     format->thousands_separators = LT_NO_LOCALE;
     format->precision = -1;
@@ -1521,39 +1600,41 @@ parse_internal_render_format_spec(PyObject *format_spec,
 
     /* If the next character is #, we're in alternate mode.  This only
        applies to integers. */
-    if (end-pos >= 1 && READ_spec(pos) == '#') {
+    if (end-pos >= 1 && READ_spec(pos) == "#") {
         format->alternate = 1;
         ++pos;
     }
 
     /* The special case for 0-padding (backwards compat) */
-    if (!fill_char_specified && end-pos >= 1 && READ_spec(pos) == '0') {
-        format->fill_char = '0';
+    if (!fill_char_specified && end-pos >= 1 && READ_spec(pos) == "0") {
+        format->fill_char = "0";
         if (!align_specified) {
-            format->align = '=';
+            format->align = "=";
         }
         ++pos;
     }
 
     consumed = get_integer(format_spec, &pos, end, &format->width);
-    if (consumed == -1)
+    if (consumed == -1){
         /* Overflow error. Exception already set. */
         return 0;
+    }
 
     /* If consumed is 0, we didn't consume any characters for the
        width. In that case, reset the width to -1, because
        get_integer() will have set it to zero. -1 is how we record
        that the width wasn't specified. */
-    if (consumed == 0)
+    if (consumed == 0){
         format->width = -1;
+    }
 
     /* Comma signifies add thousands separators */
-    if (end-pos && READ_spec(pos) == ',') {
+    if (end-pos && READ_spec(pos) == ",") {
         format->thousands_separators = LT_DEFAULT_LOCALE;
         ++pos;
     }
     /* Underscore signifies add thousands separators */
-    if (end-pos && READ_spec(pos) == '_') {
+    if (end-pos && READ_spec(pos) == "_") {
         if (format->thousands_separators != LT_NO_LOCALE) {
             invalid_comma_and_underscore();
             return 0;
@@ -1561,19 +1642,19 @@ parse_internal_render_format_spec(PyObject *format_spec,
         format->thousands_separators = LT_UNDERSCORE_LOCALE;
         ++pos;
     }
-    if (end-pos && READ_spec(pos) == ',') {
+    if (end-pos && READ_spec(pos) == ",") {
         invalid_comma_and_underscore();
         return 0;
     }
 
     /* Parse field precision */
-    if (end-pos && READ_spec(pos) == '.') {
+    if (end-pos && READ_spec(pos) == ".") {
         ++pos;
 
         consumed = get_integer(format_spec, &pos, end, &format->precision);
-        if (consumed == -1)
+        if (consumed == -1){
             /* Overflow error. Exception already set. */
-            return 0;
+            return 0;}
 
         /* Not having a precision after a dot is an error. */
         if (consumed == 0) {
@@ -1603,28 +1684,17 @@ parse_internal_render_format_spec(PyObject *format_spec,
 
     if (format->thousands_separators) {
         switch (format->type) {
-        case 'd':
-        case 'e':
-        case 'f':
-        case 'g':
-        case 'E':
-        case 'G':
-        case '%':
-        case 'F':
-        case '\0':
+        case "d", "e", "f", "g", "E", "G", "%", "F", "\0":
             /* These are allowed. See PEP 378.*/
             break;
-        case 'b':
-        case 'o':
-        case 'x':
-        case 'X':
+        case "b", "o", "x", "X":
             /* Underscores are allowed in bin/oct/hex. See PEP 515. */
             if (format->thousands_separators == LT_UNDERSCORE_LOCALE) {
                 /* Every four digits, not every three, in bin/oct/hex. */
                 format->thousands_separators = LT_UNDER_FOUR_LOCALE;
                 break;
             }
-            /* fall through */
+            fallthrough
         default:
             invalid_thousands_separator_type(format->thousands_separators, format->type);
             return 0;
@@ -1643,10 +1713,12 @@ calc_padding(Py_ssize_t nchars, Py_ssize_t width, Py_UCS4 align,
              Py_ssize_t *n_total)
 {
     if (width >= 0) {
-        if (nchars > width)
+        if (nchars > width){
             *n_total = nchars;
-        else
+        }
+        else{
             *n_total = width;
+        }
     }
     else {
         /* not specified, use all of the chars and no more */
@@ -1655,12 +1727,12 @@ calc_padding(Py_ssize_t nchars, Py_ssize_t width, Py_UCS4 align,
 
     /* Figure out how much leading space we need, based on the
        aligning */
-    if (align == '>')
-        *n_lpadding = *n_total - nchars;
-    else if (align == '^')
-        *n_lpadding = (*n_total - nchars) / 2;
-    else if (align == '<' || align == '=')
-        *n_lpadding = 0;
+    if (align == ">")
+        {*n_lpadding = *n_total - nchars}
+    else if (align == "^")
+       { *n_lpadding = (*n_total - nchars) / 2}
+    else if (align == "<" || align == '=')
+        {*n_lpadding = 0}
     else {
         /* We should never have an unspecified alignment. */
         Py_UNREACHABLE();
@@ -1703,18 +1775,21 @@ fill_padding(_PyUnicodeWriter *writer,
 /* Locale info needed for formatting integers and the part of floats
    before and including the decimal. Note that locales only support
    8-bit chars, not unicode. */
-typedef struct {
-    PyObject *decimal_point;
-    PyObject *thousands_sep;
-    const char *grouping;
-    char *grouping_buffer;
-} LocaleInfo;
-
-#define LocaleInfo_STATIC_INIT {0, 0, 0, 0}
+struct LocaleInfo {
+    var decimal_point: PyObject?
+    var thousands_sep: PyObject?
+    const char *grouping;// = 0
+    char *grouping_buffer;// = 0
+    
+    init() {
+        decimal_point = nil
+        thousands_sep = nil
+    }
+}
 
 /* describes the layout for an integer, see the comment in
    calc_number_widths() for details */
-typedef struct {
+struct NumberFieldWidths {
     Py_ssize_t n_lpadding;
     Py_ssize_t n_prefix;
     Py_ssize_t n_spadding;
@@ -1734,7 +1809,7 @@ typedef struct {
                                or exponent. */
     Py_ssize_t n_min_width; /* The min_width we used when we computed
                                the n_grouped_digits width. */
-} NumberFieldWidths;
+}
 
 
 /* Given a number of the form:
@@ -1760,7 +1835,7 @@ parse_number(PyObject *s, Py_ssize_t pos, Py_ssize_t end,
     remainder = pos;
 
     /* Does remainder start with a decimal point? */
-    *has_decimal = pos<end && PyUnicode_READ(kind, data, remainder) == '.';
+    *has_decimal = pos<end && PyUnicode_READ(kind, data, remainder) == ".";
 
     /* Skip the decimal point. */
     if (*has_decimal)
@@ -1815,20 +1890,20 @@ calc_number_widths(NumberFieldWidths *spec, Py_ssize_t n_prefix,
 
     /* compute the various parts we're going to write */
     switch (format->sign) {
-    case '+':
+    case "+":
         /* always put a + or - */
         spec->n_sign = 1;
-        spec->sign = (sign_char == '-' ? '-' : '+');
+        spec->sign = (sign_char == "-" ? "-" : "+");
         break;
-    case ' ':
+    case " ":
         spec->n_sign = 1;
-        spec->sign = (sign_char == '-' ? '-' : ' ');
+        spec->sign = (sign_char == "-" ? "-" : " ");
         break;
     default:
         /* Not specified, or the default (-) */
-        if (sign_char == '-') {
+        if (sign_char == "-") {
             spec->n_sign = 1;
-            spec->sign = '-';
+            spec->sign = "-";
         }
     }
 
@@ -1838,16 +1913,17 @@ calc_number_widths(NumberFieldWidths *spec, Py_ssize_t n_prefix,
 
     /* min_width can go negative, that's okay. format->width == -1 means
        we don't care. */
-    if (format->fill_char == '0' && format->align == '=')
+    if (format->fill_char == "0" && format->align == "="){
         spec->n_min_width = format->width - n_non_digit_non_padding;
-    else
+    }
+    else{
         spec->n_min_width = 0;
-
-    if (spec->n_digits == 0)
+    }
+    if (spec->n_digits == 0){
         /* This case only occurs when using 'c' formatting, we need
            to special case it because the grouping code always wants
            to have at least one character. */
-        spec->n_grouped_digits = 0;
+        spec->n_grouped_digits = 0;}
     else {
         Py_UCS4 grouping_maxchar;
         spec->n_grouped_digits = _PyUnicode_InsertThousandsGrouping(
@@ -1870,17 +1946,17 @@ calc_number_widths(NumberFieldWidths *spec, Py_ssize_t n_prefix,
     if (n_padding > 0) {
         /* Some padding is needed. Determine if it's left, space, or right. */
         switch (format->align) {
-        case '<':
+        case "<":
             spec->n_rpadding = n_padding;
             break;
-        case '^':
+        case "^":
             spec->n_lpadding = n_padding / 2;
             spec->n_rpadding = n_padding - spec->n_lpadding;
             break;
-        case '=':
+        case "=":
             spec->n_spadding = n_padding;
             break;
-        case '>':
+        case ">":
             spec->n_lpadding = n_padding;
             break;
         default:
@@ -1889,12 +1965,13 @@ calc_number_widths(NumberFieldWidths *spec, Py_ssize_t n_prefix,
         }
     }
 
-    if (spec->n_lpadding || spec->n_spadding || spec->n_rpadding)
-        *maxchar = Py_MAX(*maxchar, format->fill_char);
+    if (spec->n_lpadding || spec->n_spadding || spec->n_rpadding){
+        *maxchar = Py_MAX(*maxchar, format->fill_char)
+    }
 
-    if (spec->n_decimal)
-        *maxchar = Py_MAX(*maxchar, PyUnicode_MAX_CHAR_VALUE(locale->decimal_point));
-
+    if (spec->n_decimal){
+        *maxchar = Py_MAX(*maxchar, PyUnicode_MAX_CHAR_VALUE(locale->decimal_point))
+    }
     return spec->n_lpadding + spec->n_sign + spec->n_prefix +
         spec->n_spadding + spec->n_grouped_digits + spec->n_decimal +
         spec->n_remainder + spec->n_rpadding;
@@ -1954,8 +2031,9 @@ fill_number(_PyUnicodeWriter *writer, const NumberFieldWidths *spec,
                 digits, d_pos, spec->n_digits,
                 spec->n_min_width,
                 locale->grouping, locale->thousands_sep, NULL);
-        if (r == -1)
+        if (r == -1){
             return -1;
+        }
         assert(r == spec->n_grouped_digits);
         d_pos += spec->n_digits;
     }
@@ -2009,7 +2087,7 @@ get_locale_info(enum LocaleType type, LocaleInfo *locale_info)
 {
     switch (type) {
     case LT_CURRENT_LOCALE: {
-        struct lconv *lc = localeconv();
+        var lc:lconv = localeconv()
         if (_Py_GetLocaleconvNumeric(lc,
                                      &locale_info->decimal_point,
                                      &locale_info->thousands_sep) < 0) {
@@ -2030,20 +2108,21 @@ get_locale_info(enum LocaleType type, LocaleInfo *locale_info)
     case LT_DEFAULT_LOCALE:
     case LT_UNDERSCORE_LOCALE:
     case LT_UNDER_FOUR_LOCALE:
-        locale_info->decimal_point = PyUnicode_FromOrdinal('.');
+        locale_info->decimal_point = PyUnicode_FromOrdinal(".");
         locale_info->thousands_sep = PyUnicode_FromOrdinal(
-            type == LT_DEFAULT_LOCALE ? ',' : '_');
+            type == LT_DEFAULT_LOCALE ? "," : "_");
         if (!locale_info->decimal_point || !locale_info->thousands_sep)
-            return -1;
-        if (type != LT_UNDER_FOUR_LOCALE)
+            {return -1}
+        if (type != LT_UNDER_FOUR_LOCALE){
             locale_info->grouping = "\3"; /* Group every 3 characters.  The
                                          (implicit) trailing 0 means repeat
                                          infinitely. */
+        }
         else
-            locale_info->grouping = "\4"; /* Bin/oct/hex group every four. */
+            {locale_info->grouping = "\4";} /* Bin/oct/hex group every four. */
         break;
     case LT_NO_LOCALE:
-        locale_info->decimal_point = PyUnicode_FromOrdinal('.');
+        locale_info->decimal_point = PyUnicode_FromOrdinal(".");
         locale_info->thousands_sep = PyUnicode_New(0, 0);
         if (!locale_info->decimal_point || !locale_info->thousands_sep)
             return -1;
@@ -2080,7 +2159,7 @@ format_string_internal(PyObject *value, const InternalFormatSpec *format,
     len = PyUnicode_GET_LENGTH(value);
 
     /* sign is not allowed on strings */
-    if (format->sign != '\0') {
+    if (format->sign != "\0") {
         PyErr_SetString(PyExc_ValueError,
                         "Sign not allowed in string format specifier");
         goto done;
@@ -2095,7 +2174,7 @@ format_string_internal(PyObject *value, const InternalFormatSpec *format,
     }
 
     /* '=' alignment not allowed on strings */
-    if (format->align == '=') {
+    if (format->align == "=") {
         PyErr_SetString(PyExc_ValueError,
                         "'=' alignment not allowed "
                         "in string format specifier");
@@ -2118,7 +2197,7 @@ format_string_internal(PyObject *value, const InternalFormatSpec *format,
 
     maxchar = writer->maxchar;
     if (lpad != 0 || rpad != 0)
-        maxchar = Py_MAX(maxchar, format->fill_char);
+        {maxchar = Py_MAX(maxchar, format->fill_char)}
     if (PyUnicode_MAX_CHAR_VALUE(value) > maxchar) {
         Py_UCS4 valmaxchar = _PyUnicode_FindMaxChar(value, 0, len);
         maxchar = Py_MAX(maxchar, valmaxchar);
@@ -2126,12 +2205,12 @@ format_string_internal(PyObject *value, const InternalFormatSpec *format,
 
     /* allocate the resulting string */
     if (_PyUnicodeWriter_Prepare(writer, total, maxchar) == -1)
-        goto done;
+        {goto done}
 
     /* Write into that space. First the padding. */
     result = fill_padding(writer, len, format->fill_char, lpad, rpad);
     if (result == -1)
-        goto done;
+        {goto done}
 
     /* Then the source string. */
     if (len) {
@@ -2158,7 +2237,7 @@ format_long_internal(PyObject *value, const InternalFormatSpec *format,
     Py_UCS4 maxchar = 127;
     PyObject *tmp = NULL;
     Py_ssize_t inumeric_chars;
-    Py_UCS4 sign_char = '\0';
+    Py_UCS4 sign_char = "\0";
     Py_ssize_t n_digits;       /* count of digits need from the computed
                                   string */
     Py_ssize_t n_remainder = 0; /* Used only for 'c' formatting, which
@@ -2171,7 +2250,7 @@ format_long_internal(PyObject *value, const InternalFormatSpec *format,
 
     /* Locale settings, either from the actual locale or
        from a hard-code pseudo-locale */
-    LocaleInfo locale = LocaleInfo_STATIC_INIT;
+    var locale:LocaleInfo = .init()
 
     /* no precision allowed on integers */
     if (format->precision != -1) {
@@ -2181,9 +2260,9 @@ format_long_internal(PyObject *value, const InternalFormatSpec *format,
     }
 
     /* special case for character formatting */
-    if (format->type == 'c') {
+    if (format->type == "c") {
         /* error to specify a sign */
-        if (format->sign != '\0') {
+        if (format->sign != "\0") {
             PyErr_SetString(PyExc_ValueError,
                             "Sign not allowed with integer"
                             " format specifier 'c'");
@@ -2228,29 +2307,29 @@ format_long_internal(PyObject *value, const InternalFormatSpec *format,
         /* Compute the base and how many characters will be added by
            PyNumber_ToBase */
         switch (format->type) {
-        case 'b':
+        case "b":
             base = 2;
             leading_chars_to_skip = 2; /* 0b */
             break;
-        case 'o':
+        case "o":
             base = 8;
             leading_chars_to_skip = 2; /* 0o */
             break;
-        case 'x':
-        case 'X':
+        case "x", "X":
             base = 16;
             leading_chars_to_skip = 2; /* 0x */
             break;
+        case "d", "n":
+            fallthrough
         default:  /* shouldn't be needed, but stops a compiler warning */
-        case 'd':
-        case 'n':
             base = 10;
             break;
+            
         }
 
-        if (format->sign != '+' && format->sign != ' '
+        if (format->sign != "+" && format->sign != " "
             && format->width == -1
-            && format->type != 'X' && format->type != 'n'
+            && format->type != "X" && format->type != "n"
             && !format->thousands_separators
             && PyLong_CheckExact(value))
         {
@@ -2261,12 +2340,12 @@ format_long_internal(PyObject *value, const InternalFormatSpec *format,
         /* The number of prefix chars is the same as the leading
            chars to skip */
         if (format->alternate)
-            n_prefix = leading_chars_to_skip;
+            {n_prefix = leading_chars_to_skip}
 
         /* Do the hard part, converting to a string in a given base */
         tmp = _PyLong_Format(value, base);
         if (tmp == NULL || PyUnicode_READY(tmp) == -1)
-            goto done;
+            {goto done}
 
         inumeric_chars = 0;
         n_digits = PyUnicode_GET_LENGTH(tmp);
@@ -2275,8 +2354,8 @@ format_long_internal(PyObject *value, const InternalFormatSpec *format,
 
         /* Is a sign character present in the output?  If so, remember it
            and skip it */
-        if (PyUnicode_READ_CHAR(tmp, inumeric_chars) == '-') {
-            sign_char = '-';
+        if (PyUnicode_READ_CHAR(tmp, inumeric_chars) == "-") {
+            sign_char = "-"
             ++prefix;
             ++leading_chars_to_skip;
         }
@@ -2287,11 +2366,11 @@ format_long_internal(PyObject *value, const InternalFormatSpec *format,
     }
 
     /* Determine the grouping, separator, and decimal point, if any. */
-    if (get_locale_info(format->type == 'n' ? LT_CURRENT_LOCALE :
+    if (get_locale_info(format->type == "n" ? LT_CURRENT_LOCALE :
                         format->thousands_separators,
-                        &locale) == -1)
+                        &locale) == -1){
         goto done;
-
+}
     /* Calculate how much memory we'll need. */
     n_total = calc_number_widths(&spec, n_prefix, sign_char, tmp, inumeric_chars,
                                  inumeric_chars + n_digits, n_remainder, 0,
@@ -2308,7 +2387,7 @@ format_long_internal(PyObject *value, const InternalFormatSpec *format,
     result = fill_number(writer, &spec,
                          tmp, inumeric_chars, inumeric_chars + n_digits,
                          tmp, prefix, format->fill_char,
-                         &locale, format->type == 'X');
+    &locale, format->type == "X");
 
 done:
     Py_XDECREF(tmp);
@@ -2340,13 +2419,13 @@ format_float_internal(PyObject *value,
     int flags = 0;
     int result = -1;
     Py_UCS4 maxchar = 127;
-    Py_UCS4 sign_char = '\0';
+    Py_UCS4 sign_char = "\0";
     int float_type; /* Used to see if we have a nan, inf, or regular float. */
     PyObject *unicode_tmp = NULL;
 
     /* Locale settings, either from the actual locale or
        from a hard-code pseudo-locale */
-    LocaleInfo locale = LocaleInfo_STATIC_INIT;
+    var locale:LocaleInfo = .init()
 
     if (format->precision > INT_MAX) {
         PyErr_SetString(PyExc_ValueError, "precision too big");
@@ -2354,58 +2433,61 @@ format_float_internal(PyObject *value,
     }
     precision = (int)format->precision;
 
-    if (format->alternate)
+    if (format->alternate){
         flags |= Py_DTSF_ALT;
+    }
 
-    if (type == '\0') {
+    if (type == "\0") {
         /* Omitted type specifier.  Behaves in the same way as repr(x)
            and str(x) if no precision is given, else like 'g', but with
            at least one digit after the decimal point. */
         flags |= Py_DTSF_ADD_DOT_0;
-        type = 'r';
+        type = "r";
         default_precision = 0;
     }
 
-    if (type == 'n')
+    if (type == "n"){
         /* 'n' is the same as 'g', except for the locale used to
            format the result. We take care of that later. */
-        type = 'g';
-
+    type = "g";
+}
     val = PyFloat_AsDouble(value);
     if (val == -1.0 && PyErr_Occurred())
-        goto done;
+        {
+            goto done;
+        }
 
-    if (type == '%') {
-        type = 'f';
+    if (type == "%") {
+        type = "f";
         val *= 100;
         add_pct = 1;
     }
 
     if (precision < 0)
         precision = default_precision;
-    else if (type == 'r')
-        type = 'g';
+    else if (type == "r")
+    {type = "g";}
 
     /* Cast "type", because if we're in unicode we need to pass an
        8-bit char. This is safe, because we've restricted what "type"
        can be. */
     buf = PyOS_double_to_string(val, (char)type, precision, flags,
                                 &float_type);
-    if (buf == NULL)
-        goto done;
+    if (buf == NULL){
+        goto done;}
     n_digits = strlen(buf);
 
     if (add_pct) {
         /* We know that buf has a trailing zero (since we just called
            strlen() on it), and we don't use that fact any more. So we
            can just write over the trailing zero. */
-        buf[n_digits] = '%';
+        buf[n_digits] = "%";
         n_digits += 1;
     }
 
-    if (format->sign != '+' && format->sign != ' '
+    if (format->sign != "+" && format->sign != " "
         && format->width == -1
-        && format->type != 'n'
+        && format->type != "n"
         && !format->thousands_separators)
     {
         /* Fast path */
@@ -2424,8 +2506,8 @@ format_float_internal(PyObject *value,
     /* Is a sign character present in the output?  If so, remember it
        and skip it */
     index = 0;
-    if (PyUnicode_READ_CHAR(unicode_tmp, index) == '-') {
-        sign_char = '-';
+    if (PyUnicode_READ_CHAR(unicode_tmp, index) == "-") {
+        sign_char = "-";
         ++index;
         --n_digits;
     }
@@ -2435,10 +2517,10 @@ format_float_internal(PyObject *value,
     parse_number(unicode_tmp, index, index + n_digits, &n_remainder, &has_decimal);
 
     /* Determine the grouping, separator, and decimal point, if any. */
-    if (get_locale_info(format->type == 'n' ? LT_CURRENT_LOCALE :
+    if (get_locale_info(format->type == "n" ? LT_CURRENT_LOCALE :
                         format->thousands_separators,
                         &locale) == -1)
-        goto done;
+        {goto done;}
 
     /* Calculate how much memory we'll need. */
     n_total = calc_number_widths(&spec, 0, sign_char, unicode_tmp, index,
@@ -2498,8 +2580,8 @@ format_complex_internal(PyObject *value,
     Py_UCS4 maxchar = 127;
     enum PyUnicode_Kind rkind;
     void *rdata;
-    Py_UCS4 re_sign_char = '\0';
-    Py_UCS4 im_sign_char = '\0';
+    Py_UCS4 re_sign_char = "\0";
+    Py_UCS4 im_sign_char = "\0";
     int re_float_type; /* Used to see if we have a nan, inf, or regular float. */
     int im_float_type;
     int add_parens = 0;
@@ -2512,7 +2594,7 @@ format_complex_internal(PyObject *value,
 
     /* Locale settings, either from the actual locale or
        from a hard-code pseudo-locale */
-    LocaleInfo locale = LocaleInfo_STATIC_INIT;
+    var locale:LocaleInfo = .init()
 
     if (format->precision > INT_MAX) {
         PyErr_SetString(PyExc_ValueError, "precision too big");
@@ -2521,87 +2603,89 @@ format_complex_internal(PyObject *value,
     precision = (int)format->precision;
 
     /* Zero padding is not allowed. */
-    if (format->fill_char == '0') {
+    if (format->fill_char == "0") {
         PyErr_SetString(PyExc_ValueError,
                         "Zero padding is not allowed in complex format "
                         "specifier");
-        goto done;
+        {goto done;}
     }
 
     /* Neither is '=' alignment . */
-    if (format->align == '=') {
+    if (format->align == "=") {
         PyErr_SetString(PyExc_ValueError,
                         "'=' alignment flag is not allowed in complex format "
                         "specifier");
-        goto done;
+        {goto done;}
     }
 
     re = PyComplex_RealAsDouble(value);
-    if (re == -1.0 && PyErr_Occurred())
+    if (re == -1.0 && PyErr_Occurred()){
         goto done;
+    }
     im = PyComplex_ImagAsDouble(value);
-    if (im == -1.0 && PyErr_Occurred())
+    if (im == -1.0 && PyErr_Occurred()){
         goto done;
-
-    if (format->alternate)
-        flags |= Py_DTSF_ALT;
-
-    if (type == '\0') {
-        /* Omitted type specifier. Should be like str(self). */
-        type = 'r';
-        default_precision = 0;
-        if (re == 0.0 && copysign(1.0, re) == 1.0)
-            skip_re = 1;
-        else
-            add_parens = 1;
     }
 
-    if (type == 'n')
+    if (format->alternate){
+        flags |= Py_DTSF_ALT;
+    }
+    if (type == "\0") {
+        /* Omitted type specifier. Should be like str(self). */
+        type = "r";
+        default_precision = 0;
+        if (re == 0.0 && copysign(1.0, re) == 1.0){
+            skip_re = 1;}
+        else{
+            add_parens = 1;}
+    }
+
+    if (type == "n"){
         /* 'n' is the same as 'g', except for the locale used to
            format the result. We take care of that later. */
-        type = 'g';
-
-    if (precision < 0)
+        type = "g";
+}
+    if (precision < 0){
         precision = default_precision;
-    else if (type == 'r')
-        type = 'g';
-
+    }    else if (type == "r"){
+        type = "g";
+}
     /* Cast "type", because if we're in unicode we need to pass an
        8-bit char. This is safe, because we've restricted what "type"
        can be. */
     re_buf = PyOS_double_to_string(re, (char)type, precision, flags,
                                    &re_float_type);
-    if (re_buf == NULL)
-        goto done;
+    if (re_buf == NULL){
+        goto done;}
     im_buf = PyOS_double_to_string(im, (char)type, precision, flags,
                                    &im_float_type);
-    if (im_buf == NULL)
+    if (im_buf == NULL){
         goto done;
-
+}
     n_re_digits = strlen(re_buf);
     n_im_digits = strlen(im_buf);
 
     /* Since there is no unicode version of PyOS_double_to_string,
        just use the 8 bit version and then convert to unicode. */
     re_unicode_tmp = _PyUnicode_FromASCII(re_buf, n_re_digits);
-    if (re_unicode_tmp == NULL)
-        goto done;
+    if (re_unicode_tmp == NULL){
+        goto done;}
     i_re = 0;
 
     im_unicode_tmp = _PyUnicode_FromASCII(im_buf, n_im_digits);
-    if (im_unicode_tmp == NULL)
-        goto done;
+    if (im_unicode_tmp == NULL){
+        goto done;}
     i_im = 0;
 
     /* Is a sign character present in the output?  If so, remember it
        and skip it */
-    if (PyUnicode_READ_CHAR(re_unicode_tmp, i_re) == '-') {
-        re_sign_char = '-';
+    if (PyUnicode_READ_CHAR(re_unicode_tmp, i_re) == "-") {
+        re_sign_char = "-";
         ++i_re;
         --n_re_digits;
     }
-    if (PyUnicode_READ_CHAR(im_unicode_tmp, i_im) == '-') {
-        im_sign_char = '-';
+    if (PyUnicode_READ_CHAR(im_unicode_tmp, i_im) == "-") {
+        im_sign_char = "-";
         ++i_im;
         --n_im_digits;
     }
@@ -2614,15 +2698,15 @@ format_complex_internal(PyObject *value,
                  &n_im_remainder, &im_has_decimal);
 
     /* Determine the grouping, separator, and decimal point, if any. */
-    if (get_locale_info(format->type == 'n' ? LT_CURRENT_LOCALE :
+    if (get_locale_info(format->type == "n" ? LT_CURRENT_LOCALE :
                         format->thousands_separators,
                         &locale) == -1)
-        goto done;
+        {goto done;}
 
     /* Turn off any padding. We'll do it later after we've composed
        the numbers without padding. */
-    tmp_format.fill_char = '\0';
-    tmp_format.align = '<';
+    tmp_format.fill_char = "\0";
+    tmp_format.align = "<";
     tmp_format.width = -1;
 
     /* Calculate how much memory we'll need. */
@@ -2637,8 +2721,8 @@ format_complex_internal(PyObject *value,
     /* Same formatting, but always include a sign, unless the real part is
      * going to be omitted, in which case we use whatever sign convention was
      * requested by the original format. */
-    if (!skip_re)
-        tmp_format.sign = '+';
+    if (!skip_re){
+        tmp_format.sign = "+";}
     n_im_total = calc_number_widths(&im_spec, 0, im_sign_char, im_unicode_tmp,
                                     i_im, i_im + n_im_digits, n_im_remainder,
                                     im_has_decimal, &locale, &tmp_format,
@@ -2647,18 +2731,18 @@ format_complex_internal(PyObject *value,
         goto done;
     }
 
-    if (skip_re)
-        n_re_total = 0;
+    if (skip_re){
+        n_re_total = 0;}
 
     /* Add 1 for the 'j', and optionally 2 for parens. */
     calc_padding(n_re_total + n_im_total + 1 + add_parens * 2,
                  format->width, format->align, &lpad, &rpad, &total);
 
-    if (lpad || rpad)
+    if (lpad || rpad){
         maxchar = Py_MAX(maxchar, format->fill_char);
-
-    if (_PyUnicodeWriter_Prepare(writer, total, maxchar) == -1)
-        goto done;
+}
+    if (_PyUnicodeWriter_Prepare(writer, total, maxchar) == -1){
+        goto done;}
     rkind = writer->kind;
     rdata = writer->data;
 
@@ -2666,11 +2750,12 @@ format_complex_internal(PyObject *value,
     result = fill_padding(writer,
                           n_re_total + n_im_total + 1 + add_parens * 2,
                           format->fill_char, lpad, rpad);
-    if (result == -1)
+    if (result == -1){
         goto done;
+    }
 
     if (add_parens) {
-        PyUnicode_WRITE(rkind, rdata, writer->pos, '(');
+        PyUnicode_WRITE(rkind, rdata, writer->pos, "(");
         writer->pos++;
     }
 
@@ -2680,21 +2765,23 @@ format_complex_internal(PyObject *value,
                              NULL, 0,
                              0,
                              &locale, 0);
-        if (result == -1)
+        if (result == -1){
             goto done;
+        }
     }
     result = fill_number(writer, &im_spec,
                          im_unicode_tmp, i_im, i_im + n_im_digits,
                          NULL, 0,
                          0,
                          &locale, 0);
-    if (result == -1)
+    if (result == -1){
         goto done;
-    PyUnicode_WRITE(rkind, rdata, writer->pos, 'j');
+    }
+    PyUnicode_WRITE(rkind, rdata, writer->pos, "j");
     writer->pos++;
 
     if (add_parens) {
-        PyUnicode_WRITE(rkind, rdata, writer->pos, ')');
+        PyUnicode_WRITE(rkind, rdata, writer->pos, ")");
         writer->pos++;
     }
 
@@ -2712,8 +2799,7 @@ done:
 /************************************************************************/
 /*********** built in formatters ****************************************/
 /************************************************************************/
-static int
-format_obj(PyObject *obj, _PyUnicodeWriter *writer)
+func format_obj(_ obj:PyObject?, _ writer:_PyUnicodeWriter) -> int
 {
     PyObject *str;
     int err;
@@ -2732,27 +2818,30 @@ _PyUnicode_FormatAdvancedWriter(_PyUnicodeWriter *writer,
                                 PyObject *format_spec,
                                 Py_ssize_t start, Py_ssize_t end)
 {
-    InternalFormatSpec format;
+    var format:InternalFormatSpec
 
     assert(PyUnicode_Check(obj));
 
     /* check for the special case of zero length format spec, make
        it equivalent to str(obj) */
     if (start == end) {
-        if (PyUnicode_CheckExact(obj))
+        if (PyUnicode_CheckExact(obj)){
             return _PyUnicodeWriter_WriteStr(writer, obj);
-        else
+        }
+        else{
             return format_obj(obj, writer);
+        }
     }
 
     /* parse the format_spec */
     if (!parse_internal_render_format_spec(format_spec, start, end,
-                                           &format, 's', '<'))
+                                           &format, "s", "<")){
         return -1;
+    }
 
     /* type conversion? */
     switch (format.type) {
-    case 's':
+    case "s":
         /* no type conversion needed, already a string.  do the formatting */
         return format_string_internal(obj, &format, writer);
     default:
@@ -2783,7 +2872,7 @@ _PyLong_FormatAdvancedWriter(_PyUnicodeWriter *writer,
 
     /* parse the format_spec */
     if (!parse_internal_render_format_spec(format_spec, start, end,
-                                           &format, 'd', '>')){
+                                           &format, "d", ">")){
         Py_XDECREF(tmp);
         Py_XDECREF(str);
         return result;
@@ -2792,24 +2881,12 @@ _PyLong_FormatAdvancedWriter(_PyUnicodeWriter *writer,
 
     /* type conversion? */
     switch (format.type) {
-    case 'b':
-    case 'c':
-    case 'd':
-    case 'o':
-    case 'x':
-    case 'X':
-    case 'n':
+    case "b", "c", "d", "o", "x", "X", "n":
         /* no type conversion needed, already an int.  do the formatting */
         result = format_long_internal(obj, &format, writer);
         break;
 
-    case 'e':
-    case 'E':
-    case 'f':
-    case 'F':
-    case 'g':
-    case 'G':
-    case '%':
+    case "e", "E", "f", "F", "g", "G", "%":
         /* convert to float */
         tmp = PyNumber_Float(obj);
         if (tmp == NULL){
@@ -2828,8 +2905,7 @@ _PyLong_FormatAdvancedWriter(_PyUnicodeWriter *writer,
         Py_XDECREF(str);
         return result;
     }
-
-done:
+    return result;
 }
 
 int
@@ -2838,29 +2914,22 @@ _PyFloat_FormatAdvancedWriter(_PyUnicodeWriter *writer,
                               PyObject *format_spec,
                               Py_ssize_t start, Py_ssize_t end)
 {
-    InternalFormatSpec format;
+    var format: InternalFormatSpec
 
     /* check for the special case of zero length format spec, make
        it equivalent to str(obj) */
-    if (start == end)
+    if (start == end){
         return format_obj(obj, writer);
-
+    }
     /* parse the format_spec */
     if (!parse_internal_render_format_spec(format_spec, start, end,
-                                           &format, '\0', '>'))
-        return -1;
+                                           &format, "\0", ">")){
+        return -1;}
 
     /* type conversion? */
     switch (format.type) {
-    case '\0': /* No format code: like 'g', but with at least one decimal. */
-    case 'e':
-    case 'E':
-    case 'f':
-    case 'F':
-    case 'g':
-    case 'G':
-    case 'n':
-    case '%':
+    case "\0", /* No format code: like 'g', but with at least one decimal. */
+    "e", "E", "f", "F", "g", "G", "n", "%":
         /* no conversion, already a float.  do the formatting */
         return format_float_internal(obj, &format, writer);
 
@@ -2877,28 +2946,22 @@ _PyComplex_FormatAdvancedWriter(_PyUnicodeWriter *writer,
                                 PyObject *format_spec,
                                 Py_ssize_t start, Py_ssize_t end)
 {
-    InternalFormatSpec format;
+    var format:InternalFormatSpec
 
     /* check for the special case of zero length format spec, make
        it equivalent to str(obj) */
     if (start == end)
-        return format_obj(obj, writer);
+        {return format_obj(obj, writer);}
 
     /* parse the format_spec */
     if (!parse_internal_render_format_spec(format_spec, start, end,
-                                           &format, '\0', '>'))
-        return -1;
+                                           &format, "\0", ">"))
+        {return -1;}
 
     /* type conversion? */
     switch (format.type) {
-    case '\0': /* No format code: like 'g', but with at least one decimal. */
-    case 'e':
-    case 'E':
-    case 'f':
-    case 'F':
-    case 'g':
-    case 'G':
-    case 'n':
+    case "\0", /* No format code: like 'g', but with at least one decimal. */
+    "e", "E", "f", "F","g", "G", "n":
         /* no conversion, already a complex.  do the formatting */
         return format_complex_internal(obj, &format, writer);
 
@@ -2909,9 +2972,42 @@ _PyComplex_FormatAdvancedWriter(_PyUnicodeWriter *writer,
     }
 }
 
+
+class _PyUnicodeWriter {
+    var buffer:PyObject
+    void *data;
+    var kind: PyUnicode_Kind = .PyUnicode_WCHAR_KIND
+    var maxchar:Py_UCS4
+    var size:Py_ssize_t
+    var pos:Py_ssize_t
+
+    /* minimum number of allocated characters (default: 0) */
+    var min_length:Py_ssize_t
+
+    /* minimum character (default: 127, ASCII) */
+    var min_char: Py_UCS4 = Character(127)
+
+    /* If non-zero, overallocate the buffer (default: 0). */
+    unsigned char overallocate;
+
+    /* If readonly is 1, buffer is a shared string (cannot be modified)
+       and size is set to 0. */
+    unsigned char readonly;
+}
+enum PyUnicode_Kind: Int {
+/* String contains only wstr byte characters.  This is only possible
+   when the string was created with a legacy API and _PyUnicode_Ready()
+   has not been called yet.  */
+    case PyUnicode_WCHAR_KIND = 0
+/* Return values of the PyUnicode_KIND() macro: */
+    case PyUnicode_1BYTE_KIND = 1
+    case PyUnicode_2BYTE_KIND = 2
+    case PyUnicode_4BYTE_KIND = 4
+}
+
 extension String {
     public func format(_ args:Any?..., kwargs:[String:Any?]=[:]) -> String {
-        switch do_string_format(self, args: args, kwargs: kwargs) {
+        switch do_string_format(self, args, kwargs) {
         case .success(let result):
             return result
         case .failure(let err):
