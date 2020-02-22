@@ -2140,7 +2140,8 @@ protocol PSFormattable {
     var str: String { get }
     var repr: String { get }
     var ascii: String { get }
-    func convertField(_ conversion:Character) -> String
+    func convertField(_ conversion: Character) -> String
+    func objectFormat(_ internalFormatSpec: InternalFormatSpec) -> String
 }
 extension PSFormattable {
     var str: String { String(describing: self) }
