@@ -905,12 +905,8 @@ func
     /* XXX in pre-3.0, do we need to convert this to unicode, since it
        might have returned a string? */
     switch (conversion) {
-    case "r":
-        return PyObject_Repr(obj);
-    case "s":
-        return PyObject_Str(obj);
-    case "a":
-        return PyObject_ASCII(obj);
+    case "r", "s", "a":
+        return (obj as? PSFormattable)?.convertField(conversion)
     default:
         if (conversion > 32 && conversion < 127) {
                 /* It's the ASCII subrange; casting to char is safe
@@ -2103,6 +2099,30 @@ free_locale_info(LocaleInfo *locale_info)
     PyMem_Free(locale_info->grouping_buffer);
 }
 
+protocol PSFormattable {
+    var str: String { get }
+    var repr: String { get }
+    var ascii: String { get }
+    func convertField(_ conversion:Character) -> String
+}
+extension PSFormattable {
+    var str: String { String(describing: self) }
+    var repr:String { String(describing: self) }
+    var ascii: String { String(describing: self) }
+
+    func convertField(_ conversion:Character) -> String {
+        switch conversion {
+        case "s":
+            return str
+        case "r":
+            return repr
+        case "a":
+            return ascii
+        default:
+            return String(describing: self)
+        }
+    }
+}
 /************************************************************************/
 /*********** string formatting ******************************************/
 /************************************************************************/
