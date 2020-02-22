@@ -2419,11 +2419,11 @@ format_float_internal(PyObject *value,
        from a hard-code pseudo-locale */
     var locale:LocaleInfo = .init()
 
-    if (format->precision > INT_MAX) {
+    if (format.precision > INT_MAX) {
         PyErr_SetString(PyExc_ValueError, "precision too big");
         goto done;
     }
-    precision = (int)format->precision;
+    precision = (int)format.precision;
 
     if (format->alternate){
         flags |= Py_DTSF_ALT;
@@ -2455,8 +2455,9 @@ format_float_internal(PyObject *value,
         add_pct = 1;
     }
 
-    if (precision < 0)
+    if (precision < 0){
         precision = default_precision;
+    }
     else if (type == "r")
     {type = "g";}
 
@@ -2477,14 +2478,13 @@ format_float_internal(PyObject *value,
         n_digits += 1;
     }
 
-    if (format->sign != "+" && format->sign != " "
-        && format->width == -1
-        && format->type != "n"
-        && !format->thousands_separators)
+    if (format.sign != "+" && format.sign != " "
+        && format.width == -1
+        && format.type != "n"
+        && !format.thousands_separators)
     {
         /* Fast path */
         result = _PyUnicodeWriter_WriteASCIIString(writer, buf, n_digits);
-        PyMem_Free(buf);
         return result;
     }
 
