@@ -1467,13 +1467,13 @@ enum LocaleType: Character {
 }
 
 struct InternalFormatSpec {
-    var fill_char:Py_UCS4
+    var fill_char:Py_UCS4 = " "
     var align:Py_UCS4
-    var alternate:int
-    var sign:Py_UCS4
-    var width:Py_ssize_t
-    var thousands_separators:LocaleType
-    var precision:Py_ssize_t
+    var alternate:int = 0
+    var sign:Py_UCS4 = "\0"
+    var width:Py_ssize_t = -1
+    var thousands_separators:LocaleType = .LT_NO_LOCALE
+    var precision:Py_ssize_t = -1
     var type:Py_UCS4
 }
 extension InternalFormatSpec: CustomDebugStringConvertible {
@@ -1816,41 +1816,41 @@ calc_number_widths(NumberFieldWidths *spec, Py_ssize_t n_prefix,
     */
 
     /* compute the various parts we're going to write */
-    switch (format->sign) {
+    switch (format.sign) {
     case "+":
         /* always put a + or - */
-        spec->n_sign = 1;
-        spec->sign = (sign_char == "-" ? "-" : "+");
+        spec.n_sign = 1;
+        spec.sign = (sign_char == "-" ? "-" : "+");
         break;
     case " ":
-        spec->n_sign = 1;
-        spec->sign = (sign_char == "-" ? "-" : " ");
+        spec.n_sign = 1;
+        spec.sign = (sign_char == "-" ? "-" : " ");
         break;
     default:
         /* Not specified, or the default (-) */
         if (sign_char == "-") {
-            spec->n_sign = 1;
-            spec->sign = "-";
+            spec.n_sign = 1;
+            spec.sign = "-";
         }
     }
 
     /* The number of chars used for non-digits and non-padding. */
-    n_non_digit_non_padding = spec->n_sign + spec->n_prefix + spec->n_decimal +
-        spec->n_remainder;
+    n_non_digit_non_padding = spec.n_sign + spec.n_prefix + spec.n_decimal +
+        spec.n_remainder;
 
     /* min_width can go negative, that's okay. format->width == -1 means
        we don't care. */
-    if (format->fill_char == "0" && format->align == "="){
-        spec->n_min_width = format->width - n_non_digit_non_padding;
+    if (format.fill_char == "0" && format.align == "="){
+        spec.n_min_width = format.width - n_non_digit_non_padding;
+    } else{
+        spec.n_min_width = 0;
     }
-    else{
-        spec->n_min_width = 0;
-    }
-    if (spec->n_digits == 0){
+    if (spec.n_digits == 0){
         /* This case only occurs when using 'c' formatting, we need
            to special case it because the grouping code always wants
            to have at least one character. */
-        spec->n_grouped_digits = 0;}
+        spec.n_grouped_digits = 0;
+    }
     else {
         Py_UCS4 grouping_maxchar;
         spec->n_grouped_digits = _PyUnicode_InsertThousandsGrouping(
@@ -1868,8 +1868,8 @@ calc_number_widths(NumberFieldWidths *spec, Py_ssize_t n_prefix,
        space we consume, see if we need any padding. format->width can
        be negative (meaning no padding), but this code still works in
        that case. */
-    n_padding = format->width -
-                        (n_non_digit_non_padding + spec->n_grouped_digits);
+    n_padding = format.width -
+        (n_non_digit_non_padding + spec.n_grouped_digits);
     if (n_padding > 0) {
         /* Some padding is needed. Determine if it's left, space, or right. */
         switch (format->align) {
@@ -2095,6 +2095,9 @@ extension PSFormattable {
 }
 
 extension String: PSFormattable {
+    var defaultInternalFormatSpec: InternalFormatSpec {
+        InternalFormatSpec(align: "s", type: "<")
+    }
 /************************************************************************/
 /*********** string formatting ******************************************/
 /************************************************************************/
@@ -2219,6 +2222,10 @@ done:
 protocol PSFormattableInteger: PSFormattable, FixedWidthInteger {
     var formatableInteger: Int { get }
 }
+extension PSFormattableInteger {
+    var defaultInternalFormatSpec: InternalFormatSpec {
+        InternalFormatSpec(align: "d", type: ">")
+    }
 /************************************************************************/
 /*********** long formatting ********************************************/
 /************************************************************************/
