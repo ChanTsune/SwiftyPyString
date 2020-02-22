@@ -21,6 +21,32 @@ typealias double = Double
 typealias Py_UCS4 = Character
 
 var PY_SSIZE_T_MAX = Int.max
+
+extension BinaryInteger {
+    @discardableResult
+    static prefix func ++ (i: inout Self) -> Self {
+        i += 1
+        return i
+    }
+    @discardableResult
+    static postfix func ++ (i: inout Self) -> Self {
+        let tmp = i
+        i += 1
+        return tmp
+    }
+    @discardableResult
+    static prefix func -- (i: inout Self) -> Self {
+        i -= 1
+        return i
+    }
+    @discardableResult
+    static postfix func -- (i: inout Self) -> Self {
+        let tmp = i
+        i -= 1
+        return tmp
+    }
+}
+
 /*
     unicode_format.h -- implementation of str.format().
 */
@@ -47,6 +73,8 @@ class SubString {
     }
 }
 
+
+typealias FormatResult = Result<String, PyException>
 
 enum AutoNumberState {
     case ANS_INIT
@@ -1158,71 +1186,6 @@ formatteriter_next(formatteriterobject *it)
     }
 }
 
-static PyMethodDef formatteriter_methods[] = {
-    {NULL,              NULL}           /* sentinel */
-};
-
-static PyTypeObject PyFormatterIter_Type = {
-    PyVarObject_HEAD_INIT(&PyType_Type, 0)
-    "formatteriterator",                /* tp_name */
-    sizeof(formatteriterobject),        /* tp_basicsize */
-    0,                                  /* tp_itemsize */
-    /* methods */
-    (destructor)formatteriter_dealloc,  /* tp_dealloc */
-    0,                                  /* tp_vectorcall_offset */
-    0,                                  /* tp_getattr */
-    0,                                  /* tp_setattr */
-    0,                                  /* tp_as_async */
-    0,                                  /* tp_repr */
-    0,                                  /* tp_as_number */
-    0,                                  /* tp_as_sequence */
-    0,                                  /* tp_as_mapping */
-    0,                                  /* tp_hash */
-    0,                                  /* tp_call */
-    0,                                  /* tp_str */
-    PyObject_GenericGetAttr,            /* tp_getattro */
-    0,                                  /* tp_setattro */
-    0,                                  /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT,                 /* tp_flags */
-    0,                                  /* tp_doc */
-    0,                                  /* tp_traverse */
-    0,                                  /* tp_clear */
-    0,                                  /* tp_richcompare */
-    0,                                  /* tp_weaklistoffset */
-    PyObject_SelfIter,                  /* tp_iter */
-    (iternextfunc)formatteriter_next,   /* tp_iternext */
-    formatteriter_methods,              /* tp_methods */
-    0,
-};
-
-/* unicode_formatter_parser is used to implement
-   string.Formatter.vformat.  it parses a string and returns tuples
-   describing the parsed elements.  It's a wrapper around
-   stringlib/string_format.h's MarkupIterator */
-static PyObject *
-formatter_parser(PyObject *ignored, PyObject *self)
-{
-    formatteriterobject *it;
-
-    if (!PyUnicode_Check(self)) {
-        PyErr_Format(PyExc_TypeError, "expected str, got %s", Py_TYPE(self)->tp_name);
-        return NULL;
-    }
-
-    if (PyUnicode_READY(self) == -1)
-        return NULL;
-
-    it = PyObject_New(formatteriterobject, &PyFormatterIter_Type);
-    if (it == NULL){return nil}
-
-    /* take ownership, give the object to the iterator */
-    Py_INCREF(self);
-    it->str = self;
-
-    /* initialize the contained MarkupIterator */
-    it->it_markup = .init( (PyObject*)self, 0, PyUnicode_GET_LENGTH(self));
-    return (PyObject *)it;
-}
 
 
 /************************************************************************/
