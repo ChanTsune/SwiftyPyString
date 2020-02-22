@@ -1730,24 +1730,24 @@ struct LocaleInfo {
 /* describes the layout for an integer, see the comment in
    calc_number_widths() for details */
 struct NumberFieldWidths {
-    Py_ssize_t n_lpadding;
-    Py_ssize_t n_prefix;
-    Py_ssize_t n_spadding;
-    Py_ssize_t n_rpadding;
-    char sign;
-    Py_ssize_t n_sign;      /* number of digits needed for sign (0/1) */
-    Py_ssize_t n_grouped_digits; /* Space taken up by the digits, including
+    var n_lpadding: Py_ssize_t
+    var n_prefix: Py_ssize_t
+    var n_spadding: Py_ssize_t
+    var n_rpadding: Py_ssize_t
+    var sign: Character
+    var n_sign: Py_ssize_t      /* number of digits needed for sign (0/1) */
+    var n_grouped_digits: Py_ssize_t /* Space taken up by the digits, including
                                     any grouping chars. */
-    Py_ssize_t n_decimal;   /* 0 if only an integer */
-    Py_ssize_t n_remainder; /* Digits in decimal and/or exponent part,
+    var n_decimal: Py_ssize_t   /* 0 if only an integer */
+    var n_remainder: Py_ssize_t /* Digits in decimal and/or exponent part,
                                excluding the decimal itself, if
                                present. */
 
     /* These 2 are not the widths of fields, but are needed by
        STRINGLIB_GROUPING. */
-    Py_ssize_t n_digits;    /* The number of digits before a decimal
+    var n_digits: Py_ssize_t    /* The number of digits before a decimal
                                or exponent. */
-    Py_ssize_t n_min_width; /* The min_width we used when we computed
+    var n_min_width: Py_ssize_t /* The min_width we used when we computed
                                the n_grouped_digits width. */
 }
 
@@ -1762,26 +1762,13 @@ struct NumberFieldWidths {
    Results are undefined (but shouldn't crash) for improperly
     formatted strings.
 */
-static void
-parse_number(PyObject *s, Py_ssize_t pos, Py_ssize_t end,
-             Py_ssize_t *n_remainder, int *has_decimal)
+func parse_number(_ s:String) -> (Int, Bool)
 {
-    Py_ssize_t remainder;
-    int kind = PyUnicode_KIND(s);
-    void *data = PyUnicode_DATA(s);
-
-    while (pos<end && Py_ISDIGIT(PyUnicode_READ(kind, data, pos)))
-        ++pos;
-    remainder = pos;
-
-    /* Does remainder start with a decimal point? */
-    *has_decimal = pos<end && PyUnicode_READ(kind, data, remainder) == ".";
-
-    /* Skip the decimal point. */
-    if (*has_decimal)
-        remainder++;
-
-    *n_remainder = end - remainder;
+    let i = s.find(".")
+    if i != -1 {
+        return (n_remainder: (s.count - i) - 1, has_decimal: true)
+    }
+    return (n_remainder: 0, has_decimal: false)
 }
 
 /* not all fields of format are used.  for example, precision is
@@ -2519,7 +2506,7 @@ format_float_internal(PyObject *value,
 
     /* Determine if we have any "remainder" (after the digits, might include
        decimal or exponent or both (or neither)) */
-    parse_number(unicode_tmp, index, index + n_digits, &n_remainder, &has_decimal);
+    (n_remainder, has_decimal) = parse_number(unicode_tmp)
 
     /* Determine the grouping, separator, and decimal point, if any. */
     if (get_locale_info(format->type == "n" ? LT_CURRENT_LOCALE :
@@ -2697,10 +2684,8 @@ format_complex_internal(PyObject *value,
 
     /* Determine if we have any "remainder" (after the digits, might include
        decimal or exponent or both (or neither)) */
-    parse_number(re_unicode_tmp, i_re, i_re + n_re_digits,
-                 &n_re_remainder, &re_has_decimal);
-    parse_number(im_unicode_tmp, i_im, i_im + n_im_digits,
-                 &n_im_remainder, &im_has_decimal);
+    (n_re_remainder, re_has_decimal) = parse_number(re_unicode_tmp)
+    (n_im_remainder, im_has_decimal) = parse_number(im_unicode_tmp)
 
     /* Determine the grouping, separator, and decimal point, if any. */
     if (get_locale_info(format->type == "n" ? LT_CURRENT_LOCALE :
