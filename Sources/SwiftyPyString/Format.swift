@@ -2216,7 +2216,9 @@ done:
     return result;
 }
 
-
+protocol PSFormattableInteger: PSFormattable, FixedWidthInteger {
+    var formatableInteger: Int { get }
+}
 /************************************************************************/
 /*********** long formatting ********************************************/
 /************************************************************************/
@@ -2848,7 +2850,7 @@ _PyLong_FormatAdvancedWriter(_PyUnicodeWriter *writer,
                              Py_ssize_t start, Py_ssize_t end)
 {
     PyObject *tmp = NULL, *str = NULL;
-    InternalFormatSpec format;
+    var format: InternalFormatSpec
     int result = -1;
 
     /* check for the special case of zero length format spec, make
@@ -2873,7 +2875,7 @@ _PyLong_FormatAdvancedWriter(_PyUnicodeWriter *writer,
     switch (format.type) {
     case "b", "c", "d", "o", "x", "X", "n":
         /* no type conversion needed, already an int.  do the formatting */
-        result = format_long_internal(obj, &format, writer);
+        result = (obj as! PSFormattableInteger).objectFormat(format)
         break;
 
     case "e", "E", "f", "F", "g", "G", "%":
