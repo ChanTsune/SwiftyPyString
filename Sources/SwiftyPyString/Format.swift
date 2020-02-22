@@ -898,27 +898,21 @@ func MarkupIterator_next(_ self:String, SubString *literal,
 
 
 /* do the !r or !s conversion on obj */
-func
-    do_conversion(obj:PyObject?, _ conversion:Py_UCS4) -> String?
+func do_conversion(obj:PyObject?, _ conversion:Py_UCS4) -> FormatResult
 {
     /* XXX in pre-3.0, do we need to convert this to unicode, since it
        might have returned a string? */
     switch (conversion) {
     case "r", "s", "a":
-        return (obj as? PSFormattable)?.convertField(conversion)
+        return .success((obj as? PSFormattable)?.convertField(conversion)!)
     default:
-        if (conversion > 32 && conversion < 127) {
-                /* It's the ASCII subrange; casting to char is safe
-                   (assuming the execution character set is an ASCII
-                   superset). */
-                PyErr_Format(PyExc_ValueError,
-                     "Unknown conversion specifier %c",
-                     (char)conversion);
-        } else
-                PyErr_Format(PyExc_ValueError,
-                     "Unknown conversion specifier \\x%x",
-                     (unsigned int)conversion);
-        return nil;
+        if conversion.isRegularASCII {
+        /* It's the ASCII subrange; casting to char is safe
+           (assuming the execution character set is an ASCII
+           superset). */
+            return .failure(.ValueError("Unknown conversion specifier \(conversion)"))
+        }
+        return .failure(.ValueError("Unknown conversion specifier \\x\(hex(conversion.unicode.value),alternate:false)"))
     }
 }
 
@@ -1010,15 +1004,19 @@ struct MarkupIteratorNextResult {
 }
 
 func do_markup(_ input:String, _ args:Any?, _ kwargs:[String:Any?],
-               _ writer:_PyUnicodeWriter, _ recursion_depth:int, _ auto_number:AutoNumber) -> FormatResult
+               _ recursion_depth:int, _ auto_number:AutoNumber) -> FormatResult
 {
     var iter:MarkupIterator
     var result:int
     
-    while ((result = MarkupIterator_next(&iter, &literal, &field_present,
-                                         &field_name, &format_spec,
-                                         &conversion,
-                                         &format_spec_needs_expanding)) == 2) {
+    while true {
+        result = MarkupIterator_next(&iter, &literal, &field_present,
+        &field_name, &format_spec,
+        &conversion,
+        &format_spec_needs_expanding)
+        if (result != 2){
+            break
+        }
         if (literal.end != literal.start) {
             if (!field_present && iter.str.start == iter.str.end)
                 writer->overallocate = 0;
@@ -1051,8 +1049,7 @@ func build_string(_ input:String, _ args:[Any?], _ kwargs:[String:Any?],
     if (recursion_depth <= 0) {
         return .failure(.ValueError("Max string recursion exceeded"))
     }
-    return do_markup(input, args, kwargs, &writer, recursion_depth,
-    auto_number)
+    return do_markup(input, args, kwargs, recursion_depth, auto_number)
 }
 
 /************************************************************************/
@@ -1070,175 +1067,13 @@ func do_string_format(_ self:String, _ args:[Any?], _ kwargs:[String:Any?]) -> S
     var recursion_depth: int = 2
 
     var auto_number: AutoNumber
-
-
-    return build_string(self, args, kwargs, recursion_depth, auto_number)
-}
-
-
-
-/************************************************************************/
-/*********** fieldnameiterator ******************************************/
-/************************************************************************/
-
-
-/* This is used to implement string.Formatter.vparse().  It parses the
-   field name into attribute and item values.  It's a Python-callable
-   wrapper around FieldNameIterator */
-
-struct fieldnameiterobject {
-    var ob_base:PyObject
-    var str:PyObject
-    var it_field:FieldNameIterator
-}
-
-
-/* returns a tuple:
-   (is_attr, value)
-   is_attr is true if we used attribute syntax (e.g., '.foo')
-              false if we used index syntax (e.g., '[foo]')
-   value is an integer or string
-*/
-static PyObject *
-fieldnameiter_next(fieldnameiterobject *it)
-{
-    int result;
-    int is_attr;
-    Py_ssize_t idx;
-    SubString name;
-
-    result = FieldNameIterator_next(&it->it_field, &is_attr,
-                                    &idx, &name);
-    if (result == 0 || result == 1)
-        /* if 0, error has already been set, if 1, iterator is empty */
-        return NULL;
-    else {
-        PyObject* result = NULL;
-        PyObject* is_attr_obj = NULL;
-        PyObject* obj = NULL;
-
-        is_attr_obj = PyBool_FromLong(is_attr);
-        if (is_attr_obj == NULL)
-            goto done;
-
-        /* either an integer or a string */
-        if (idx != -1)
-            obj = PyLong_FromSsize_t(idx);
-        else
-            obj = SubString_new_object(&name);
-        if (obj == NULL)
-            goto done;
-
-        /* return a tuple of values */
-        result = PyTuple_Pack(2, is_attr_obj, obj);
-
-    done:
-        Py_XDECREF(is_attr_obj);
-        Py_XDECREF(obj);
-        return result;
+    switch build_string(self, args, kwargs, recursion_depth, auto_number) {
+    case .success(let s):
+        return s
+    case .failure(let error):
+        return error.localizedDescription
     }
 }
-
-static PyMethodDef fieldnameiter_methods[] = {
-    {NULL,              NULL}           /* sentinel */
-};
-
-static PyTypeObject PyFieldNameIter_Type = {
-    PyVarObject_HEAD_INIT(&PyType_Type, 0)
-    "fieldnameiterator",                /* tp_name */
-    sizeof(fieldnameiterobject),        /* tp_basicsize */
-    0,                                  /* tp_itemsize */
-    /* methods */
-    (destructor)fieldnameiter_dealloc,  /* tp_dealloc */
-    0,                                  /* tp_vectorcall_offset */
-    0,                                  /* tp_getattr */
-    0,                                  /* tp_setattr */
-    0,                                  /* tp_as_async */
-    0,                                  /* tp_repr */
-    0,                                  /* tp_as_number */
-    0,                                  /* tp_as_sequence */
-    0,                                  /* tp_as_mapping */
-    0,                                  /* tp_hash */
-    0,                                  /* tp_call */
-    0,                                  /* tp_str */
-    PyObject_GenericGetAttr,            /* tp_getattro */
-    0,                                  /* tp_setattro */
-    0,                                  /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT,                 /* tp_flags */
-    0,                                  /* tp_doc */
-    0,                                  /* tp_traverse */
-    0,                                  /* tp_clear */
-    0,                                  /* tp_richcompare */
-    0,                                  /* tp_weaklistoffset */
-    PyObject_SelfIter,                  /* tp_iter */
-    (iternextfunc)fieldnameiter_next,   /* tp_iternext */
-    fieldnameiter_methods,              /* tp_methods */
-    0};
-
-/* unicode_formatter_field_name_split is used to implement
-   string.Formatter.vformat.  it takes a PEP 3101 "field name", and
-   returns a tuple of (first, rest): "first", the part before the
-   first '.' or '['; and "rest", an iterator for the rest of the field
-   name.  it's a wrapper around stringlib/string_format.h's
-   field_name_split.  The iterator it returns is a
-   FieldNameIterator */
-static PyObject *
-formatter_field_name_split(PyObject *ignored, PyObject *self)
-{
-    SubString first;
-    Py_ssize_t first_idx;
-    fieldnameiterobject *it;
-
-    PyObject *first_obj = NULL;
-    PyObject *result = NULL;
-
-    if (!PyUnicode_Check(self)) {
-        PyErr_Format(PyExc_TypeError, "expected str, got %s", Py_TYPE(self)->tp_name);
-        return NULL;
-    }
-
-    if (PyUnicode_READY(self) == -1)
-        return NULL;
-
-    it = PyObject_New(fieldnameiterobject, &PyFieldNameIter_Type);
-    if (it == NULL)
-        return NULL;
-
-    /* take ownership, give the object to the iterator.  this is
-       just to keep the field_name alive */
-    Py_INCREF(self);
-    it->str = self;
-
-    /* Pass in auto_number = NULL. We'll return an empty string for
-       first_obj in that case. */
-    if (!field_name_split((PyObject*)self, 0, PyUnicode_GET_LENGTH(self),
-                          &first, &first_idx, &it->it_field, NULL))
-        goto done;
-
-    /* first becomes an integer, if possible; else a string */
-    if (first_idx != -1)
-        first_obj = PyLong_FromSsize_t(first_idx);
-    else
-        /* convert "first" into a string object */
-        first_obj = SubString_new_object(&first);
-    if (first_obj == NULL)
-        goto done;
-
-    /* return a tuple of values */
-    result = PyTuple_Pack(2, first_obj, it);
-
-done:
-    Py_XDECREF(it);
-    Py_XDECREF(first_obj);
-    return result;
-}
-/* implements the unicode (as opposed to string) version of the
-   built-in formatters for string, int, float.  that is, the versions
-   of int.__float__, etc., that take and return unicode objects */
-
-#include "Python.h"
-#include "pycore_fileutils.h"
-#include <locale.h>
 
 /* Raises an exception about an unknown presentation type for this
  * type. */
