@@ -1360,40 +1360,29 @@ extension Py_UCS4 {
     }
 }
 func unknown_presentation_type(_ presentation_type:Py_UCS4,
-                          const char* type_name)
+                               _ type_name:String) -> PyException
 {
     /* %c might be out-of-range, hence the two cases. */
-    if (presentation_type.isRegularASCII )
-        PyErr_Format(PyExc_ValueError,
-                     "Unknown format code '%c' "
-                     "for object of type '%.200s'",
-                     (char)presentation_type,
-                     type_name);
-    else
-        PyErr_Format(PyExc_ValueError,
-                     "Unknown format code '\\x%x' "
-                     "for object of type '%.200s'",
-                     (unsigned int)presentation_type,
-                     type_name);
+    if (presentation_type.isRegularASCII ){
+        return .ValueError("Unknown format code '\(presentation_type)' for object of type '\(type_name)'")
+    }
+    let hex = String(format: "%x", presentation_type.unicode.value)
+    return .ValueError("Unknown format code '\\x\(hex)' for object of type '\(type_name)'")
 }
 
-func invalid_thousands_separator_type(_ specifier:Character, _ presentation_type:Py_UCS4)
+func invalid_thousands_separator_type(_ specifier:Character, _ presentation_type:Py_UCS4) -> PyException
 {
     assert(specifier == "," || specifier == "_");
     if (presentation_type.isRegularASCII){
-        PyErr_Format(PyExc_ValueError,
-                     "Cannot specify '%c' with '%c'.",
-                     specifier, (char)presentation_type);
-    }    else {
-        PyErr_Format(PyExc_ValueError,
-                     "Cannot specify '%c' with '\\x%x'.",
-                     specifier, (unsigned int)presentation_type);
+        return .ValueError("Cannot specify '\(specifier)' with '\(presentation_type)'.")
     }
+    let hex = String(format:"%x",presentation_type.unicode.value)
+    return .ValueError("Cannot specify '\(specifier)' with '\\x\(hex)'.")
 }
 
-func invalid_comma_and_underscore()
+func invalid_comma_and_underscore() -> PyException
 {
-    PyErr_Format(PyExc_ValueError, "Cannot specify both ',' and '_'.");
+    return .ValueError("Cannot specify both ',' and '_'.")
 }
 
 /*
@@ -1699,32 +1688,24 @@ calc_padding(Py_ssize_t nchars, Py_ssize_t width, Py_UCS4 align,
 
     *n_rpadding = *n_total - nchars - *n_lpadding;
 }
-
+let Py_UNREACHABLE = "Py_FatalError(\"Unreachable C code path reached\")"
 /* Do the padding, and return a pointer to where the caller-supplied
    content goes. */
-static int
-fill_padding(_PyUnicodeWriter *writer,
-             Py_ssize_t nchars,
-             Py_UCS4 fill_char, Py_ssize_t n_lpadding,
-             Py_ssize_t n_rpadding)
+func fill_padding(_ value:String,
+                  _ align:Character,
+                  _ fill_char:Py_UCS4,
+                  _ width:Py_ssize_t) -> String
 {
-    Py_ssize_t pos;
-
-    /* Pad on left. */
-    if (n_lpadding) {
-        pos = writer->pos;
-        _PyUnicode_FastFill(writer->buffer, pos, n_lpadding, fill_char);
+    switch align {
+    case ">":
+        return value.rjust(width, fillchar: fill_char)
+    case "^":
+        return value.center(width, fillchar: fill_char)
+    case "<", "=":
+        return value.ljust(width, fillchar: fill_char)
+    default:
+        return Py_UNREACHABLE
     }
-
-    /* Pad on right. */
-    if (n_rpadding) {
-        pos = writer->pos + nchars + n_lpadding;
-        _PyUnicode_FastFill(writer->buffer, pos, n_rpadding, fill_char);
-    }
-
-    /* Pointer to the user content. */
-    writer->pos += n_lpadding;
-    return 0;
 }
 
 /************************************************************************/
@@ -2103,8 +2084,9 @@ protocol PSFormattable {
     var str: String { get }
     var repr: String { get }
     var ascii: String { get }
+    var defaultInternalFormatSpec: InternalFormatSpec { get }
     func convertField(_ conversion: Character) -> String
-    func objectFormat(_ internalFormatSpec: InternalFormatSpec) -> String
+    func objectFormat(_ format: InternalFormatSpec) -> FormatResult
 }
 extension PSFormattable {
     var str: String { String(describing: self) }
@@ -2124,11 +2106,50 @@ extension PSFormattable {
         }
     }
 }
+
+extension String: PSFormattable {
 /************************************************************************/
 /*********** string formatting ******************************************/
 /************************************************************************/
+    func objectFormat(_ format: InternalFormatSpec) -> FormatResult {
+        let value = self
 
-static int
+        var len = PyUnicode_GET_LENGTH(value);
+
+        /* sign is not allowed on strings */
+        if (format.sign != "\0") {
+            return .failure(.ValueError("Sign not allowed in string format specifier"))
+        }
+
+        /* alternate is not allowed on strings */
+        if (format.alternate.asBool) {
+            return .failure(.ValueError("Alternate form (#) not allowed in string format specifier"))
+        }
+
+        /* '=' alignment not allowed on strings */
+        if (format.align == "=") {
+            return .failure(.ValueError("'=' alignment not allowed in string format specifier"))
+        }
+
+        if ((format.width == -1 || format.width <= len)
+            && (format.precision == -1 || format.precision >= len)) {
+            /* Fast path */
+            return .success(value)
+        }
+
+        /* if precision is specified, output no more that format.precision
+           characters */
+        if (format.precision >= 0 && len >= format.precision) {
+            len = format.precision;
+        }
+
+        /* Write into that space. First the padding. */
+        return .success(fill_padding(value, format.align, format.fill_char, format.width))
+    }
+}
+
+
+
 format_string_internal(PyObject *value, const InternalFormatSpec *format,
                        _PyUnicodeWriter *writer)
 {
@@ -2798,7 +2819,7 @@ func format_obj(_ obj:PyObject?, _ writer:_PyUnicodeWriter) -> int
 
 int
 _PyUnicode_FormatAdvancedWriter(_PyUnicodeWriter *writer,
-                                PyObject *obj,
+                                String *obj,
                                 PyObject *format_spec,
                                 Py_ssize_t start, Py_ssize_t end)
 {
@@ -2827,7 +2848,7 @@ _PyUnicode_FormatAdvancedWriter(_PyUnicodeWriter *writer,
     switch (format.type) {
     case "s":
         /* no type conversion needed, already a string.  do the formatting */
-        return format_string_internal(obj, &format, writer);
+        return obj.objectFormat(format)
     default:
         /* unknown */
         unknown_presentation_type(format.type, obj->ob_type->tp_name);
