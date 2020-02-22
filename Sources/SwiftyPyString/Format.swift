@@ -48,6 +48,8 @@ class SubString {
 }
 
 
+typealias FormatResult = Result<String, PyException>
+
 enum AutoNumberState {
     case ANS_INIT
     case ANS_AUTO
