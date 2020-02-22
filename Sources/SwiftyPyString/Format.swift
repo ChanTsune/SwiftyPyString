@@ -679,8 +679,7 @@ done:
     return ok;
 }
 
-static int
-parse_field(SubString *str, SubString *field_name, SubString *format_spec,
+func parse_field(SubString *str, SubString *field_name, SubString *format_spec,
             int *format_spec_needs_expanding, Py_UCS4 *conversion)
 {
     /* Note this function works if the field name is zero length,
@@ -709,9 +708,7 @@ parse_field(SubString *str, SubString *field_name, SubString *format_spec,
                 }
             }
             continue;
-        case "}":
-        case ":":
-        case "!":
+        case "}", ":", "!":
             break;
         default:
             continue;
@@ -771,7 +768,7 @@ parse_field(SubString *str, SubString *field_name, SubString *format_spec,
         PyErr_SetString(PyExc_ValueError, "unmatched '{' in format spec");
         return 0;
     }
-    else if (c != '}') {
+    else if (c != "}") {
         PyErr_SetString(PyExc_ValueError, "expected '}' before end of string");
         return 0;
     }
@@ -882,9 +879,9 @@ func MarkupIterator_next(_ self:String, SubString *literal,
     }
 
     /* record the literal text */
-    literal->str = self->str.str;
-    literal->start = start;
-    literal->end = start + len;
+    literal.str = self->str.str;
+    literal.start = start;
+    literal.end = start + len;
 
     if (!markup_follows){
         return 2;
@@ -894,7 +891,7 @@ func MarkupIterator_next(_ self:String, SubString *literal,
     result.field_present = 1;
     if (!parse_field(&self->str, field_name, format_spec,
                      format_spec_needs_expanding, conversion)){
-        return .failture;
+        return .failture(.)
     }
     return 2;
 }
@@ -1609,15 +1606,9 @@ func fill_padding(_ value:String,
    before and including the decimal. Note that locales only support
    8-bit chars, not unicode. */
 struct LocaleInfo {
-    var decimal_point: PyObject?
-    var thousands_sep: PyObject?
-    const char *grouping;// = 0
-    char *grouping_buffer;// = 0
-    
-    init() {
-        decimal_point = nil
-        thousands_sep = nil
-    }
+    var decimal_point: String = ""
+    var thousands_sep: String = ""
+    var grouping: String = ""
 }
 
 /* describes the layout for an integer, see the comment in
@@ -1642,6 +1633,159 @@ struct NumberFieldWidths {
                                or exponent. */
     var n_min_width: Py_ssize_t /* The min_width we used when we computed
                                the n_grouped_digits width. */
+}
+func PyOS_double_to_string(_ val:double,
+                           _ format_code:Character,
+                           _ precision:int,
+                           _ flags:int,
+                                         int *type) -> String
+{
+    char format[32];
+    Py_ssize_t bufsize;
+    char *buf;
+    int t, exp;
+    int upper = 0;
+
+    /* Validate format_code, and map upper and lower case */
+    switch (format_code) {
+    case "e",          /* exponent */
+         "f",          /* fixed */
+         "g":          /* general */
+        break;
+    case "E":
+        upper = 1;
+        format_code = "e";
+        break;
+    case "F":
+        upper = 1;
+        format_code = "f";
+        break;
+    case "G":
+        upper = 1;
+        format_code = "g";
+        break;
+    case "r":          /* repr format */
+        /* Supplied precision is unused, must be 0. */
+        if (precision != 0) {
+            PyErr_BadInternalCall();
+            return NULL;
+        }
+        /* The repr() precision (17 significant decimal digits) is the
+           minimal number that is guaranteed to have enough precision
+           so that if the number is read back in the exact same binary
+           value is recreated.  This is true for IEEE floating point
+           by design, and also happens to work for all other modern
+           hardware. */
+        precision = 17;
+        format_code = "g";
+        break;
+    default:
+        PyErr_BadInternalCall();
+        return NULL;
+    }
+
+    /* Here's a quick-and-dirty calculation to figure out how big a buffer
+       we need.  In general, for a finite float we need:
+
+         1 byte for each digit of the decimal significand, and
+
+         1 for a possible sign
+         1 for a possible decimal point
+         2 for a possible [eE][+-]
+         1 for each digit of the exponent;  if we allow 19 digits
+           total then we're safe up to exponents of 2**63.
+         1 for the trailing nul byte
+
+       This gives a total of 24 + the number of digits in the significand,
+       and the number of digits in the significand is:
+
+         for 'g' format: at most precision, except possibly
+           when precision == 0, when it's 1.
+         for 'e' format: precision+1
+         for 'f' format: precision digits after the point, at least 1
+           before.  To figure out how many digits appear before the point
+           we have to examine the size of the number.  If fabs(val) < 1.0
+           then there will be only one digit before the point.  If
+           fabs(val) >= 1.0, then there are at most
+
+         1+floor(log10(ceiling(fabs(val))))
+
+           digits before the point (where the 'ceiling' allows for the
+           possibility that the rounding rounds the integer part of val
+           up).  A safe upper bound for the above quantity is
+           1+floor(exp/3), where exp is the unique integer such that 0.5
+           <= fabs(val)/2**exp < 1.0.  This exp can be obtained from
+           frexp.
+
+       So we allow room for precision+1 digits for all formats, plus an
+       extra floor(exp/3) digits for 'f' format.
+
+    */
+
+    if (val.isNaN || val.isInfinite){
+        /* 3 for 'inf'/'nan', 1 for sign, 1 for '\0' */
+        bufsize = 5;
+    }
+    else {
+        bufsize = 25 + precision;
+        if (format_code == "f" && fabs(val) >= 1.0) {
+            frexp(val, &exp);
+            bufsize += exp/3;
+        }
+    }
+
+    buf = PyMem_Malloc(bufsize);
+    if (buf == NULL) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+
+    /* Handle nan and inf. */
+    if val.isNaN {
+        strcpy(buf, "nan");
+        t = Py_DTST_NAN;
+    } else if val.isInfinite {
+        if (copysign(1.0, val) == 1.0){
+            strcpy(buf, "inf");
+        }
+        else{
+            strcpy(buf, "-inf");
+        }
+        t = Py_DTST_INFINITE;
+    } else {
+        t = Py_DTST_FINITE;
+        if (flags & Py_DTSF_ADD_DOT_0){
+            format_code = "Z";
+        }
+
+        PyOS_snprintf(format, sizeof(format), "%%%s.%i%c",
+                      (flags & Py_DTSF_ALT ? "#" : ""), precision,
+                      format_code);
+        _PyOS_ascii_formatd(buf, bufsize, format, val, precision);
+    }
+
+    /* Add sign when requested.  It's convenient (esp. when formatting
+     complex numbers) to include a sign even for inf and nan. */
+    if (flags & Py_DTSF_SIGN && buf[0] != "-") {
+        size_t len = strlen(buf);
+        /* the bufsize calculations above should ensure that we've got
+           space to add a sign */
+        assert((size_t)bufsize >= len+2);
+        memmove(buf+1, buf, len+1);
+        buf[0] = "+";
+    }
+    if (upper) {
+        /* Convert to upper case. */
+        char *p1;
+        for (p1 = buf; *p1; p1++){
+            *p1 = Py_TOUPPER(*p1);
+        }
+    }
+
+    if (type){
+        *type = t;
+    }
+    return buf;
 }
 
 /**
@@ -1935,62 +2079,64 @@ func calc_number_widths(_ n_prefix: Py_ssize_t,
 /* Fill in the digit parts of a number's string representation,
    as determined in calc_number_widths().
    Return -1 on error, or 0 on success. */
-static int
-fill_number(_PyUnicodeWriter *writer, const NumberFieldWidths *spec,
-            PyObject *digits, Py_ssize_t d_start, Py_ssize_t d_end,
-            PyObject *prefix, Py_ssize_t p_start,
-            Py_UCS4 fill_char,
-            LocaleInfo *locale, int toupper)
+func fill_number(_ spec:NumberFieldWidths,
+                 _ digits:String,
+                 _ d_start:Py_ssize_t,
+                 _ d_end:Py_ssize_t,
+                 _ prefix:PyObject?,
+                 _ p_start:Py_ssize_t,
+                 _ fill_char:Py_UCS4,
+                 _ locale:LocaleInfo,
+                 _ toupper:Bool) -> FormatResult
 {
     /* Used to keep track of digits, decimal, and remainder. */
     Py_ssize_t d_pos = d_start;
-    const unsigned int kind = writer->kind;
     const void *data = writer->data;
     Py_ssize_t r;
 
-    if (spec->n_lpadding) {
+    if (spec.n_lpadding) {
         _PyUnicode_FastFill(writer->buffer,
-                            writer->pos, spec->n_lpadding, fill_char);
-        writer->pos += spec->n_lpadding;
+                            writer->pos, spec.n_lpadding, fill_char);
+        writer->pos += spec.n_lpadding;
     }
-    if (spec->n_sign == 1) {
+    if (spec.n_sign == 1) {
         PyUnicode_WRITE(kind, data, writer->pos, spec->sign);
         writer->pos++;
     }
-    if (spec->n_prefix) {
+    if (spec.n_prefix) {
         _PyUnicode_FastCopyCharacters(writer->buffer, writer->pos,
                                       prefix, p_start,
-                                      spec->n_prefix);
+                                      spec.n_prefix);
         if (toupper) {
             Py_ssize_t t;
-            for (t = 0; t < spec->n_prefix; t++) {
+            for (t = 0; t < spec.n_prefix; t++) {
                 Py_UCS4 c = PyUnicode_READ(kind, data, writer->pos + t);
                 c = Py_TOUPPER(c);
                 assert (c <= 127);
                 PyUnicode_WRITE(kind, data, writer->pos + t, c);
             }
         }
-        writer->pos += spec->n_prefix;
+        writer->pos += spec.n_prefix;
     }
-    if (spec->n_spadding) {
+    if (spec.n_spadding) {
         _PyUnicode_FastFill(writer->buffer,
-                            writer->pos, spec->n_spadding, fill_char);
-        writer->pos += spec->n_spadding;
+                            writer->pos, spec.n_spadding, fill_char);
+        writer->pos += spec.n_spadding;
     }
 
     /* Only for type 'c' special case, it has no digits. */
-    if (spec->n_digits != 0) {
+    if (spec.n_digits != 0) {
         /* Fill the digits with InsertThousandsGrouping. */
         r = _PyUnicode_InsertThousandsGrouping(
-                writer, spec->n_grouped_digits,
-                digits, d_pos, spec->n_digits,
-                spec->n_min_width,
-                locale->grouping, locale->thousands_sep, NULL);
+            writer, spec.n_grouped_digits,
+            digits, d_pos, spec.n_digits,
+            spec.n_min_width,
+            locale.grouping, locale.thousands_sep, NULL);
         if (r == -1){
             return -1;
         }
-        assert(r == spec->n_grouped_digits);
-        d_pos += spec->n_digits;
+        assert(r == spec.n_grouped_digits);
+        d_pos += spec.n_digits;
     }
     if (toupper) {
         Py_ssize_t t;
@@ -1998,93 +2144,93 @@ fill_number(_PyUnicodeWriter *writer, const NumberFieldWidths *spec,
             Py_UCS4 c = PyUnicode_READ(kind, data, writer->pos + t);
             c = Py_TOUPPER(c);
             if (c > 127) {
-                PyErr_SetString(PyExc_SystemError, "non-ascii grouped digit");
-                return -1;
+                return .failure(.SystemError("non-ascii grouped digit"))
             }
             PyUnicode_WRITE(kind, data, writer->pos + t, c);
         }
     }
     writer->pos += spec->n_grouped_digits;
 
-    if (spec->n_decimal) {
+    if (spec.n_decimal) {
         _PyUnicode_FastCopyCharacters(
-            writer->buffer, writer->pos,
-            locale->decimal_point, 0, spec->n_decimal);
-        writer->pos += spec->n_decimal;
+            writer.buffer, writer->pos,
+            locale.decimal_point, 0, spec.n_decimal);
+        writer->pos += spec.n_decimal;
         d_pos += 1;
     }
 
-    if (spec->n_remainder) {
+    if (spec.n_remainder) {
         _PyUnicode_FastCopyCharacters(
             writer->buffer, writer->pos,
-            digits, d_pos, spec->n_remainder);
-        writer->pos += spec->n_remainder;
+            digits, d_pos, spec.n_remainder);
+        writer->pos += spec.n_remainder;
         /* d_pos += spec->n_remainder; */
     }
 
-    if (spec->n_rpadding) {
+    if (spec.n_rpadding) {
         _PyUnicode_FastFill(writer->buffer,
-                            writer->pos, spec->n_rpadding,
+                            writer->pos, spec.n_rpadding,
                             fill_char);
-        writer->pos += spec->n_rpadding;
+        writer->pos += spec.n_rpadding;
     }
     return 0;
 }
-
-static const char no_grouping[1] = {CHAR_MAX};
 
 /* Find the decimal point character(s?), thousands_separator(s?), and
    grouping description, either for the current locale if type is
    LT_CURRENT_LOCALE, a hard-coded locale if LT_DEFAULT_LOCALE or
    LT_UNDERSCORE_LOCALE/LT_UNDER_FOUR_LOCALE, or none if LT_NO_LOCALE. */
-static int
-get_locale_info(enum LocaleType type, LocaleInfo *locale_info)
+func get_locale_info(_ type:LocaleType) -> LocaleInfo
 {
+    var locale_info:LocaleInfo = .init()
     switch (type) {
-    case LT_CURRENT_LOCALE: {
-        var lc:lconv = localeconv()
-        if (_Py_GetLocaleconvNumeric(lc,
-                                     &locale_info->decimal_point,
-                                     &locale_info->thousands_sep) < 0) {
-            return -1;
-        }
-
-        /* localeconv() grouping can become a dangling pointer or point
-           to a different string if another thread calls localeconv() during
-           the string formatting. Copy the string to avoid this risk. */
-        locale_info->grouping_buffer = _PyMem_Strdup(lc->grouping);
-        if (locale_info->grouping_buffer == NULL) {
-            PyErr_NoMemory();
-            return -1;
-        }
-        locale_info->grouping = locale_info->grouping_buffer;
-        break;
-    }
-    case LT_DEFAULT_LOCALE:
-    case LT_UNDERSCORE_LOCALE:
-    case LT_UNDER_FOUR_LOCALE:
-        locale_info->decimal_point = PyUnicode_FromOrdinal(".");
-        locale_info->thousands_sep = PyUnicode_FromOrdinal(
-            type == LT_DEFAULT_LOCALE ? "," : "_");
-        if (!locale_info->decimal_point || !locale_info->thousands_sep)
-            {return -1}
-        if (type != LT_UNDER_FOUR_LOCALE){
-            locale_info->grouping = "\3"; /* Group every 3 characters.  The
+    case .LT_CURRENT_LOCALE:
+        (locale_info.decimal_point,
+         locale_info.thousands_sep,
+         locale_info.grouping) = getLocalInfo()
+    case .LT_DEFAULT_LOCALE,
+         .LT_UNDERSCORE_LOCALE,
+         .LT_UNDER_FOUR_LOCALE:
+        locale_info.decimal_point = "."
+        locale_info.thousands_sep = type == .LT_DEFAULT_LOCALE ? "," : "_"
+        if (type != .LT_UNDER_FOUR_LOCALE){
+            locale_info.grouping = "\u{3}" /* Group every 3 characters.  The
                                          (implicit) trailing 0 means repeat
                                          infinitely. */
+        } else {
+            locale_info.grouping = "\u{4}" /* Bin/oct/hex group every four. */
         }
-        else
-            {locale_info->grouping = "\4";} /* Bin/oct/hex group every four. */
         break;
-    case LT_NO_LOCALE:
-        locale_info->decimal_point = PyUnicode_FromOrdinal(".");
-        locale_info->thousands_sep = PyUnicode_New(0, 0);
-        if (!locale_info->decimal_point || !locale_info->thousands_sep)
-            return -1;
-        locale_info->grouping = no_grouping;
+    case .LT_NO_LOCALE:
+        locale_info.decimal_point = "."
+        locale_info.thousands_sep = ""
+        let no_grouping = "\u{255}" // char_max?
+        locale_info.grouping = no_grouping;
         break;
     }
-    return 0;
+    return locale_info
+}
+
+
+func getLocalInfo() -> (String,String,String) {
+    // TODO:remove force unwrap
+    // TODO: \0 to ""(empty String)
+    if let local = localeconv() {
+        let lc = local.pointee
+        if let d = lc.decimal_point, let dp = UnicodeScalar(UInt16(d.pointee)) {
+            let decimal_point = String(dp)
+            if let t = lc.thousands_sep, let ts = UnicodeScalar(UInt32(t.pointee)) {
+                let thousands_sep = String(ts)
+                if let g = lc.grouping, let gp = UnicodeScalar(UInt32(g.pointee)) {
+                    let grouping = String(gp)
+                    return (decimal_point, thousands_sep, grouping)
+                }
+                return (decimal_point, thousands_sep, "")
+            }
+            return (decimal_point, ",", "")
+        }
+    }
+    return (".",",","")
 }
 
 
@@ -2895,9 +3041,13 @@ func _PyComplex_FormatAdvancedWriter(_PyUnicodeWriter *writer,
 
     default:
         /* unknown */
-        unknown_presentation_type(format.type, obj->ob_type->tp_name);
+        unknown_presentation_type(format.type, typeName(obj));
         return -1;
     }
+}
+
+func typeName(_ object:Any) -> String {
+    return String(describing: type(of: object.self))
 }
 
 
