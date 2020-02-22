@@ -2087,13 +2087,6 @@ get_locale_info(enum LocaleType type, LocaleInfo *locale_info)
     return 0;
 }
 
-static void
-free_locale_info(LocaleInfo *locale_info)
-{
-    Py_XDECREF(locale_info->decimal_point);
-    Py_XDECREF(locale_info->thousands_sep);
-    PyMem_Free(locale_info->grouping_buffer);
-}
 
 protocol PSFormattable {
     var str: String { get }
@@ -2388,7 +2381,7 @@ format_float_internal(PyObject *value,
         /* 'n' is the same as 'g', except for the locale used to
            format the result. We take care of that later. */
     type = "g";
-}
+    }
     val = PyFloat_AsDouble(value);
     if (val == -1.0 && PyErr_Occurred())
         {
@@ -2480,7 +2473,6 @@ format_float_internal(PyObject *value,
 
 done:
     Py_XDECREF(unicode_tmp);
-    free_locale_info(&locale);
     return result;
 }
 
@@ -2582,12 +2574,12 @@ format_complex_internal(PyObject *value,
         /* 'n' is the same as 'g', except for the locale used to
            format the result. We take care of that later. */
         type = "g";
-}
+    }
     if (precision < 0){
         precision = default_precision;
     }    else if (type == "r"){
         type = "g";
-}
+    }
     /* Cast "type", because if we're in unicode we need to pass an
        8-bit char. This is safe, because we've restricted what "type"
        can be. */
@@ -2599,7 +2591,7 @@ format_complex_internal(PyObject *value,
                                    &im_float_type);
     if (im_buf == NULL){
         goto done;
-}
+    }
     n_re_digits = strlen(re_buf);
     n_im_digits = strlen(im_buf);
 
@@ -2728,7 +2720,6 @@ done:
     PyMem_Free(im_buf);
     Py_XDECREF(re_unicode_tmp);
     Py_XDECREF(im_unicode_tmp);
-    free_locale_info(&locale);
     return result;
 }
 
