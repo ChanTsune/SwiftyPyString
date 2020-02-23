@@ -60,12 +60,12 @@ extension BinaryInteger {
    unicode pointers.
 */
 class SubString {
-    var str: PyObject? /* borrowed reference */
+    var str: String? /* borrowed reference */
     var start: Py_ssize_t
     var end: Py_ssize_t
     
     /* fill in a SubString from a pointer and length */
-    init(_ s: PyObject?, _ start: Py_ssize_t, _ end: Py_ssize_t)
+    init(_ s: String?, _ start: Py_ssize_t, _ end: Py_ssize_t)
     {
         self.str = s
         self.start = start
@@ -113,8 +113,9 @@ func PyUnicode_FromKindAndData(_ kind:int, _ buffer:String?, _ size:Py_ssize_t) 
 /************************************************************************/
 /**************************  Utility  functions  ************************/
 /************************************************************************/
-func PyUnicode_Substring(_ self:PyObject?, _ start:Py_ssize_t, _ end:Py_ssize_t) -> PyObject?
+func PyUnicode_Substring(_ self:String, _ start:Py_ssize_t, _ end:Py_ssize_t) -> String
 {
+    return self[start,end]
     var data:String? = nil
     var kind: int
     var length: Py_ssize_t
@@ -149,12 +150,12 @@ func PyUnicode_Substring(_ self:PyObject?, _ start:Py_ssize_t, _ end:Py_ssize_t)
 }
 
 /* return a new string.  if str->str is NULL, return None */
-func SubString_new_object(_ str: SubString) -> PyObject?
+func SubString_new_object(_ str: SubString) -> String
 {
-    if (str.str == nil){
-        return nil
+    if let s = str.str {
+        return PyUnicode_Substring(s, str.start, str.end)
     }
-    return PyUnicode_Substring(str.str, str.start, str.end);
+    return "" // nil
 }
 func PyUnicode_New(_ n:Int,_ l:Int) -> String {
     return ""
@@ -171,15 +172,14 @@ func SubString_new_object_or_empty(_ str:SubString) -> PyObject?
 /* Return 1 if an error has been detected switching between automatic
    field numbering and manual field specification, else return 0. Set
    ValueError on error. */
-func autonumber_state_error(_ state:AutoNumberState, _ field_name_is_empty:int) -> Result<int,PyException>
+func autonumber_state_error(_ state:AutoNumberState, _ field_name_is_empty: Bool) -> Result<int,PyException>
 {
     if (state == .ANS_MANUAL) {
-        if (field_name_is_empty.asBool) {
+        if field_name_is_empty {
             return .failure(.ValueError("cannot switch from manual field specification to automatic field numbering"))
         }
-    }
-    else {
-        if (!field_name_is_empty.asBool) {
+    } else {
+        if !field_name_is_empty {
             return .failure(.ValueError("cannot switch from automatic field numbering to manual field specification"))
         }
     }
@@ -231,38 +231,29 @@ func get_integer(_ str: SubString) -> Result<Py_ssize_t,PyException>
     return .success(accumulator)
 }
 
-func PyObject_GetAttr(_ v:PyObject?, _ name:PyObject?) -> PyObject?
+func PyObject_GetAttr(_ v:PyObject?, _ name:PyObject?) -> Result<PyObject?,PyException>
 {
-    let mirror = Mirror(reflecting: v)
-    let c = mirror.children
-    var keyMap:[String:Any]
-    for i in c {
-        keyMap[i.label!] = i.value
+    if let name = name as? String {
+        let mirror = Mirror(reflecting: v)
+        let c = mirror.children
+        var keyMap:[String:Any]
+        for i in c {
+            keyMap[i.label!] = i.value
+        }
+        if let value = keyMap[name] {
+            return .success(value)
+        }
+        return .failure(.AttributeError("'\(typeName(v))' object has no attribute '\(name)'"))
     }
-
-    if (!PyUnicode_Check(name)) {
-        PyErr_Format(PyExc_TypeError,
-                     "attribute name must be string, not '%.200s'",
-                     name->ob_type->tp_name);
-        return NULL;
-    }
-    PyErr_Format(PyExc_AttributeError,
-                 "'%.50s' object has no attribute '%U'",
-                 tp->tp_name, name);
-    return nil;
+    return .failure(.TypeError("attribute name must be string, not '\(typeName(name))'"))
 }
-func PySequence_GetItem(_ s:PyObject, _ i:Py_ssize_t) -> PyObject?
+
+func PySequence_GetItem<Seq: RandomAccessCollection>(_ s:Seq, _ i:Py_ssize_t) -> PyObject? where Seq.Index == Int
 {
-
-    if (s == nil) {
-        return null_error();
+    if s.count > i {
+        return s[i]
     }
-
-    return (s as! Array)[i]
-    if (s->ob_type->tp_as_mapping && s->ob_type->tp_as_mapping->mp_subscript) {
-        return type_error("%.200s is not a sequence", s);
-    }
-    return type_error("'%.200s' object does not support indexing", s);
+    return nil
 }
 
 
@@ -274,7 +265,7 @@ func PySequence_GetItem(_ s:PyObject, _ i:Py_ssize_t) -> PyObject?
 func getattr(_ obj:PyObject?, _ name:SubString) -> PyObject?
 {
     var newobj:PyObject?
-    var str:PyObject? = SubString_new_object(name);
+    var str:String = SubString_new_object(name);
     if (str == nil){
         return nil
     }
@@ -283,14 +274,15 @@ func getattr(_ obj:PyObject?, _ name:SubString) -> PyObject?
 }
 
 /* do the equivalent of obj[idx], where obj is a sequence */
-func getitem_sequence(_ obj:PyObject, _ idx:Py_ssize_t) -> PyObject?
+func getitem_sequence<Seq: RandomAccessCollection>(_ obj:Seq, _ idx:Py_ssize_t) -> PyObject? where Seq.Index == Int
 {
-    return PySequence_GetItem(obj, idx);
+    return PySequence_GetItem(obj, idx)
 }
-
+func PyObject_GetItem<D: RandomAccessCollection>(_ obj:D, _ key:D.Index) -> Any {
+    return obj[key]
+}
 /* do the equivalent of obj[idx], where obj is not a sequence */
-static PyObject *
-getitem_idx(PyObject *obj, Py_ssize_t idx)
+func getitem_idx(PyObject *obj, Py_ssize_t idx) -> PyObject?
 {
     PyObject *newobj;
     PyObject *idx_obj = PyLong_FromSsize_t(idx);
@@ -302,8 +294,7 @@ getitem_idx(PyObject *obj, Py_ssize_t idx)
 }
 
 /* do the equivalent of obj[name] */
-static PyObject *
-getitem_str(PyObject *obj, SubString *name)
+func getitem_str(PyObject *obj, SubString *name) -> PyObject?
 {
     PyObject *newobj;
     PyObject *str = SubString_new_object(name);
@@ -318,20 +309,18 @@ struct FieldNameIterator {
     /* the entire string we're parsing.  we assume that someone else
        is managing its lifetime, and that it will exist for the
        lifetime of the iterator.  can be empty */
-    var str:SubString
+    var str:String
 
     /* index to where we are inside field_name */
     var index:Py_ssize_t
     
-    init(_ s:PyObject,
-         _ start:Py_ssize_t, _ end:Py_ssize_t){
-        self.str = .init(s, start, end)
-        self.index = start;
+    init(_ s:String, _ start:Int){
+        self.str = s
+        self.index = start
     }
 }
 
-static int
-_FieldNameIterator_attr(FieldNameIterator *self, SubString *name)
+func _FieldNameIterator_attr(_ self:FieldNameIterator, SubString *name) -> int
 {
     var c:Py_UCS4
 
@@ -356,10 +345,9 @@ _FieldNameIterator_attr(FieldNameIterator *self, SubString *name)
     return 1;
 }
 
-static int
-_FieldNameIterator_item(FieldNameIterator *self, SubString *name)
+func _FieldNameIterator_item(FieldNameIterator *self, SubString *name) -> int
 {
-    int bracket_seen = 0;
+    var bracket_seen:Bool = false
     Py_UCS4 c;
 
     name->str = self->str.str;
@@ -370,7 +358,7 @@ _FieldNameIterator_item(FieldNameIterator *self, SubString *name)
         c = PyUnicode_READ_CHAR(self->str.str, self->index++);
         switch (c) {
         case "]":
-            bracket_seen = 1;
+            bracket_seen = true
             break;
         default:
             continue;
@@ -390,9 +378,8 @@ _FieldNameIterator_item(FieldNameIterator *self, SubString *name)
 }
 
 /* returns 0 on error, 1 on non-error termination, and 2 if it returns a value */
-static int
-FieldNameIterator_next(FieldNameIterator *self, int *is_attribute,
-                       Py_ssize_t *name_idx, SubString *name)
+func FieldNameIterator_next(FieldNameIterator *self, int *is_attribute,
+                       Py_ssize_t *name_idx, SubString *name) -> int
 {
     /* check at end of input */
     if (self->index >= self->str.end)
@@ -437,18 +424,22 @@ FieldNameIterator_next(FieldNameIterator *self, int *is_attribute,
            'rest' is an iterator to return the rest
 */
 func field_name_split(_ str:PyObject,
-                      _ start:Py_ssize_t, Py_ssize_t end, SubString *first,
-                 Py_ssize_t *first_idx, FieldNameIterator *rest,
-                 AutoNumber *auto_number) -> int
+                      _ start:Py_ssize_t,
+                      _ end:Py_ssize_t,
+                      _ first:SubString,
+                      _ first_idx:Py_ssize_t,
+                      _ rest:FieldNameIterator,
+                      _ auto_number:AutoNumber) -> int
 {
-    var c:Py_UCS4
-    var i:Py_ssize_t = start;
-    int field_name_is_empty;
-    int using_numeric_index;
+    var c: Py_UCS4
+    var i: Py_ssize_t = start
+    var field_name_is_empty: Bool
+    var using_numeric_index: Bool
 
     /* find the part up until the first '.' or '[' */
     while (i < end) {
-        switch (c = PyUnicode_READ_CHAR(str, i++)) {
+        c = PyUnicode_READ_CHAR(str, i++)
+        switch c {
         case "[", ".":
             /* backup so that we this character is available to the
                "rest" iterator */
@@ -495,9 +486,11 @@ func field_name_split(_ str:PyObject,
            this time through. Only check if we're using a numeric
            index. */
         if (using_numeric_index){
-            if (autonumber_state_error(auto_number.an_state,
-                                       field_name_is_empty)){
-                return 0;
+            switch autonumber_state_error(auto_number.an_state, field_name_is_empty) {
+            case .success:
+                break
+            case .failure(let error):
+                return .failure(error)
             }
         }
         /* Zero length field means we want to do auto-numbering of the
@@ -516,12 +509,11 @@ func field_name_split(_ str:PyObject,
     format_spec.  It handles getindex and getattr lookups and consumes
     the entire input string.
 */
-func get_field_object(_ input:SubString?, _ args:PyObject?, _ kwargs:PyObject?,
-                      _ auto_number:AutoNumber) -> PyObject?
+func get_field_object(_ input:String, _ args:[Any?], _ kwargs:[String:Any?],
+                      _ auto_number:AutoNumber) -> Result<PyObject?,PyException>
 {
     var obj:PyObject? = nil;
     var ok:int
-    var is_attribute:int
     var name: SubString
     var first: SubString
     var index:Py_ssize_t
@@ -534,22 +526,16 @@ func get_field_object(_ input:SubString?, _ args:PyObject?, _ kwargs:PyObject?,
 
     if (index == -1) {
         /* look up in kwargs */
-        PyObject *key = SubString_new_object(&first);
-        if (key == NULL) {
-            goto error;
-        }
-        if (kwargs == NULL) {
-            PyErr_SetObject(PyExc_KeyError, key);
-            Py_DECREF(key);
-            goto error;
+        var key:String = SubString_new_object(&first);
+        if kwargs.isEmpty {
+            return .failure(.KeyError(key))
         }
         /* Use PyObject_GetItem instead of PyDict_GetItem because this
            code is no longer just used with kwargs. It might be passed
            a non-dict when called through format_map. */
-        obj = PyObject_GetItem(kwargs, key);
-        Py_DECREF(key);
-        if (obj == NULL) {
-            goto error;
+        obj = kwargs[key]
+        if (obj == nil) {
+            return .failure(.KeyError(key))
         }
     }
     else {
@@ -557,42 +543,44 @@ func get_field_object(_ input:SubString?, _ args:PyObject?, _ kwargs:PyObject?,
            with only kwargs to retrieve it from. This can only happen when
            used with format_map(), where positional arguments are not
            allowed. */
-        if (args == NULL) {
-            PyErr_SetString(PyExc_ValueError, "Format string contains "
-                            "positional fields");
-            goto error;
+        if args.isEmpty {
+            return .failure(.ValueError("Format string contains positional fields"))
         }
 
         /* look up in args */
         obj = PySequence_GetItem(args, index);
-        if (obj == NULL) {
-            PyErr_Format(PyExc_IndexError,
-                         "Replacement index %zd out of range for positional "
-                         "args tuple",
-                         index);
-             goto error;
+        if (obj == nil) {
+            return .failure(.IndexError("Replacement index \(index) out of range for positional args tuple"))
         }
     }
 
     /* iterate over the rest of the field_name */
-    while ((ok = FieldNameIterator_next(&rest, &is_attribute, &index,
-                                        &name)) == 2) {
-        PyObject *tmp;
+    while true {
+        var is_attribute:Bool
+        ok = FieldNameIterator_next(&rest, &is_attribute, &index, &name)
+        if ok != 2 {
+            break
+        }
+        var tmp:PyObject?
 
-        if (is_attribute)
+        if (is_attribute){
             /* getattr lookup "." */
             tmp = getattr(obj, &name);
-        else
+        } else {
             /* getitem lookup "[]" */
-            if (index == -1)
+            if (index == -1){
                 tmp = getitem_str(obj, &name);
-            else
-                if (PySequence_Check(obj))
+            } else {
+                if (PySequence_Check(obj)){
                     tmp = getitem_sequence(obj, index);
-                else
+                }
+                else{
                     /* not a sequence */
                     tmp = getitem_idx(obj, index);
-        if (tmp == NULL)
+                }
+            }
+        }
+        if (tmp == nil)
             goto error;
 
         /* assign to obj */
@@ -920,7 +908,7 @@ func do_conversion(obj:PyObject?, _ conversion:Py_UCS4) -> FormatResult
 func output_markup(SubString *field_name, SubString *format_spec,
               int format_spec_needs_expanding, Py_UCS4 conversion,
               _PyUnicodeWriter *writer, PyObject *args, PyObject *kwargs,
-              int recursion_depth, AutoNumber *auto_number) -> int
+              int recursion_depth, AutoNumber *auto_number) -> FormatResult
 {
     PyObject *tmp = NULL;
     PyObject *fieldobj = NULL;
@@ -1005,8 +993,12 @@ func do_markup(_ input:String, _ args:Any?, _ kwargs:[String:Any?],
             }
 
             if (field_present) {
-                if (iter.str.start == iter.str.end)
-                    writer->overallocate = 0;
+                switch <#value#> {
+                case <#pattern#>:
+                    <#code#>
+                default:
+                    <#code#>
+                }
                 if (!output_markup(&field_name, &format_spec,
                                    format_spec_needs_expanding, conversion, writer,
                                    args, kwargs, recursion_depth, auto_number))
