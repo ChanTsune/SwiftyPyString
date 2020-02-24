@@ -105,69 +105,6 @@ func _PyUnicode_FromASCII(_ buffer:String?, _ size: Py_ssize_t) -> PyObject?
 {
     return buffer
 }
-func PyUnicode_FromKindAndData(_ kind:int, _ buffer:String?, _ size:Py_ssize_t) -> PyObject?
-{
-    return buffer[nil, size]
-}
-
-/************************************************************************/
-/**************************  Utility  functions  ************************/
-/************************************************************************/
-func PyUnicode_Substring(_ self:String, _ start:Py_ssize_t, _ end:Py_ssize_t) -> String
-{
-    return self[start,end]
-    var data:String? = nil
-    var kind: int
-    var length: Py_ssize_t
-
-    length = PyUnicode_GET_LENGTH(self);
-    end = min(end, length)
-
-    if (start == 0 && end == length){
-        return unicode_result_unchanged(self);
-    }
-
-    if (start < 0 || end < 0) {
-        PyErr_SetString(PyExc_IndexError, "string index out of range");
-        return nil
-    }
-    if (start >= length || end < start){
-        return _Py_RETURN_UNICODE_EMPTY();
-    }
-
-    length = end - start;
-    if (PyUnicode_IS_ASCII(self)) {
-        data = PyUnicode_1BYTE_DATA(self);// 先頭アドレスの取得
-        return _PyUnicode_FromASCII(data[start, nil], length);
-    }
-    else {
-        kind = PyUnicode_KIND(self);
-        data = PyUnicode_1BYTE_DATA(self);
-        return PyUnicode_FromKindAndData(kind,
-                                         data[kind * start, nil],
-                                         length);
-    }
-}
-
-/* return a new string.  if str->str is NULL, return None */
-func SubString_new_object(_ str: SubString) -> String
-{
-    if let s = str.str {
-        return PyUnicode_Substring(s, str.start, str.end)
-    }
-    return "" // nil
-}
-func PyUnicode_New(_ n:Int,_ l:Int) -> String {
-    return ""
-}
-/* return a new string.  if str->str is NULL, return a new empty string */
-func SubString_new_object_or_empty(_ str:SubString) -> PyObject?
-{
-    if (str.str == nil) {
-        return PyUnicode_New(0, 0);
-    }
-    return SubString_new_object(str);
-}
 
 /* Return 1 if an error has been detected switching between automatic
    field numbering and manual field specification, else return 0. Set
@@ -258,15 +195,9 @@ func PySequence_GetItem<Seq: RandomAccessCollection>(_ s:Seq, _ i:Py_ssize_t) ->
 /************************************************************************/
 
 /* do the equivalent of obj.name */
-func getattr(_ obj:PyObject?, _ name:SubString) -> PyObject?
+func getattr(_ obj:PyObject?, _ name:String) -> Result<PyObject?,PyException>
 {
-    var newobj:PyObject?
-    var str:String = SubString_new_object(name);
-    if (str == nil){
-        return nil
-    }
-    newobj = PyObject_GetAttr(obj, str);
-    return newobj;
+    return PyObject_GetAttr(obj, name)
 }
 
 /* do the equivalent of obj[idx], where obj is a sequence */
@@ -278,27 +209,15 @@ func PyObject_GetItem<D: RandomAccessCollection>(_ obj:D, _ key:D.Index) -> Any 
     return obj[key]
 }
 /* do the equivalent of obj[idx], where obj is not a sequence */
-func getitem_idx(PyObject *obj, Py_ssize_t idx) -> PyObject?
+func getitem_idx<Seq: RandomAccessCollection>(_ obj:Seq, _ idx:Py_ssize_t) -> PyObject?
 {
-    PyObject *newobj;
-    PyObject *idx_obj = PyLong_FromSsize_t(idx);
-    if (idx_obj == NULL)
-        return NULL;
-    newobj = PyObject_GetItem(obj, idx_obj);
-    Py_DECREF(idx_obj);
-    return newobj;
+    return PyObject_GetItem(obj, idx as! Seq.Index);
 }
 
 /* do the equivalent of obj[name] */
-func getitem_str(PyObject *obj, SubString *name) -> PyObject?
+func getitem_str<Seq: RandomAccessCollection>(_ obj:Seq, _ name:String) -> PyObject?
 {
-    PyObject *newobj;
-    PyObject *str = SubString_new_object(name);
-    if (str == NULL)
-        return NULL;
-    newobj = PyObject_GetItem(obj, str);
-    Py_DECREF(str);
-    return newobj;
+    return PyObject_GetItem(obj, name as! Seq.Index );
 }
 
 class FieldNameIterator {
@@ -375,7 +294,7 @@ func _FieldNameIterator_item(_ self:FieldNameIterator) -> Result<String,PyExcept
 
 struct FieldNameIteratorResult {
     var is_attribute: Bool
-    var name_idx: Bool
+    var name_idx: Int
     var name: String
 }
 
@@ -438,16 +357,12 @@ func FieldNameIterator_next(_ self:FieldNameIterator) -> LoopResult<FieldNameIte
                        it's the value of first converted to an integer
            'rest' is an iterator to return the rest
 */
-func field_name_split(_ str:PyObject,
-                      _ start:Py_ssize_t,
-                      _ end:Py_ssize_t,
-                      _ first:SubString,
-                      _ first_idx:Py_ssize_t,
-                      _ rest:FieldNameIterator,
-                      _ auto_number:AutoNumber) -> int
+func field_name_split(_ str:String,
+                      _ auto_number:AutoNumber) -> Result<(String,Int,FieldNameIterator),PyException>
 {
     var c: Py_UCS4
-    var i: Py_ssize_t = start
+    var i: Py_ssize_t = 0
+    let end = str.count
     var field_name_is_empty: Bool
     var using_numeric_index: Bool
 
@@ -467,19 +382,23 @@ func field_name_split(_ str:PyObject,
     }
 
     /* set up the return values */
-    first = .init(str, start, i)
-    rest = .init(str, i, end)
+    let first = str[nil, i]
+    let rest:FieldNameIterator = .init(str[i, end], 0)
 
     /* see if "first" is an integer, in which case it's used as an index */
-    *first_idx = get_integer(first);
-    if (*first_idx == -1 && PyErr_Occurred())
-        return 0;
+    var first_idx:Py_ssize_t = -1
+    switch get_integer(first) {
+    case .success(let tmp):
+        first_idx = tmp
+    case .failure(let error):
+        return .failure(error)
+    }
 
-    field_name_is_empty = first->start >= first->end;
+    field_name_is_empty = first.isEmpty
 
     /* If the field name is omitted or if we have a numeric index
        specified, then we're doing numeric indexing into args. */
-    using_numeric_index = field_name_is_empty || *first_idx != -1;
+    using_numeric_index = field_name_is_empty || first_idx != -1;
 
     /* We always get here exactly one time for each field we're
        processing. And we get here in field order (counting by left
@@ -489,33 +408,31 @@ func field_name_split(_ str:PyObject,
     /* Check if we need to do the auto-numbering. It's not needed if
        we're called from string.Format routines, because it's handled
        in that class by itself. */
-    if (auto_number) {
-        /* Initialize our auto numbering state if this is the first
-           time we're either auto-numbering or manually numbering. */
-        if (auto_number.an_state == .ANS_INIT && using_numeric_index)
-        {
-            auto_number.an_state = field_name_is_empty ? .ANS_AUTO : .ANS_MANUAL;
-        }
-
-        /* Make sure our state is consistent with what we're doing
-           this time through. Only check if we're using a numeric
-           index. */
-        if (using_numeric_index){
-            switch autonumber_state_error(auto_number.an_state, field_name_is_empty) {
-            case .success:
-                break
-            case .failure(let error):
-                return .failure(error)
-            }
-        }
-        /* Zero length field means we want to do auto-numbering of the
-           fields. */
-        if (field_name_is_empty){
-            *first_idx = (auto_number.an_field_number)++;
-        }
+    /* Initialize our auto numbering state if this is the first
+       time we're either auto-numbering or manually numbering. */
+    if (auto_number.an_state == .ANS_INIT && using_numeric_index)
+    {
+        auto_number.an_state = field_name_is_empty ? .ANS_AUTO : .ANS_MANUAL;
     }
 
-    return 1;
+    /* Make sure our state is consistent with what we're doing
+       this time through. Only check if we're using a numeric
+       index. */
+    if (using_numeric_index){
+        switch autonumber_state_error(auto_number.an_state, field_name_is_empty) {
+        case .success:
+            break
+        case .failure(let error):
+            return .failure(error)
+        }
+    }
+    /* Zero length field means we want to do auto-numbering of the
+       fields. */
+    if (field_name_is_empty){
+        first_idx = (auto_number.an_field_number)++;
+    }
+
+    return .success((first,first_idx, rest))
 }
 
 
@@ -529,19 +446,20 @@ func get_field_object(_ input:String, _ args:[Any?], _ kwargs:[String:Any?],
 {
     var obj:PyObject? = nil;
     var ok:int
-    var name: SubString
-    var first: SubString
+    var first: String
     var index:Py_ssize_t
     var rest:FieldNameIterator
 
-    if (!field_name_split(input->str, input->start, input->end, &first,
-                          &index, &rest, auto_number)) {
-        goto error;
+    switch field_name_split(input, auto_number) {
+    case .success(let tmp):
+        (first,index,rest) = tmp
+    case .failure(let error):
+        return .failure(error)
     }
 
     if (index == -1) {
         /* look up in kwargs */
-        var key:String = SubString_new_object(&first);
+        var key:String = first
         if kwargs.isEmpty {
             return .failure(.KeyError(key))
         }
@@ -572,22 +490,31 @@ func get_field_object(_ input:String, _ args:[Any?], _ kwargs:[String:Any?],
     /* iterate over the rest of the field_name */
     while true {
         var is_attribute:Bool
-        ok = FieldNameIterator_next(&rest, &is_attribute, &index, &name)
-        if ok != 2 {
+        var index:Int
+        var name:String
+        switch FieldNameIterator_next(rest) {
+        case .failure(let error):
+            return .failure(error)
+        case .finish:
             break
+        case .success(let result):
+            is_attribute = result.is_attribute
+            index = result.name_idx
+            name = result.name
         }
         var tmp:PyObject?
 
         if (is_attribute){
             /* getattr lookup "." */
-            tmp = getattr(obj, &name);
+            tmp = getattr(obj, name);
         } else {
             /* getitem lookup "[]" */
             if (index == -1){
-                tmp = getitem_str(obj, &name);
+                tmp = getitem_str(obj, name);
             } else {
                 if (PySequence_Check(obj)){
-                    tmp = getitem_sequence(obj, index);
+                    
+                    tmp = getitem_sequence(obj as! AnyRandomAccessCollection<Any>, index)
                 }
                 else{
                     /* not a sequence */
@@ -622,7 +549,7 @@ error:
     render_field calls fieldobj.__format__(format_spec) method, and
     appends to the output.
 */
-func render_field(PyObject *fieldobj, SubString *format_spec, _PyUnicodeWriter *writer) -> FormatResult
+func render_field(_ fieldobj:PyObject, _ format_spec:String) -> FormatResult
 {
     int ok = 0;
     PyObject *result = NULL;
@@ -650,12 +577,7 @@ func render_field(PyObject *fieldobj, SubString *format_spec, _PyUnicodeWriter *
     else {
         /* We need to create an object out of the pointers we have, because
            __format__ takes a string/unicode object for format_spec. */
-        if (format_spec.str)
-            format_spec_object = PyUnicode_Substring(format_spec->str,
-                                                     format_spec->start,
-                                                     format_spec->end);
-        else
-            format_spec_object = ""
+        format_spec_object = format_spec
 
         result = PyObject_Format(fieldobj, format_spec_object);
     }
@@ -674,7 +596,7 @@ done:
 struct ParseResult {
     var field_name: String
     var format_spec: String = ""
-    var format_spec_needs_expanding:int
+    var format_spec_needs_expanding:Bool
     var conversion: Py_UCS4 = "\0"
 }
 
@@ -687,7 +609,7 @@ func parse_field(_ str:MarkupIterator) -> Result<ParseResult, PyException>
     var c:Py_UCS4 = "\0"
 
     /* initialize these, as they may be empty */
-    var result = ParseResult(field_name: <#T##String#>, format_spec_needs_expanding: <#T##int#>)
+    var result = ParseResult(field_name: "", format_spec_needs_expanding: false)
 
     /* Search for the field name.  it's terminated by the end of
        the string, or a ':' or '!' */
@@ -740,9 +662,10 @@ func parse_field(_ str:MarkupIterator) -> Result<ParseResult, PyException>
         let start = str.start
         count = 1;
         while (str.start < str.end) {
-            switch ((c = PyUnicode_READ_CHAR(str.str, str.start++))) {
+            c = PyUnicode_READ_CHAR(str.str, str.start++)
+            switch c {
             case "{":
-                result.format_spec_needs_expanding = 1;
+                result.format_spec_needs_expanding = true
                 count++;
                 break;
             case "}":
@@ -791,7 +714,7 @@ class MarkupIterator {
 */
 
 struct MarkupIteratorNextResult {
-    var format_spec_needs_expanding:int
+    var format_spec_needs_expanding:Bool
     var field_present:int
     var literal:String
     var field_name:String
@@ -807,7 +730,7 @@ func MarkupIterator_next(_ self:MarkupIterator) -> LoopResult<MarkupIteratorNext
     var markup_follows:Bool = false
 
     /* initialize all of the output variables */
-    var result = MarkupIteratorNextResult(format_spec_needs_expanding: 0, field_present: 0, literal: "", field_name: "", format_spec: "", conversion: "\0")
+    var result = MarkupIteratorNextResult(format_spec_needs_expanding: false, field_present: 0, literal: "", field_name: "", format_spec: "", conversion: "\0")
 
     /* No more input, end of iterator.  This is the normal exit
        path. */
@@ -883,13 +806,16 @@ func MarkupIterator_next(_ self:MarkupIterator) -> LoopResult<MarkupIteratorNext
 
 
 /* do the !r or !s conversion on obj */
-func do_conversion(obj:PyObject?, _ conversion:Py_UCS4) -> FormatResult
+func do_conversion(_ obj:PyObject?, _ conversion:Py_UCS4) -> FormatResult
 {
     /* XXX in pre-3.0, do we need to convert this to unicode, since it
        might have returned a string? */
     switch (conversion) {
     case "r", "s", "a":
-        return .success((obj as? PSFormattable)?.convertField(conversion)!)
+        if let obj = obj as? PSFormattable {
+            return .success(obj.convertField(conversion))
+        }
+        return .success("nil")
     default:
         if conversion.isRegularASCII {
         /* It's the ASCII subrange; casting to char is safe
@@ -897,7 +823,7 @@ func do_conversion(obj:PyObject?, _ conversion:Py_UCS4) -> FormatResult
            superset). */
             return .failure(.ValueError("Unknown conversion specifier \(conversion)"))
         }
-        return .failure(.ValueError("Unknown conversion specifier \\x\(hex(conversion.unicode.value),alternate:false)"))
+        return .failure(.ValueError("Unknown conversion specifier \\x\(hex(conversion.unicode.value,false))"))
     }
 }
 
@@ -914,68 +840,55 @@ func do_conversion(obj:PyObject?, _ conversion:Py_UCS4) -> FormatResult
    are doing auto field numbering.
 */
 
-func output_markup(_ field_name:String, SubString *format_spec,
-    int format_spec_needs_expanding,
-    _ conversion:Py_UCS4,
-              _PyUnicodeWriter *writer,
-    _ args:[Any?],
-    _ kwargs:[String:Any?],
-    _ recursion_depth:int,
-    _ auto_number:AutoNumber) -> FormatResult
+func output_markup(_ field_name:String,
+                   _ format_spec:String,
+                   _ format_spec_needs_expanding:Bool,
+                   _ conversion:Py_UCS4,
+                   _ args:[Any?],
+                   _ kwargs:[String:Any?],
+                   _ recursion_depth:int,
+                   _ auto_number:AutoNumber) -> FormatResult
 {
-    PyObject *tmp = NULL;
-    PyObject *fieldobj = NULL;
-    SubString expanded_format_spec;
-    SubString *actual_format_spec;
-    int result = 0;
+    var tmp:PyObject
+    var fieldobj:PyObject?
+    var expanded_format_spec:String
+    var actual_format_spec:String
 
     /* convert field_name to an object */
-    fieldobj = get_field_object(field_name, args, kwargs, auto_number);
-    if (fieldobj == NULL)
-        goto done;
-
-    if (conversion != "\0") {
-        tmp = do_conversion(fieldobj, conversion);
-        if (tmp == NULL || PyUnicode_READY(tmp) == -1)
-            goto done;
-
-        /* do the assignment, transferring ownership: fieldobj = tmp */
-        Py_DECREF(fieldobj);
-        fieldobj = tmp;
-        tmp = NULL;
-    }
-
-    /* if needed, recurively compute the format_spec */
-    if (format_spec_needs_expanding) {
-        tmp = build_string(format_spec, args, kwargs, recursion_depth-1,
-                           auto_number);
-        if (tmp == NULL || PyUnicode_READY(tmp) == -1){
-            goto done;
-        }
-
-        /* note that in the case we're expanding the format string,
-           tmp must be kept around until after the call to
-           render_field. */
-        expanded_format_spec = .init(tmp, 0, PyUnicode_GET_LENGTH(tmp));
-        actual_format_spec = &expanded_format_spec;
-    }
-    else{
-        actual_format_spec = format_spec;
-    }
-    switch render_field(fieldobj, actual_format_spec, writer) {
-    case .success(let str):
-        <#code#>
+    switch get_field_object(field_name, args, kwargs, auto_number) {
+    case .success(let o):
+        fieldobj = o
     case .failure(let error):
         return .failure(error)
     }
 
-    result = 1;
+    if (conversion != "\0") {
+        switch do_conversion(fieldobj, conversion) {
+        case .success(let s):
+            fieldobj = s
+        case .failure(let error):
+            return .failure(error)
+        }
+    }
 
-done:
-    Py_XDECREF(fieldobj);
-    Py_XDECREF(tmp);
-
-    return result;
+    /* if needed, recurively compute the format_spec */
+    if (format_spec_needs_expanding) {
+        switch build_string(format_spec, args, kwargs, recursion_depth-1, auto_number) {
+        case .success(let s):
+            actual_format_spec = s
+        case .failure(let error):
+            return .failure(error)
+        }
+    }
+    else{
+        actual_format_spec = format_spec;
+    }
+    switch render_field(fieldobj, actual_format_spec) {
+    case .success(let str):
+        return .success(str)
+    case .failure(let error):
+        return .failure(error)
+    }
 }
 
 /*
@@ -987,7 +900,7 @@ done:
 
 
 
-func do_markup(_ input:String, _ args:Any?, _ kwargs:[String:Any?],
+func do_markup(_ input:String, _ args:[Any?], _ kwargs:[String:Any?],
                _ recursion_depth:int, _ auto_number:AutoNumber) -> FormatResult
 {
     var iter:MarkupIterator
@@ -1104,23 +1017,17 @@ func invalid_comma_and_underscore() -> PyException
 
     returns -1 on error.
 */
-func get_integer(_ str:PyObject,
+func get_integer(_ str:String,
                  _ ppos:Py_ssize_t,
-                 _ end:Py_ssize_t,
-Py_ssize_t *result) -> Result<int,PyException>
+                 _ end:Py_ssize_t) -> Result<(int,int),PyException>
 {
-    var accumulator:Py_ssize_t
-    var digitval:Py_ssize_t
-    var pos:Py_ssize_t = ppos;
-    var numdigits:int
-    int kind = PyUnicode_KIND(str);
-    void *data = PyUnicode_DATA(str);
-
-    accumulator = numdigits = 0;
-    for (; pos < end; pos++, numdigits++) {
-        digitval = Py_UNICODE_TODECIMAL(PyUnicode_READ(kind, data, pos));
-        if (digitval < 0)
+    var accumulator:Py_ssize_t = 0
+    var numdigits:int = 0
+    while ppos < end {
+        let digitval = Py_UNICODE_TODECIMAL(str.at(ppos)!);
+        if digitval < 0 {
             break;
+        }
         /*
            Detect possible overflow before it happens:
 
@@ -1130,14 +1037,12 @@ Py_ssize_t *result) -> Result<int,PyException>
         if (accumulator > (PY_SSIZE_T_MAX - digitval) / 10) {
             
             return .failure(.ValueError("Too many decimal digits in format string"))
-            *ppos = pos;
-            return -1;
         }
         accumulator = accumulator * 10 + digitval;
+        ppos++
+        numdigits++
     }
-    *ppos = pos;
-    *result = accumulator;
-    return .success(numdigits)
+    return .success((numdigits,accumulator)) // 文字の幅、文字の数値表現
 }
 
 /************************************************************************/
@@ -1195,14 +1100,13 @@ extension InternalFormatSpec: CustomDebugStringConvertible {
     /* Occasionally useful for debugging. Should normally be commented out. */
     var debugDescription: String {
         return String(format:"internal format spec: fill_char \(fill_char))\n") +
-        String(format:"internal format spec: align %d\n", align) +
+        String(format:"internal format spec: align \(align)\n") +
         String(format:"internal format spec: alternate %d\n", alternate) +
-        String(format:"internal format spec: sign %d\n", sign) +
+        String(format:"internal format spec: sign \(sign)\n") +
         String(format:"internal format spec: width %zd\n", width) +
-        String(format:"internal format spec: thousands_separators %d\n",
-               thousands_separators) +
+        String(format:"internal format spec: thousands_separators \(thousands_separators)\n") +
         String(format:"internal format spec: precision %zd\n", precision) +
-        String(format:"internal format spec: type %c\n", type)
+        String(format:"internal format spec: type \(type)\n")
     }
 }
 
@@ -1222,15 +1126,11 @@ func parse_internal_render_format_spec(_ format_spec:String,
 
     var pos = 0
     var length = format_spec.count // 文字列の長さ
-    int kind = PyUnicode_KIND(format_spec);
-    void *data = PyUnicode_DATA(format_spec);
-    /* end-pos is used throughout this code to specify the length of
-       the input string */
-    var READ_spec(index) = PyUnicode_READ(kind, data, index)
+
 
     var consumed:Py_ssize_t
-    var align_specified:int = 0;
-    var fill_char_specified:int = 0;
+    var align_specified:Bool = false
+    var fill_char_specified:Bool = false
 
     /* If the second char is an alignment token,
        then parse the fill char */
@@ -1239,13 +1139,13 @@ func parse_internal_render_format_spec(_ format_spec:String,
         // パディング文字の指定もあることがわかる
         format.align = align
         format.fill_char = format_spec.at(pos)!
-        fill_char_specified = 1;
-        align_specified = 1;
+        fill_char_specified = true
+        align_specified = true
         pos += 2;
     }
     else if let align = format_spec.at(pos), is_alignment_token(align).asBool {
         format.align = align
-        align_specified = 1;
+        align_specified = true
         ++pos;
     }
 
@@ -1263,18 +1163,20 @@ func parse_internal_render_format_spec(_ format_spec:String,
     }
 
     /* The special case for 0-padding (backwards compat) */
-    if (!fill_char_specified.asBool , let c = format_spec.at(pos), c == "0") {
+    if let c = format_spec.at(pos), c == "0", !fill_char_specified {
         format.fill_char = "0"
-        if (!align_specified.asBool) {
+        if (!align_specified) {
             format.align = "="
         }
         ++pos;
     }
 
-    consumed = get_integer(format_spec, &pos, end, &format.width);
-    if (consumed == -1){
+    switch get_integer(format_spec, pos, end) {
+    case .success(let t):
+        (consumed,format.width) = t
+    case .failure(let error):
         /* Overflow error. Exception already set. */
-        return 0;
+        return .failure(error)
     }
 
     /* If consumed is 0, we didn't consume any characters for the
@@ -1306,11 +1208,13 @@ func parse_internal_render_format_spec(_ format_spec:String,
     if let c = format_spec.at(pos), c == "." {
         ++pos;
 
-        consumed = get_integer(format_spec, &pos, end, &format.precision);
-        if (consumed == -1){
+        switch get_integer(format_spec, pos, end) {
+        case .success(let t):
+            (consumed, format.precision) = t
+        case .failure(let error):
             /* Overflow error. Exception already set. */
-            return 0;}
-
+            return .failure(error)
+        }
         /* Not having a precision after a dot is an error. */
         if (consumed == 0) {
             return .failure(.ValueError("Format specifier missing precision"))
@@ -1326,7 +1230,7 @@ func parse_internal_render_format_spec(_ format_spec:String,
     }
 
     if (end-pos == 1) {
-        format.type = READ_spec(pos);
+        format.type = format_spec.at(pos)!
         ++pos;
     }
 
@@ -1348,7 +1252,7 @@ func parse_internal_render_format_spec(_ format_spec:String,
             }
             fallthrough
         default:
-            return .failure(invalid_thousands_separator_type(format.thousands_separators, format.type))
+            return .failure(invalid_thousands_separator_type(format.thousands_separators.rawValue, format.type))
         }
     }
 
@@ -1379,7 +1283,7 @@ func calc_padding(Py_ssize_t nchars, Py_ssize_t width, Py_UCS4 align,
         {*n_lpadding = *n_total - nchars}
     else if (align == "^")
        { *n_lpadding = (*n_total - nchars) / 2}
-    else if (align == "<" || align == '=')
+    else if (align == "<" || align == "=")
         {*n_lpadding = 0}
     else {
         /* We should never have an unspecified alignment. */
@@ -1418,7 +1322,72 @@ func fill_padding(_ value:String,
 struct LocaleInfo {
     var decimal_point: String = ""
     var thousands_sep: String = ""
-    var grouping: String = ""
+    var grouping: [Int8]
+}
+/* _PyUnicode_InsertThousandsGrouping() helper functions */
+
+struct GroupGenerator {
+    let grouping:[Int8]
+    var previous:Int = 0
+    var i:Py_ssize_t = 0 /* Where we're currently pointing in grouping. */
+    let max:Int
+    init(_ grouping:[Int8]) {
+        self.grouping = grouping
+        max = Int(CHAR_MAX)
+    }
+    mutating func next() -> Int {
+        /* Note that we don't really do much error checking here. If a
+           grouping string contains just CHAR_MAX, for example, then just
+           terminate the generator. That shouldn't happen, but at least we
+           fail gracefully. */
+        if grouping.count > i {
+            let ch = Int(self.grouping[self.i])
+            switch ch {
+            case 0:
+                return self.previous;
+            case max:
+                /* Stop the generator. */
+                return 0;
+            default:
+                self.previous = ch;
+                self.i++;
+                return ch;
+            }
+        }
+        return previous
+    }
+}
+
+/* Fill in some digits, leading zeros, and thousands separator. All
+   are optional, depending on when we're called. */
+func InsertThousandsGrouping_fill(_PyUnicodeWriter *writer, Py_ssize_t *buffer_pos,
+                             PyObject *digits, Py_ssize_t *digits_pos,
+                             Py_ssize_t n_chars, Py_ssize_t n_zeros,
+                             _ thousands_sep: PyObject,
+                             Py_ssize_t thousands_sep_len,
+                             Py_UCS4 *maxchar) -> String
+{
+
+    if (thousands_sep) {
+        *buffer_pos -= thousands_sep_len;
+
+        /* Copy the thousands_sep chars into the buffer. */
+        _PyUnicode_FastCopyCharacters(writer->buffer, *buffer_pos,
+                                      thousands_sep, 0,
+                                      thousands_sep_len);
+    }
+
+    *buffer_pos -= n_chars;
+    *digits_pos -= n_chars;
+    _PyUnicode_FastCopyCharacters(writer->buffer, *buffer_pos,
+                                  digits, *digits_pos,
+                                  n_chars);
+
+    if (n_zeros) {
+        *buffer_pos -= n_zeros;
+
+        unicode_fill(kind, data, "0", *buffer_pos, n_zeros);
+    }
 }
 
 /* describes the layout for an integer, see the comment in
@@ -1621,27 +1590,19 @@ func PyOS_double_to_string(_ val:double,
  *
  * Return value: -1 on error, number of characters otherwise.
  **/
-Py_ssize_t
-_PyUnicode_InsertThousandsGrouping(
+
+func _PyUnicode_InsertThousandsGrouping(
     _PyUnicodeWriter *writer,
     Py_ssize_t n_buffer,
     PyObject *digits,
     Py_ssize_t d_pos,
     Py_ssize_t n_digits,
-    Py_ssize_t min_width,
-    const char *grouping,
-    PyObject *thousands_sep,
-    Py_UCS4 *maxchar)
+    _ min_width:Py_ssize_t,
+    _ grouping:String,
+    _ thousands_sep:PyObject) -> FormatResult
 {
     min_width = Py_MAX(0, min_width);
-    if (writer) {
-        assert(digits != NULL);
-        assert(maxchar == NULL);
-    }
-    else {
-        assert(digits == NULL);
-        assert(maxchar != NULL);
-    }
+
     assert(0 <= d_pos);
     assert(0 <= n_digits);
     assert(grouping != NULL);
@@ -1669,13 +1630,11 @@ _PyUnicode_InsertThousandsGrouping(
                                         be looked at */
     /* A generator that returns all of the grouping widths, until it
        returns 0. */
-    GroupGenerator groupgen;
-    GroupGenerator_init(&groupgen, grouping);
-    const Py_ssize_t thousands_sep_len = PyUnicode_GET_LENGTH(thousands_sep);
+    var groupgen: GroupGenerator = .init(grouping)
+    let thousands_sep_len: Py_ssize_t = PyUnicode_GET_LENGTH(thousands_sep)
 
     /* if digits are not grouped, thousands separator
        should be an empty string */
-    assert(!(grouping[0] == CHAR_MAX && thousands_sep_len != 0));
 
     digits_pos = d_pos + n_digits;
     if (writer) {
@@ -1687,11 +1646,11 @@ _PyUnicode_InsertThousandsGrouping(
         buffer_pos = n_buffer;
     }
 
-    if (!writer) {
-        *maxchar = 127;
-    }
-
-    while ((len = GroupGenerator_next(&groupgen)) > 0) {
+    while true {
+        len = groupgen.next // 次は何文字で区切るか
+        if !( len > 0) {
+            break
+        }
         len = Py_MIN(len, Py_MAX(Py_MAX(remaining, min_width), 1));
         n_zeros = Py_MAX(0, len - remaining);
         n_chars = Py_MAX(0, Py_MIN(remaining, len));
@@ -1845,14 +1804,17 @@ func calc_number_widths(_ n_prefix: Py_ssize_t,
         spec.n_grouped_digits = 0;
     }
     else {
-        spec.n_grouped_digits = _PyUnicode_InsertThousandsGrouping(
-            NULL, 0,
-            NULL, 0, spec.n_digits,
-            spec.n_min_width,
-            locale.grouping, locale.thousands_sep)
-        if (spec.n_grouped_digits == -1) {
-            return -1;
+        switch _PyUnicode_InsertThousandsGrouping(
+        NULL, 0,
+        NULL, 0, spec.n_digits,
+        spec.n_min_width,
+        locale.grouping, locale.thousands_sep) {
+        case .success(let s):
+            spec.n_grouped_digits = s.count
+        case .failture(let errro):
+            return .failture(error)
         }
+        // 上記の計算はメモリのアロケーションに必要な計算処理なので実際には削除される
     }
 
     /* Given the desired width and the total of digit and non-digit
@@ -2004,25 +1966,24 @@ func get_locale_info(_ type:LocaleType) -> LocaleInfo
         locale_info.decimal_point = "."
         locale_info.thousands_sep = type == .LT_DEFAULT_LOCALE ? "," : "_"
         if (type != .LT_UNDER_FOUR_LOCALE){
-            locale_info.grouping = "\u{3}" /* Group every 3 characters.  The
+            locale_info.grouping = [3] /* Group every 3 characters.  The
                                          (implicit) trailing 0 means repeat
                                          infinitely. */
         } else {
-            locale_info.grouping = "\u{4}" /* Bin/oct/hex group every four. */
+            locale_info.grouping = [4] /* Bin/oct/hex group every four. */
         }
         break;
     case .LT_NO_LOCALE:
         locale_info.decimal_point = "."
         locale_info.thousands_sep = ""
-        let no_grouping = "\u{255}" // char_max?
+        let no_grouping = [Int8(CHAR_MAX)] // char_max?
         locale_info.grouping = no_grouping;
         break;
     }
     return locale_info
 }
 
-
-func getLocalInfo() -> (String,String,String) {
+func getLocalInfo() -> (String,String,[Int8]) {
     // TODO:remove force unwrap
     // TODO: \0 to ""(empty String)
     if let local = localeconv() {
@@ -2031,16 +1992,21 @@ func getLocalInfo() -> (String,String,String) {
             let decimal_point = String(dp)
             if let t = lc.thousands_sep, let ts = UnicodeScalar(UInt32(t.pointee)) {
                 let thousands_sep = String(ts)
-                if let g = lc.grouping, let gp = UnicodeScalar(UInt32(g.pointee)) {
-                    let grouping = String(gp)
-                    return (decimal_point, thousands_sep, grouping)
+                var grouping:[Int8] = []
+                if let g = lc.grouping {
+                    var i = 0
+                    while i != CHAR_MAX {
+                        let p = g.advanced(by: i)
+                        grouping.append(p.pointee)
+                        i += 1
+                    }
                 }
-                return (decimal_point, thousands_sep, "")
+                return (decimal_point, thousands_sep, grouping)
             }
-            return (decimal_point, ",", "")
+            return (decimal_point, ",", [])
         }
     }
-    return (".",",","")
+    return (".",",",[])
 }
 
 
@@ -2446,8 +2412,8 @@ done:
 /************************************************************************/
 
 static int
-format_complex_internal(PyObject *value,
-                        const InternalFormatSpec *format,
+format_complex_internal(_ value:PyObject,
+                        _ format:InternalFormatSpec,
                         _PyUnicodeWriter *writer)
 {
     double re;
@@ -2455,7 +2421,7 @@ format_complex_internal(PyObject *value,
     char *re_buf = NULL;       /* buffer returned from PyOS_double_to_string */
     char *im_buf = NULL;       /* buffer returned from PyOS_double_to_string */
 
-    InternalFormatSpec tmp_format = *format;
+    var tmp_format:InternalFormatSpec = format
     Py_ssize_t n_re_digits;
     Py_ssize_t n_im_digits;
     Py_ssize_t n_re_remainder;
@@ -2502,7 +2468,7 @@ format_complex_internal(PyObject *value,
         PyErr_SetString(PyExc_ValueError,
                         "Zero padding is not allowed in complex format "
                         "specifier");
-        {goto done;}
+        goto done
     }
 
     /* Neither is '=' alignment . */
@@ -2510,7 +2476,7 @@ format_complex_internal(PyObject *value,
         PyErr_SetString(PyExc_ValueError,
                         "'=' alignment flag is not allowed in complex format "
                         "specifier");
-        {goto done;}
+        goto done
     }
 
     re = PyComplex_RealAsDouble(value);
@@ -2530,9 +2496,10 @@ format_complex_internal(PyObject *value,
         type = "r";
         default_precision = 0;
         if (re == 0.0 && copysign(1.0, re) == 1.0){
-            skip_re = 1;}
-        else{
-            add_parens = 1;}
+            skip_re = 1;
+        } else {
+            add_parens = 1;
+        }
     }
 
     if (type == "n"){
@@ -2615,7 +2582,8 @@ format_complex_internal(PyObject *value,
      * going to be omitted, in which case we use whatever sign convention was
      * requested by the original format. */
     if (!skip_re){
-        tmp_format.sign = "+";}
+        tmp_format.sign = "+"
+    }
     n_im_total = calc_number_widths(&im_spec, 0, im_sign_char, im_unicode_tmp,
                                     i_im, i_im + n_im_digits, n_im_remainder,
                                     im_has_decimal, &locale, &tmp_format,
@@ -2704,16 +2672,15 @@ func format_obj(_ obj:PyObject?, _ writer:_PyUnicodeWriter) -> int
     return err;
 }
 
-func _PyUnicode_FormatAdvancedWriter(_PyUnicodeWriter *writer,
+func _PyUnicode_FormatAdvancedWriter(
         _ obj:String,
-        _ format_spec:String,
-                                Py_ssize_t start, Py_ssize_t end) -> FormatResult
+        _ format_spec:String) -> FormatResult
 {
     var format:InternalFormatSpec
 
     /* check for the special case of zero length format spec, make
        it equivalent to str(obj) */
-    if (start == end) {
+    if (format_spec.isEmpty) {
         if (PyUnicode_CheckExact(obj)){
             return _PyUnicodeWriter_WriteStr(writer, obj);
         }
