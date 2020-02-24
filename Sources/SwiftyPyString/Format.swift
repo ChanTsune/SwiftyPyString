@@ -1320,7 +1320,7 @@ struct LocaleInfo {
 
 struct GroupGenerator {
     let grouping:[Int8]
-    var previous:Int = 0
+    var previous:Int = .max
     var i:Py_ssize_t = 0 /* Where we're currently pointing in grouping. */
     let max:Int
     init(_ grouping:[Int8]) {
@@ -1584,111 +1584,30 @@ func PyOS_double_to_string(_ val:double,
  **/
 
 func _PyUnicode_InsertThousandsGrouping(
-    _PyUnicodeWriter *writer,
-    Py_ssize_t n_buffer,
-    PyObject *digits,
-    Py_ssize_t d_pos,
-    Py_ssize_t n_digits,
-    _ min_width:Py_ssize_t,
-    _ grouping:String,
-    _ thousands_sep:PyObject) -> FormatResult
+    _ digits:String,
+    _ grouping:[Int8],
+    _ thousands_sep:String) -> String
 {
-    min_width = Py_MAX(0, min_width);
-
-    assert(0 <= d_pos);
-    assert(0 <= n_digits);
-    assert(grouping != NULL);
-
-    if (digits != NULL) {
-        if (PyUnicode_READY(digits) == -1) {
-            return -1;
-        }
+    if thousands_sep.isEmpty || grouping.isEmpty {
+        return digits
     }
-    if (PyUnicode_READY(thousands_sep) == -1) {
-        return -1;
-    }
-
-    Py_ssize_t count = 0;
-    Py_ssize_t n_zeros;
-    int loop_broken = 0;
-    int use_separator = 0; /* First time through, don't append the
-                              separator. They only go between
-                              groups. */
-    Py_ssize_t buffer_pos;
-    Py_ssize_t digits_pos;
-    Py_ssize_t len;
-    Py_ssize_t n_chars;
-    Py_ssize_t remaining = n_digits; /* Number of chars remaining to
-                                        be looked at */
-    /* A generator that returns all of the grouping widths, until it
-       returns 0. */
     var groupgen: GroupGenerator = .init(grouping)
-    let thousands_sep_len: Py_ssize_t = PyUnicode_GET_LENGTH(thousands_sep)
 
     /* if digits are not grouped, thousands separator
        should be an empty string */
-
-    digits_pos = d_pos + n_digits;
-    if (writer) {
-        buffer_pos = writer->pos + n_buffer;
-        assert(buffer_pos <= PyUnicode_GET_LENGTH(writer->buffer));
-        assert(digits_pos <= PyUnicode_GET_LENGTH(digits));
-    }
-    else {
-        buffer_pos = n_buffer;
-    }
-
-    while true {
-        len = groupgen.next // 次は何文字で区切るか
-        if !( len > 0) {
-            break
+    var buf = ""
+    var len = groupgen.next()
+    var i = 0
+    for ch in digits.reversed() {
+        i += 1
+        if len != 0 && len == i {
+            buf.append(thousands_sep)
+            i = 0
+            len = groupgen.next()
         }
-        len = Py_MIN(len, Py_MAX(Py_MAX(remaining, min_width), 1));
-        n_zeros = Py_MAX(0, len - remaining);
-        n_chars = Py_MAX(0, Py_MIN(remaining, len));
-
-        /* Use n_zero zero's and n_chars chars */
-
-        /* Count only, don't do anything. */
-        count += (use_separator ? thousands_sep_len : 0) + n_zeros + n_chars;
-
-        /* Copy into the writer. */
-        InsertThousandsGrouping_fill(writer, &buffer_pos,
-                                     digits, &digits_pos,
-                                     n_chars, n_zeros,
-                                     use_separator ? thousands_sep : NULL,
-                                     thousands_sep_len, maxchar);
-
-        /* Use a separator next time. */
-        use_separator = 1;
-
-        remaining -= n_chars;
-        min_width -= len;
-
-        if (remaining <= 0 && min_width <= 0) {
-            loop_broken = 1;
-            break;
-        }
-        min_width -= thousands_sep_len;
+        buf.append(ch)
     }
-    if (!loop_broken) {
-        /* We left the loop without using a break statement. */
-
-        len = Py_MAX(Py_MAX(remaining, min_width), 1);
-        n_zeros = Py_MAX(0, len - remaining);
-        n_chars = Py_MAX(0, Py_MIN(remaining, len));
-
-        /* Use n_zero zero's and n_chars chars */
-        count += (use_separator ? thousands_sep_len : 0) + n_zeros + n_chars;
-
-        /* Copy into the writer. */
-        InsertThousandsGrouping_fill(writer, &buffer_pos,
-                                     digits, &digits_pos,
-                                     n_chars, n_zeros,
-                                     use_separator ? thousands_sep : NULL,
-                                     thousands_sep_len, maxchar);
-    }
-    return count;
+    return buf
 }
 
 /* Given a number of the form:
