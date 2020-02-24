@@ -543,47 +543,30 @@ func get_field_object(_ input:String, _ args:[Any?], _ kwargs:[String:Any?],
 */
 func render_field(_ fieldobj:PyObject, _ format_spec:String) -> FormatResult
 {
-    int ok = 0;
-    PyObject *result = NULL;
+    var result:PyObject;
     var format_spec_object:String = ""
-    int err;
 
     /* If we know the type exactly, skip the lookup of __format__ and just
        call the formatter directly. */
-    if (PyUnicode_CheckExact(fieldobj))
-        formatter = _PyUnicode_FormatAdvancedWriter;
-    else if (PyLong_CheckExact(fieldobj))
-        formatter = _PyLong_FormatAdvancedWriter;
-    else if (PyFloat_CheckExact(fieldobj))
-        formatter = _PyFloat_FormatAdvancedWriter;
-    else if (PyComplex_CheckExact(fieldobj))
-        formatter = _PyComplex_FormatAdvancedWriter;
-
-    if (formatter) {
-        /* we know exactly which formatter will be called when __format__ is
-           looked up, so call it directly, instead. */
-        err = formatter(writer, fieldobj, format_spec->str,
-                        format_spec->start, format_spec->end);
-        return (err == 0);
+    if (PyUnicode_CheckExact(fieldobj)){
+        return _PyUnicode_FormatAdvancedWriter(fieldobj, format_spec)
+    }
+    else if (PyLong_CheckExact(fieldobj)){
+        return _PyLong_FormatAdvancedWriter(fieldobj, format_spec)
+    }
+    else if (PyFloat_CheckExact(fieldobj)){
+        return _PyFloat_FormatAdvancedWriter(fieldobj, format_spec)
+    }
+    else if (PyComplex_CheckExact(fieldobj)){
+        return _PyComplex_FormatAdvancedWriter(fieldobj, format_spec)
     }
     else {
         /* We need to create an object out of the pointers we have, because
            __format__ takes a string/unicode object for format_spec. */
         format_spec_object = format_spec
 
-        result = PyObject_Format(fieldobj, format_spec_object);
+        return PyObject_Format(fieldobj, format_spec_object);
     }
-    if (result == NULL)
-        goto done;
-
-    if (_PyUnicodeWriter_WriteStr(writer, result) == -1)
-        goto done;
-    ok = 1;
-
-done:
-    Py_XDECREF(format_spec_object);
-    Py_XDECREF(result);
-    return ok;
 }
 struct ParseResult {
     var field_name: String
@@ -1960,7 +1943,7 @@ func longFormat<Subject>(_ i:Subject, radix:Int, alternate:Bool=true) -> String 
     return (alternate ? alternates[radix, default: ""] : "") + String(i, radix: radix, uppercase: false)
 }
 
-protocol PSFormattableInteger: PSFormattable, FixedWidthInteger {
+protocol PSFormattableInteger: PSFormattable {
     var formatableInteger: Int { get }
 }
 extension PSFormattableInteger {
@@ -1972,7 +1955,7 @@ extension PSFormattableInteger {
 /************************************************************************/
 
     func objectFormat(_ format: InternalFormatSpec) -> FormatResult {
-        let value = self
+        let value = self.formatableInteger
         var tmp: String = ""
         var inumeric_chars:Py_ssize_t
         var sign_char:Py_UCS4 = "\0";
@@ -2103,7 +2086,7 @@ extension PSFormattableInteger {
         return .success(<#T##String#>)
     }
 }
-protocol PSFormattableFloatingPoint: PSFormattable, BinaryFloatingPoint {
+protocol PSFormattableFloatingPoint: PSFormattable {
     var formatableFloatingPoint: Double { get }
 }
 extension PSFormattableFloatingPoint {
@@ -2481,17 +2464,9 @@ done:
 /************************************************************************/
 /*********** built in formatters ****************************************/
 /************************************************************************/
-func format_obj(_ obj:PyObject?, _ writer:_PyUnicodeWriter) -> int
+func format_obj(_ obj:PyObject) -> FormatResult
 {
-    var str:PyObject?
-    var err:int
-
-    str = PyObject_Str(obj)
-    if (str == nil){
-        return -1;
-    }
-    err = _PyUnicodeWriter_WriteStr(writer, str);
-    return err;
+    return .success(obj as? String ?? "nil?")
 }
 
 func _PyUnicode_FormatAdvancedWriter(
@@ -2503,12 +2478,7 @@ func _PyUnicode_FormatAdvancedWriter(
     /* check for the special case of zero length format spec, make
        it equivalent to str(obj) */
     if (format_spec.isEmpty) {
-        if (PyUnicode_CheckExact(obj)){
-            return _PyUnicodeWriter_WriteStr(writer, obj);
-        }
-        else{
-            return format_obj(obj, writer);
-        }
+        return .success(obj)
     }
 
     /* parse the format_spec */
@@ -2530,23 +2500,20 @@ func _PyUnicode_FormatAdvancedWriter(
     }
 }
 
-func _PyLong_FormatAdvancedWriter(_PyUnicodeWriter *writer,
-                             PyObject *obj,
-                             PyObject *format_spec,
-                             Py_ssize_t start, Py_ssize_t end) -> FormatResult
+func _PyLong_FormatAdvancedWriter(
+    _ obj:Int,
+    _ format_spec:String) -> FormatResult
 {
-    PyObject *tmp = NULL, *str = NULL;
     var format: InternalFormatSpec
-    int result = -1;
 
     /* check for the special case of zero length format spec, make
        it equivalent to str(obj) */
-    if (start == end) {
+    if format_spec.isEmpty {
         if (PyLong_CheckExact(obj)){
-            return _PyLong_FormatWriter(writer, obj, 10, 0);
+            return .success(String(obj)
         }
         else {
-            return format_obj(obj, writer);
+            return format_obj(obj)
         }
     }
 
@@ -2562,39 +2529,28 @@ func _PyLong_FormatAdvancedWriter(_PyUnicodeWriter *writer,
     switch (format.type) {
     case "b", "c", "d", "o", "x", "X", "n":
         /* no type conversion needed, already an int.  do the formatting */
-        result = (obj as! PSFormattableInteger).objectFormat(format)
-        break;
+        return .success((obj as! PSFormattableInteger).objectFormat(format))
 
     case "e", "E", "f", "F", "g", "G", "%":
         /* convert to float */
-        tmp = PyNumber_Float(obj);
-        if (tmp == NULL){
-            Py_XDECREF(tmp);
-            Py_XDECREF(str);
-            return result;
-
-        }
-        result = format_float_internal(tmp, &format, writer);
-        break;
+        return _PyFloat_FormatAdvancedWriter(obj,format_spec)
 
     default:
         /* unknown */
         return .failure(unknown_presentation_type(format.type, typeName(obj)))
     }
-    return result;
 }
 
-func _PyFloat_FormatAdvancedWriter(_PyUnicodeWriter *writer,
-                              PyObject *obj,
-                              PyObject *format_spec,
-                              Py_ssize_t start, Py_ssize_t end) -> FormatResult
+func _PyFloat_FormatAdvancedWriter(
+    _ obj:PyObject,
+    _ format_spec:String) -> FormatResult
 {
     var format: InternalFormatSpec
 
     /* check for the special case of zero length format spec, make
        it equivalent to str(obj) */
-    if (start == end){
-        return format_obj(obj, writer);
+    if format_spec.isEmpty {
+        return format_obj(obj);
     }
     /* parse the format_spec */
     switch parse_internal_render_format_spec(format_spec, start, end, "\0", ">") {
@@ -2655,27 +2611,6 @@ func typeName(_ object:Any) -> String {
 }
 
 
-class _PyUnicodeWriter {
-    var buffer:PyObject
-    void *data;
-    var kind: PyUnicode_Kind = .PyUnicode_WCHAR_KIND
-    var maxchar:Py_UCS4
-    var size:Py_ssize_t
-    var pos:Py_ssize_t
-
-    /* minimum number of allocated characters (default: 0) */
-    var min_length:Py_ssize_t
-
-    /* minimum character (default: 127, ASCII) */
-    var min_char: Py_UCS4 = Character(127)
-
-    /* If non-zero, overallocate the buffer (default: 0). */
-    var overallocate:UInt = 0
-
-    /* If readonly is 1, buffer is a shared string (cannot be modified)
-       and size is set to 0. */
-    var readonly:UInt = 0
-}
 enum PyUnicode_Kind: Int {
 /* String contains only wstr byte characters.  This is only possible
    when the string was created with a legacy API and _PyUnicode_Ready()
