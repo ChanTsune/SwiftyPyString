@@ -1350,38 +1350,6 @@ struct GroupGenerator {
     }
 }
 
-/* Fill in some digits, leading zeros, and thousands separator. All
-   are optional, depending on when we're called. */
-func InsertThousandsGrouping_fill(_PyUnicodeWriter *writer, Py_ssize_t *buffer_pos,
-                             PyObject *digits, Py_ssize_t *digits_pos,
-                             Py_ssize_t n_chars, Py_ssize_t n_zeros,
-                             _ thousands_sep: PyObject,
-                             Py_ssize_t thousands_sep_len,
-                             Py_UCS4 *maxchar) -> String
-{
-
-    if (thousands_sep) {
-        *buffer_pos -= thousands_sep_len;
-
-        /* Copy the thousands_sep chars into the buffer. */
-        _PyUnicode_FastCopyCharacters(writer->buffer, *buffer_pos,
-                                      thousands_sep, 0,
-                                      thousands_sep_len);
-    }
-
-    *buffer_pos -= n_chars;
-    *digits_pos -= n_chars;
-    _PyUnicode_FastCopyCharacters(writer->buffer, *buffer_pos,
-                                  digits, *digits_pos,
-                                  n_chars);
-
-    if (n_zeros) {
-        *buffer_pos -= n_zeros;
-
-        unicode_fill(kind, data, "0", *buffer_pos, n_zeros);
-    }
-}
-
 /* describes the layout for an integer, see the comment in
    calc_number_widths() for details */
 struct NumberFieldWidths {
@@ -1619,11 +1587,10 @@ func calc_number_widths(_ n_prefix: Py_ssize_t,
                         _ n_start:Py_ssize_t,
                         _ n_end:Py_ssize_t,
                         _ n_remainder:Py_ssize_t,
-                        _ has_decimal:int,
+                        _ has_decimal:Bool,
                         _ locale:LocaleInfo,
                         _ format:InternalFormatSpec
                         ) -> NumberFieldWidths {
-    let has_decimal:Bool = has_decimal.asBool
     var n_non_digit_non_padding:Py_ssize_t
     var n_padding:Py_ssize_t
     var spec:NumberFieldWidths = .init(n_lpadding: 0,
@@ -2148,153 +2115,118 @@ extension PSFormattableFloatingPoint {
 /************************************************************************/
     func objectFormat(_ format: InternalFormatSpec) -> FormatResult {
         let value = self.formatableFloatingPoint
-    }
-}
+        var buf:String       /* buffer returned from PyOS_double_to_string */
+        var n_digits:Py_ssize_t
+        var n_remainder:Py_ssize_t
+        var n_total:Py_ssize_t
+        var has_decimal:Bool
 
-/* much of this is taken from unicodeobject.c */
-static int
-format_float_internal(PyObject *value,
-                      const InternalFormatSpec *format,
-                      _PyUnicodeWriter *writer)
-{
-    char *buf = NULL;       /* buffer returned from PyOS_double_to_string */
-    Py_ssize_t n_digits;
-    Py_ssize_t n_remainder;
-    Py_ssize_t n_total;
-    int has_decimal;
-    double val;
-    int precision, default_precision = 6;
-    Py_UCS4 type = format->type;
-    int add_pct = 0;
-    Py_ssize_t index;
-    NumberFieldWidths spec;
-    int flags = 0;
-    int result = -1;
-    Py_UCS4 maxchar = 127;
-    Py_UCS4 sign_char = "\0";
-    int float_type; /* Used to see if we have a nan, inf, or regular float. */
-    PyObject *unicode_tmp = NULL;
+        var precision:Int
+        var default_precision = 6;
+        var type:Py_UCS4 = format.type;
+        var add_pct:Bool = false
+        var index:Py_ssize_t
+        var spec:NumberFieldWidths
+        var flags:int = 0;
+        var sign_char:Py_UCS4 = "\0"
+        var float_type:int /* Used to see if we have a nan, inf, or regular float. */
+        var unicode_tmp:String
 
-    /* Locale settings, either from the actual locale or
-       from a hard-code pseudo-locale */
-    var locale:LocaleInfo = .init()
+        if (format.precision > INT_MAX) {
+            return .failure(.ValueError("precision too big"))
+        }
+        precision = format.precision;
 
-    if (format.precision > INT_MAX) {
-        PyErr_SetString(PyExc_ValueError, "precision too big");
-        goto done;
-    }
-    precision = (int)format.precision;
-
-    if (format->alternate){
-        flags |= Py_DTSF_ALT;
-    }
-
-    if (type == "\0") {
-        /* Omitted type specifier.  Behaves in the same way as repr(x)
-           and str(x) if no precision is given, else like 'g', but with
-           at least one digit after the decimal point. */
-        flags |= Py_DTSF_ADD_DOT_0;
-        type = "r";
-        default_precision = 0;
-    }
-
-    if (type == "n"){
-        /* 'n' is the same as 'g', except for the locale used to
-           format the result. We take care of that later. */
-    type = "g";
-    }
-    val = PyFloat_AsDouble(value);
-    if (val == -1.0 && PyErr_Occurred())
-        {
-            goto done;
+        if (format.alternate){
+            flags |= Py_DTSF_ALT;
         }
 
-    if (type == "%") {
-        type = "f";
-        val *= 100;
-        add_pct = 1;
+        if (type == "\0") {
+            /* Omitted type specifier.  Behaves in the same way as repr(x)
+               and str(x) if no precision is given, else like 'g', but with
+               at least one digit after the decimal point. */
+            flags |= Py_DTSF_ADD_DOT_0;
+            type = "r";
+            default_precision = 0;
+        }
+
+        if (type == "n"){
+            /* 'n' is the same as 'g', except for the locale used to
+               format the result. We take care of that later. */
+        type = "g";
+        }
+        var val = value
+        if (type == "%") {
+            type = "f";
+            val *= 100;
+            add_pct = true
+        }
+
+        if (precision < 0){
+            precision = default_precision;
+        }
+        else if (type == "r")
+        {type = "g";}
+
+        /* Cast "type", because if we're in unicode we need to pass an
+           8-bit char. This is safe, because we've restricted what "type"
+           can be. */
+        (buf,float_type) = PyOS_double_to_string(val, type, precision, flags, float_type)
+
+        n_digits = strlen(buf);
+
+        if (add_pct) {
+            /* We know that buf has a trailing zero (since we just called
+               strlen() on it), and we don't use that fact any more. So we
+               can just write over the trailing zero. */
+            buf += "%"
+            n_digits += 1;
+        }
+
+        if (format.sign != "+" && format.sign != " "
+            && format.width == -1
+            && format.type != "n"
+            && format.thousands_separators == .LT_NO_LOCALE)
+        {
+            /* Fast path */
+            return .success(buf)
+        }
+
+        /* Since there is no unicode version of PyOS_double_to_string,
+           just use the 8 bit version and then convert to unicode. */
+        unicode_tmp = buf
+
+        /* Is a sign character present in the output?  If so, remember it
+           and skip it */
+        index = 0;
+        if (PyUnicode_READ_CHAR(unicode_tmp, index) == "-") {
+            sign_char = "-";
+            ++index;
+            --n_digits;
+        }
+
+        /* Determine if we have any "remainder" (after the digits, might include
+           decimal or exponent or both (or neither)) */
+        (n_remainder, has_decimal) = parse_number(unicode_tmp)
+
+        /* Determine the grouping, separator, and decimal point, if any. */
+        /* Locale settings, either from the actual locale or
+           from a hard-code pseudo-locale */
+        var locale:LocaleInfo = get_locale_info(format.type == "n" ? .LT_CURRENT_LOCALE : format.thousands_separators)
+
+        /* Calculate how much memory we'll need. */
+        spec = calc_number_widths( 0, sign_char, unicode_tmp, index,
+                                     index + n_digits, n_remainder, has_decimal,
+                                     locale, format);
+
+        /* Populate the memory. */
+        fill_number(writer, &spec,
+                             unicode_tmp, index, index + n_digits,
+                             NULL, 0, format.fill_char,
+                             &locale, 0);
+
+        return .success(unicode_tmp)
     }
-
-    if (precision < 0){
-        precision = default_precision;
-    }
-    else if (type == "r")
-    {type = "g";}
-
-    /* Cast "type", because if we're in unicode we need to pass an
-       8-bit char. This is safe, because we've restricted what "type"
-       can be. */
-    buf = PyOS_double_to_string(val, (char)type, precision, flags,
-                                &float_type);
-    if (buf == NULL){
-        goto done;}
-    n_digits = strlen(buf);
-
-    if (add_pct) {
-        /* We know that buf has a trailing zero (since we just called
-           strlen() on it), and we don't use that fact any more. So we
-           can just write over the trailing zero. */
-        buf[n_digits] = "%";
-        n_digits += 1;
-    }
-
-    if (format.sign != "+" && format.sign != " "
-        && format.width == -1
-        && format.type != "n"
-        && !format.thousands_separators)
-    {
-        /* Fast path */
-        result = _PyUnicodeWriter_WriteASCIIString(writer, buf, n_digits);
-        return result;
-    }
-
-    /* Since there is no unicode version of PyOS_double_to_string,
-       just use the 8 bit version and then convert to unicode. */
-    unicode_tmp = _PyUnicode_FromASCII(buf, n_digits);
-    PyMem_Free(buf);
-    if (unicode_tmp == NULL)
-        goto done;
-
-    /* Is a sign character present in the output?  If so, remember it
-       and skip it */
-    index = 0;
-    if (PyUnicode_READ_CHAR(unicode_tmp, index) == "-") {
-        sign_char = "-";
-        ++index;
-        --n_digits;
-    }
-
-    /* Determine if we have any "remainder" (after the digits, might include
-       decimal or exponent or both (or neither)) */
-    (n_remainder, has_decimal) = parse_number(unicode_tmp)
-
-    /* Determine the grouping, separator, and decimal point, if any. */
-    if (get_locale_info(format->type == "n" ? LT_CURRENT_LOCALE :
-                        format->thousands_separators,
-                        &locale) == -1)
-        {goto done;}
-
-    /* Calculate how much memory we'll need. */
-    n_total = calc_number_widths(&spec, 0, sign_char, unicode_tmp, index,
-                                 index + n_digits, n_remainder, has_decimal,
-                                 &locale, format, &maxchar);
-    if (n_total == -1) {
-        goto done;
-    }
-
-    /* Allocate the memory. */
-    if (_PyUnicodeWriter_Prepare(writer, n_total, maxchar) == -1)
-        goto done;
-
-    /* Populate the memory. */
-    result = fill_number(writer, &spec,
-                         unicode_tmp, index, index + n_digits,
-                         NULL, 0, format->fill_char,
-                         &locale, 0);
-
-done:
-    Py_XDECREF(unicode_tmp);
-    return result;
 }
 
 /************************************************************************/
