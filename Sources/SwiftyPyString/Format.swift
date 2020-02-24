@@ -445,7 +445,6 @@ func get_field_object(_ input:String, _ args:[Any?], _ kwargs:[String:Any?],
                       _ auto_number:AutoNumber) -> Result<PyObject?,PyException>
 {
     var obj:PyObject? = nil;
-    var ok:int
     var first: String
     var index:Py_ssize_t
     var rest:FieldNameIterator
@@ -524,17 +523,10 @@ func get_field_object(_ input:String, _ args:[Any?], _ kwargs:[String:Any?],
         }
         if (tmp == nil)
             goto error;
-
-        /* assign to obj */
-        Py_DECREF(obj);
         obj = tmp;
     }
     /* end of iterator, this is the non-error case */
-    if (ok == 1)
-        return obj;
-error:
-    Py_XDECREF(obj);
-    return NULL;
+    return .success(obj)
 }
 
 /************************************************************************/
@@ -1322,7 +1314,7 @@ func fill_padding(_ value:String,
 struct LocaleInfo {
     var decimal_point: String = ""
     var thousands_sep: String = ""
-    var grouping: [Int8]
+    var grouping: [Int8] = []
 }
 /* _PyUnicode_InsertThousandsGrouping() helper functions */
 
