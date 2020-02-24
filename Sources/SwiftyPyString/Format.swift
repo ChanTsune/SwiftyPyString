@@ -199,22 +199,19 @@ func PyUnicode_READ_CHAR(_ str:PyObject?,_ index: Int) -> Character{
 /***********  Format string parsing -- integers and identifiers *********/
 /************************************************************************/
 
-func get_integer(_ str: SubString) -> Result<Py_ssize_t,PyException>
+func get_integer(_ str: String) -> Result<Py_ssize_t,PyException>
 {
     var accumulator:Py_ssize_t = 0
     var digitval:Py_ssize_t
-    var i:Py_ssize_t
 
     /* empty string is an error */
-    if (str.start >= str.end){
-        return -1;
-
+    if str.isEmpty {
+        return .success(-1) // error path
     }
-    i = str.start
-    while i < str.end {
-        digitval = Py_UNICODE_TODECIMAL(PyUnicode_READ_CHAR(str.str, i));
+    for c in str {
+        digitval = Py_UNICODE_TODECIMAL(c);
         if (digitval < 0){
-            return -1;
+            return .success(-1) // error path
         }
         /*
            Detect possible overflow before it happens:
@@ -226,7 +223,6 @@ func get_integer(_ str: SubString) -> Result<Py_ssize_t,PyException>
             return .failure(.ValueError("Too many decimal digits in format string"))
         }
         accumulator = accumulator * 10 + digitval;
-        i++
     }
     return .success(accumulator)
 }
@@ -305,7 +301,7 @@ func getitem_str(PyObject *obj, SubString *name) -> PyObject?
     return newobj;
 }
 
-struct FieldNameIterator {
+class FieldNameIterator {
     /* the entire string we're parsing.  we assume that someone else
        is managing its lifetime, and that it will exist for the
        lifetime of the iterator.  can be empty */
@@ -313,6 +309,9 @@ struct FieldNameIterator {
 
     /* index to where we are inside field_name */
     var index:Py_ssize_t
+    var end:Int {
+        return str.count
+    }
     
     init(_ s:String, _ start:Int){
         self.str = s
@@ -320,20 +319,19 @@ struct FieldNameIterator {
     }
 }
 
-func _FieldNameIterator_attr(_ self:FieldNameIterator, SubString *name) -> int
+func _FieldNameIterator_attr(_ self:FieldNameIterator) -> String
 {
     var c:Py_UCS4
 
-    name->str = self->str.str;
-    name->start = self->index;
+    let start = self.index
 
     /* return everything until '.' or '[' */
-    while (self->index < self->str.end) {
-        c = PyUnicode_READ_CHAR(self->str.str, self->index++);
+    while (self.index < self.end) {
+        c = PyUnicode_READ_CHAR(self.str, self.index++);
         switch (c) {
         case "[", ".":
             /* backup so that we this character will be seen next time */
-            self->index--;
+            self.index--;
             break;
         default:
             continue;
@@ -341,21 +339,20 @@ func _FieldNameIterator_attr(_ self:FieldNameIterator, SubString *name) -> int
         break;
     }
     /* end of string is okay */
-    name->end = self->index;
-    return 1;
+    let name = self.str[start, self.index]
+    return name
 }
 
-func _FieldNameIterator_item(FieldNameIterator *self, SubString *name) -> int
+func _FieldNameIterator_item(_ self:FieldNameIterator) -> Result<String,PyException>
 {
     var bracket_seen:Bool = false
-    Py_UCS4 c;
+    var c:Py_UCS4
 
-    name->str = self->str.str;
-    name->start = self->index;
+    let start = self.index
 
     /* return everything until ']' */
-    while (self->index < self->str.end) {
-        c = PyUnicode_READ_CHAR(self->str.str, self->index++);
+    while (self.index < self.end) {
+        c = PyUnicode_READ_CHAR(self.str, self.index++);
         switch (c) {
         case "]":
             bracket_seen = true
@@ -367,53 +364,71 @@ func _FieldNameIterator_item(FieldNameIterator *self, SubString *name) -> int
     }
     /* make sure we ended with a ']' */
     if (!bracket_seen) {
-        PyErr_SetString(PyExc_ValueError, "Missing ']' in format string");
-        return 0;
+        return .failure(.ValueError("Missing ']' in format string"))
     }
 
     /* end of string is okay */
     /* don't include the ']' */
-    name->end = self->index-1;
-    return 1;
+    let name = self.str[start,self.index-1]
+    return .success(name)
 }
 
+struct FieldNameIteratorResult {
+    var is_attribute: Bool
+    var name_idx: Bool
+    var name: String
+}
+
+enum LoopResult<T, U> {
+    case success(T)
+    case failure(U)
+    case finish
+}
+
+
 /* returns 0 on error, 1 on non-error termination, and 2 if it returns a value */
-func FieldNameIterator_next(FieldNameIterator *self, int *is_attribute,
-                       Py_ssize_t *name_idx, SubString *name) -> int
+func FieldNameIterator_next(_ self:FieldNameIterator) -> LoopResult<FieldNameIteratorResult, PyException>
 {
     /* check at end of input */
-    if (self->index >= self->str.end)
-        return 1;
+    if (self.index >= self.end){
+        return .finish
+    }
+    var is_attribute:Bool = false
+    var name_idx:Int = -1
+    var name:String = ""
 
-    switch (PyUnicode_READ_CHAR(self->str.str, self->index++)) {
+    switch (PyUnicode_READ_CHAR(self.str, self.index++)) {
     case ".":
-        *is_attribute = 1;
-        if (_FieldNameIterator_attr(self, name) == 0)
-            return 0;
-        *name_idx = -1;
+        is_attribute = true
+        name = _FieldNameIterator_attr(self)
+        name_idx = -1
         break;
     case "[":
-        *is_attribute = 0;
-        if (_FieldNameIterator_item(self, name) == 0)
-            return 0;
-        *name_idx = get_integer(name);
-        if (*name_idx == -1 && PyErr_Occurred())
-            return 0;
+        is_attribute = false
+        switch _FieldNameIterator_item(self) {
+        case .success(let n):
+            name = n
+        case .failure(let error):
+            return .failure(error)
+        }
+        switch get_integer(name) {
+        case .success(let i):
+            name_idx = i
+        case .failure(let error):
+            return .failure(error)
+        }
         break;
     default:
         /* Invalid character follows ']' */
-        PyErr_SetString(PyExc_ValueError, "Only '.' or '[' may "
-                        "follow ']' in format field specifier");
-        return 0;
+        return .failure(.ValueError("Only '.' or '[' may follow ']' in format field specifier"))
     }
 
     /* empty string is an error */
-    if (name->start == name->end) {
-        PyErr_SetString(PyExc_ValueError, "Empty attribute in format string");
-        return 0;
+    if name.isEmpty {
+        return .failure(.ValueError("Empty attribute in format string"))
     }
 
-    return 2;
+    return .success(.init(is_attribute: is_attribute, name_idx: name_idx, name: name))
 }
 
 
@@ -775,12 +790,6 @@ class MarkupIterator {
    conversion is either None, or the string after the '!'
 */
 
-enum _R {
-    case success(MarkupIteratorNextResult)
-    case failure(PyException)
-    case finish
-}
-
 struct MarkupIteratorNextResult {
     var format_spec_needs_expanding:int
     var field_present:int
@@ -790,7 +799,7 @@ struct MarkupIteratorNextResult {
     var conversion:Py_UCS4
 }
 
-func MarkupIterator_next(_ self:MarkupIterator) -> _R
+func MarkupIterator_next(_ self:MarkupIterator) -> LoopResult<MarkupIteratorNextResult,PyException>
 {
     var at_end: Bool
     var start:Py_ssize_t
@@ -905,10 +914,14 @@ func do_conversion(obj:PyObject?, _ conversion:Py_UCS4) -> FormatResult
    are doing auto field numbering.
 */
 
-func output_markup(SubString *field_name, SubString *format_spec,
-              int format_spec_needs_expanding, Py_UCS4 conversion,
-              _PyUnicodeWriter *writer, PyObject *args, PyObject *kwargs,
-              int recursion_depth, AutoNumber *auto_number) -> FormatResult
+func output_markup(_ field_name:String, SubString *format_spec,
+    int format_spec_needs_expanding,
+    _ conversion:Py_UCS4,
+              _PyUnicodeWriter *writer,
+    _ args:[Any?],
+    _ kwargs:[String:Any?],
+    _ recursion_depth:int,
+    _ auto_number:AutoNumber) -> FormatResult
 {
     PyObject *tmp = NULL;
     PyObject *fieldobj = NULL;
@@ -949,8 +962,11 @@ func output_markup(SubString *field_name, SubString *format_spec,
     else{
         actual_format_spec = format_spec;
     }
-    if (render_field(fieldobj, actual_format_spec, writer) == 0){
-        goto done;
+    switch render_field(fieldobj, actual_format_spec, writer) {
+    case .success(let str):
+        <#code#>
+    case .failure(let error):
+        return .failure(error)
     }
 
     result = 1;
@@ -975,7 +991,7 @@ func do_markup(_ input:String, _ args:Any?, _ kwargs:[String:Any?],
                _ recursion_depth:int, _ auto_number:AutoNumber) -> FormatResult
 {
     var iter:MarkupIterator
-    var result:int
+    var result:MarkupIteratorNextResult
     var markuped:String = ""
     while true {
         switch MarkupIterator_next(iter) {
@@ -983,26 +999,26 @@ func do_markup(_ input:String, _ args:Any?, _ kwargs:[String:Any?],
             break
         case .failure(let error):
             return .failure(error)
-        case .success(let result):
+        case .success(let r):
+            result = r
             if !result.literal.isEmpty {
-                if (!field_present && iter.start == iter.end)
-                    writer->overallocate = 0;
-                if (_PyUnicodeWriter_WriteSubstring(writer, literal.str,
-                                                    literal.start, literal.end) < 0)
-                    return 0;
+                markuped += result.literal
             }
 
-            if (field_present) {
-                switch <#value#> {
-                case <#pattern#>:
-                    <#code#>
-                default:
-                    <#code#>
+            if (result.field_present.asBool) {
+                switch output_markup(result.field_name,
+                                     result.format_spec,
+                                     result.format_spec_needs_expanding,
+                                     result.conversion,
+                                     args,
+                                     kwargs,
+                                     recursion_depth,
+                                     auto_number) {
+                case .success(let str):
+                    markuped += str
+                case .failure(let error):
+                    return .failure(error)
                 }
-                if (!output_markup(&field_name, &format_spec,
-                                   format_spec_needs_expanding, conversion, writer,
-                                   args, kwargs, recursion_depth, auto_number))
-                    return 0;
             }
         }
     }
