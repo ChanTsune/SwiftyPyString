@@ -1405,17 +1405,30 @@ struct NumberFieldWidths {
     var n_min_width: Py_ssize_t /* The min_width we used when we computed
                                the n_grouped_digits width. */
 }
+/* PyOS_double_to_string's "flags" parameter can be set to 0 or more of: */
+var Py_DTSF_SIGN      0x01 /* always add the sign */
+var Py_DTSF_ADD_DOT_0 0x02 /* if the result is an integer add ".0" */
+var Py_DTSF_ALT       0x04 /* "alternate" formatting. it's format_code
+                                  specific */
+
+/* PyOS_double_to_string's "type", if non-NULL, will be set to one of: */
+var Py_DTST_FINITE 0
+var Py_DTST_INFINITE 1
+var Py_DTST_NAN 2
+
 func PyOS_double_to_string(_ val:double,
                            _ format_code:Character,
                            _ precision:int,
                            _ flags:int,
-                                         int *type) -> String
+                           _ type:int) -> (String, Int)
 {
-    char format[32];
-    Py_ssize_t bufsize;
-    char *buf;
-    int t, exp;
-    int upper = 0;
+    var format:String
+    var buf:String
+    var t:Int
+    var upper:Bool = false
+    // to mutable
+    var format_code:Character = format_code
+    var precision:int = precision
 
     /* Validate format_code, and map upper and lower case */
     switch (format_code) {
@@ -1424,22 +1437,21 @@ func PyOS_double_to_string(_ val:double,
          "g":          /* general */
         break;
     case "E":
-        upper = 1;
+        upper = true
         format_code = "e";
         break;
     case "F":
-        upper = 1;
+        upper = true
         format_code = "f";
         break;
     case "G":
-        upper = 1;
+        upper = true
         format_code = "g";
         break;
     case "r":          /* repr format */
         /* Supplied precision is unused, must be 0. */
         if (precision != 0) {
-            PyErr_BadInternalCall();
-            return NULL;
+            fatalError("PyErr_BadInternalCall()")
         }
         /* The repr() precision (17 significant decimal digits) is the
            minimal number that is guaranteed to have enough precision
@@ -1451,8 +1463,7 @@ func PyOS_double_to_string(_ val:double,
         format_code = "g";
         break;
     default:
-        PyErr_BadInternalCall();
-        return NULL;
+        fatalError("PyErr_BadInternalCall()")
     }
 
     /* Here's a quick-and-dirty calculation to figure out how big a buffer
@@ -1493,34 +1504,16 @@ func PyOS_double_to_string(_ val:double,
 
     */
 
-    if (val.isNaN || val.isInfinite){
-        /* 3 for 'inf'/'nan', 1 for sign, 1 for '\0' */
-        bufsize = 5;
-    }
-    else {
-        bufsize = 25 + precision;
-        if (format_code == "f" && fabs(val) >= 1.0) {
-            frexp(val, &exp);
-            bufsize += exp/3;
-        }
-    }
-
-    buf = PyMem_Malloc(bufsize);
-    if (buf == NULL) {
-        PyErr_NoMemory();
-        return NULL;
-    }
-
     /* Handle nan and inf. */
     if val.isNaN {
-        strcpy(buf, "nan");
+        buf = "nan"
         t = Py_DTST_NAN;
     } else if val.isInfinite {
         if (copysign(1.0, val) == 1.0){
-            strcpy(buf, "inf");
+            buf = "inf"
         }
         else{
-            strcpy(buf, "-inf");
+            buf = "-inf"
         }
         t = Py_DTST_INFINITE;
     } else {
@@ -1528,35 +1521,21 @@ func PyOS_double_to_string(_ val:double,
         if (flags & Py_DTSF_ADD_DOT_0){
             format_code = "Z";
         }
-
-        PyOS_snprintf(format, sizeof(format), "%%%s.%i%c",
-                      (flags & Py_DTSF_ALT ? "#" : ""), precision,
-                      format_code);
-        _PyOS_ascii_formatd(buf, bufsize, format, val, precision);
+        format = String(format: "%%\(flags & Py_DTSF_ALT ? "#" : "").%i%c", precision, format_code.unicode.value)
+        buf = String(format: format, val, precision)
     }
 
     /* Add sign when requested.  It's convenient (esp. when formatting
      complex numbers) to include a sign even for inf and nan. */
     if (flags & Py_DTSF_SIGN && buf[0] != "-") {
-        size_t len = strlen(buf);
-        /* the bufsize calculations above should ensure that we've got
-           space to add a sign */
-        assert((size_t)bufsize >= len+2);
-        memmove(buf+1, buf, len+1);
-        buf[0] = "+";
+        buf = "+" + buf
     }
     if (upper) {
         /* Convert to upper case. */
-        char *p1;
-        for (p1 = buf; *p1; p1++){
-            *p1 = Py_TOUPPER(*p1);
-        }
+        buf = buf.upper()
     }
 
-    if (type){
-        *type = t;
-    }
-    return buf;
+    return (buf, t)
 }
 
 /**
@@ -1715,7 +1694,7 @@ func calc_number_widths(_ n_prefix: Py_ssize_t,
         spec.n_grouped_digits = 0;
     }
     else {
-        switch _PyUnicode_InsertThousandsGrouping(
+        switch _PyUnicode_InsertThousandsGrouping (
         NULL, 0,
         NULL, 0, spec.n_digits,
         spec.n_min_width,
