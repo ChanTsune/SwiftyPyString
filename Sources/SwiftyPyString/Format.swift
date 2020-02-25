@@ -1357,15 +1357,18 @@ struct NumberFieldWidths {
                                the n_grouped_digits width. */
 }
 /* PyOS_double_to_string's "flags" parameter can be set to 0 or more of: */
-var Py_DTSF_SIGN      0x01 /* always add the sign */
-var Py_DTSF_ADD_DOT_0 0x02 /* if the result is an integer add ".0" */
-var Py_DTSF_ALT       0x04 /* "alternate" formatting. it's format_code
-                                  specific */
+enum Py_DTSF:Int{
+    case SIGN =  0x01 /* always add the sign */
+    case ADD_DOT_0 = 0x02 /* if the result is an integer add ".0" */
+    case ALT = 0x04 /* "alternate" formatting. it's format_codespecific */
+}
 
 /* PyOS_double_to_string's "type", if non-NULL, will be set to one of: */
-var Py_DTST_FINITE 0
-var Py_DTST_INFINITE 1
-var Py_DTST_NAN 2
+enum Py_DTST:Int{
+    case FINITE = 0
+    case INFINITE = 1
+    case NAN = 2
+}
 
 func PyOS_double_to_string(_ val:double,
                            _ format_code:Character,
@@ -1458,7 +1461,7 @@ func PyOS_double_to_string(_ val:double,
     /* Handle nan and inf. */
     if val.isNaN {
         buf = "nan"
-        t = Py_DTST_NAN;
+        t = Py_DTST.NAN.rawValue
     } else if val.isInfinite {
         if (copysign(1.0, val) == 1.0){
             buf = "inf"
@@ -1466,19 +1469,19 @@ func PyOS_double_to_string(_ val:double,
         else{
             buf = "-inf"
         }
-        t = Py_DTST_INFINITE;
+        t = Py_DTST.INFINITE.rawValue
     } else {
-        t = Py_DTST_FINITE;
-        if (flags & Py_DTSF_ADD_DOT_0){
+        t = Py_DTST.FINITE.rawValue
+        if (flags & Py_DTSF.ADD_DOT_0.rawValue).asBool {
             format_code = "Z";
         }
-        format = String(format: "%%\(flags & Py_DTSF_ALT ? "#" : "").%i%c", precision, format_code.unicode.value)
+        format = String(format: "%%\((flags & Py_DTSF.ALT.rawValue).asBool ? "#" : "").%i%c", precision, format_code.unicode.value)
         buf = String(format: format, val, precision)
     }
 
     /* Add sign when requested.  It's convenient (esp. when formatting
      complex numbers) to include a sign even for inf and nan. */
-    if (flags & Py_DTSF_SIGN && buf[0] != "-") {
+    if ((flags & Py_DTSF.SIGN.rawValue).asBool && buf[0] != "-") {
         buf = "+" + buf
     }
     if (upper) {
@@ -1984,7 +1987,7 @@ extension PSFormattableInteger {
 
             /* taken from unicodeobject.c formatchar() */
             /* Integer input truncated to a character */
-            x = value.formatableInteger
+            x = value
             if (x < 0 || x > 0x10ffff) {
                 return .failure(.OverflowError("%c arg not in range(0x110000)"))
             }
@@ -2121,14 +2124,14 @@ extension PSFormattableFloatingPoint {
         precision = format.precision;
 
         if (format.alternate){
-            flags |= Py_DTSF_ALT;
+            flags |= Py_DTSF.ALT.rawValue
         }
 
         if (type == "\0") {
             /* Omitted type specifier.  Behaves in the same way as repr(x)
                and str(x) if no precision is given, else like 'g', but with
                at least one digit after the decimal point. */
-            flags |= Py_DTSF_ADD_DOT_0;
+            flags |= Py_DTSF.ADD_DOT_0.rawValue
             type = "r";
             default_precision = 0;
         }
@@ -2294,7 +2297,7 @@ format_complex_internal(_ value:PyObject,
     }
 
     if (format->alternate){
-        flags |= Py_DTSF_ALT;
+        flags |= Py_DTSF.ALT.rawValue
     }
     if (type == "\0") {
         /* Omitted type specifier. Should be like str(self). */
