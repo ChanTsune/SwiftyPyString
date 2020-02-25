@@ -2077,7 +2077,7 @@ extension PSFormattableInteger {
         /* Calculate how much memory we'll need. */
         var spec: NumberFieldWidths =
         calc_number_widths(n_prefix, sign_char, tmp, inumeric_chars,
-                                     inumeric_chars + n_digits, n_remainder, 0,
+                                     inumeric_chars + n_digits, n_remainder, false,
                                      locale, format);
 
         /* Populate the memory. */
@@ -2094,7 +2094,7 @@ protocol PSFormattableFloatingPoint: PSFormattable {
 }
 extension PSFormattableFloatingPoint {
     var defaultInternalFormatSpec: InternalFormatSpec {
-        InternalFormatSpec(align: "d", type: ">")
+        InternalFormatSpec(align: "\0", type: ">")
     }
 /************************************************************************/
 /*********** float formatting *******************************************/
@@ -2214,16 +2214,21 @@ extension PSFormattableFloatingPoint {
         return .success(unicode_tmp)
     }
 }
-
+protocol PSFormattableComplex: PSFormattable {
+    var formatableReal: Double { get }
+    var formatableImag: Double { get }
+}
+extension PSFormattableComplex {
+    var defaultInternalFormatSpec: InternalFormatSpec {
+        InternalFormatSpec(align: "\0", type: ">")
+    }
 /************************************************************************/
 /*********** complex formatting *****************************************/
 /************************************************************************/
+    func objectFormat(_ format: InternalFormatSpec) -> FormatResult {
+        let re = self.formatableReal
+        let im = self.formatableImag
 
-static int
-format_complex_internal(_ value:PyObject,
-                        _ format:InternalFormatSpec,
-                        _PyUnicodeWriter *writer)
-{
     double re;
     double im;
     char *re_buf = NULL;       /* buffer returned from PyOS_double_to_string */
@@ -2239,7 +2244,7 @@ format_complex_internal(_ value:PyObject,
     int re_has_decimal;
     int im_has_decimal;
     int precision, default_precision = 6;
-    Py_UCS4 type = format->type;
+        var type:Py_UCS4 = format.type;
     Py_ssize_t i_re;
     Py_ssize_t i_im;
     NumberFieldWidths re_spec;
@@ -2265,26 +2270,19 @@ format_complex_internal(_ value:PyObject,
        from a hard-code pseudo-locale */
     var locale:LocaleInfo = .init()
 
-    if (format->precision > INT_MAX) {
-        PyErr_SetString(PyExc_ValueError, "precision too big");
-        goto done;
+        if (format.precision > INT_MAX) {
+            return .failure(.ValueError("precision too big"))
     }
-    precision = (int)format->precision;
+    precision = format.precision;
 
     /* Zero padding is not allowed. */
-    if (format->fill_char == "0") {
-        PyErr_SetString(PyExc_ValueError,
-                        "Zero padding is not allowed in complex format "
-                        "specifier");
-        goto done
+    if (format.fill_char == "0") {
+            return .failure(.ValueError("Zero padding is not allowed in complex format specifier"))
     }
 
     /* Neither is '=' alignment . */
-    if (format->align == "=") {
-        PyErr_SetString(PyExc_ValueError,
-                        "'=' alignment flag is not allowed in complex format "
-                        "specifier");
-        goto done
+    if (format.align == "=") {
+            return .failure(.ValueError("'=' alignment flag is not allowed in complex format specifier"))
     }
 
     re = PyComplex_RealAsDouble(value);
@@ -2296,7 +2294,7 @@ format_complex_internal(_ value:PyObject,
         goto done;
     }
 
-    if (format->alternate){
+        if (format.alternate){
         flags |= Py_DTSF.ALT.rawValue
     }
     if (type == "\0") {
@@ -2323,11 +2321,11 @@ format_complex_internal(_ value:PyObject,
     /* Cast "type", because if we're in unicode we need to pass an
        8-bit char. This is safe, because we've restricted what "type"
        can be. */
-    re_buf = PyOS_double_to_string(re, (char)type, precision, flags,
+    re_buf = PyOS_double_to_string(re, type, precision, flags,
                                    &re_float_type);
     if (re_buf == NULL){
         goto done;}
-    im_buf = PyOS_double_to_string(im, (char)type, precision, flags,
+    im_buf = PyOS_double_to_string(im, type, precision, flags,
                                    &im_float_type);
     if (im_buf == NULL){
         goto done;
@@ -2366,10 +2364,7 @@ format_complex_internal(_ value:PyObject,
     (n_im_remainder, im_has_decimal) = parse_number(im_unicode_tmp)
 
     /* Determine the grouping, separator, and decimal point, if any. */
-    if (get_locale_info(format->type == "n" ? LT_CURRENT_LOCALE :
-                        format->thousands_separators,
-                        &locale) == -1)
-        {goto done;}
+        locale = get_locale_info(format.type == "n" ? .LT_CURRENT_LOCALE : format.thousands_separators)
 
     /* Turn off any padding. We'll do it later after we've composed
        the numbers without padding. */
@@ -2407,9 +2402,6 @@ format_complex_internal(_ value:PyObject,
     calc_padding(n_re_total + n_im_total + 1 + add_parens * 2,
                  format->width, format->align, &lpad, &rpad, &total);
 
-    if (lpad || rpad){
-        maxchar = Py_MAX(maxchar, format->fill_char);
-}
     if (_PyUnicodeWriter_Prepare(writer, total, maxchar) == -1){
         goto done;}
     rkind = writer->kind;
@@ -2462,6 +2454,7 @@ done:
     Py_XDECREF(re_unicode_tmp);
     Py_XDECREF(im_unicode_tmp);
     return result;
+}
 }
 
 /************************************************************************/
@@ -2568,7 +2561,7 @@ func _PyFloat_FormatAdvancedWriter(
     case "\0", /* No format code: like 'g', but with at least one decimal. */
     "e", "E", "f", "F", "g", "G", "n", "%":
         /* no conversion, already a float.  do the formatting */
-        return format_float_internal(obj, &format, writer);
+        return (obj as PSFormattableFloatingPoint).objectFormat(format)
 
     default:
         /* unknown */
@@ -2576,17 +2569,17 @@ func _PyFloat_FormatAdvancedWriter(
     }
 }
 
-func _PyComplex_FormatAdvancedWriter(_PyUnicodeWriter *writer,
-                                PyObject *obj,
-                                PyObject *format_spec,
-                                Py_ssize_t start, Py_ssize_t end) -> FormatResult
+func _PyComplex_FormatAdvancedWriter(
+    _ obj:PyObject,
+    _ format_spec:String) -> FormatResult
 {
     var format:InternalFormatSpec
 
     /* check for the special case of zero length format spec, make
        it equivalent to str(obj) */
-    if (start == end)
-        {return format_obj(obj, writer);}
+    if format_spec.isEmpty {
+        return format_obj(obj)
+    }
 
     /* parse the format_spec */
     switch parse_internal_render_format_spec(format_spec, start, end, "\0", ">") {
@@ -2601,7 +2594,7 @@ func _PyComplex_FormatAdvancedWriter(_PyUnicodeWriter *writer,
     case "\0", /* No format code: like 'g', but with at least one decimal. */
     "e", "E", "f", "F","g", "G", "n":
         /* no conversion, already a complex.  do the formatting */
-        return format_complex_internal(obj, &format, writer);
+        return (obj as! PSFormattableComplex).objectFormat(format)
 
     default:
         /* unknown */
