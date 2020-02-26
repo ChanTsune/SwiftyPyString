@@ -1955,7 +1955,7 @@ extension PSFormattableFloatingPoint {
         var spec:NumberFieldWidths
         var flags:int = 0;
         var sign_char:Py_UCS4 = "\0"
-        var float_type:int /* Used to see if we have a nan, inf, or regular float. */
+        var float_type:int /* Used to see if we have a nan, inf, or regular float. */ = .init()
         var unicode_tmp:String
 
         if (format.precision > INT_MAX) {
