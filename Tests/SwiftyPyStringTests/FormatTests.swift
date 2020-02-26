@@ -7,17 +7,15 @@ import XCTest
 @testable import SwiftyPyString
 
 final class FormatTests : XCTestCase {
-    func testFormat() throws {
-        let fstr = "{}{:5}"
-        XCTAssertEqual(fstr.format(nil,nil), "nilnil")
-        XCTAssertEqual(fstr.format("12","93"), "12   93")
+    func testSimpleFormat() throws {
+        let str = "{}"
+        XCTAssertEqual(str.format(nil), "nil")
+        XCTAssertEqual(str.format("12"), "12")
     }
-    func testFormatFloat() throws {
-        let str = FloatFormatter.SpecifiedFloatNumberFormat(1.112,accuracy: 0)
-        let str2 = FloatFormatter.SpecifiedFloatNumberFormat(1.112,accuracy: 1)
-        XCTAssertEqual(str, "1")
-        XCTAssertEqual(str2, "1.1")
-        
+    func testSimpleFormat2Items() throws {
+        let str = "{}{}"
+        XCTAssertEqual(str.format(1,12), "112")
+        XCTAssertEqual(str.format("12",4), "124")
     }
     
     /// Returns path to the built products directory.
