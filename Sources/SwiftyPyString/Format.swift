@@ -2067,8 +2067,6 @@ extension PSFormattableComplex {
         let re = self.formatableReal
         let im = self.formatableImag
 
-    double re;
-    double im;
     char *re_buf = NULL;       /* buffer returned from PyOS_double_to_string */
     char *im_buf = NULL;       /* buffer returned from PyOS_double_to_string */
 
