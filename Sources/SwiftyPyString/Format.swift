@@ -543,29 +543,25 @@ func get_field_object(_ input:String, _ args:[Any?], _ kwargs:[String:Any?],
 */
 func render_field(_ fieldobj:PyObject, _ format_spec:String) -> FormatResult
 {
-    var result:PyObject;
     var format_spec_object:String = ""
 
     /* If we know the type exactly, skip the lookup of __format__ and just
        call the formatter directly. */
-    if (PyUnicode_CheckExact(fieldobj)){
-        return _PyUnicode_FormatAdvancedWriter(fieldobj, format_spec)
+    if fieldobj is PSFormattable {
+        return _PyUnicode_FormatAdvancedWriter(fieldobj as! PSFormattable, format_spec)
     }
-    else if (PyLong_CheckExact(fieldobj)){
-        return _PyLong_FormatAdvancedWriter(fieldobj, format_spec)
+    else if fieldobj is PSFormattableInteger {
+        return _PyLong_FormatAdvancedWriter(fieldobj as! PSFormattableInteger, format_spec)
     }
-    else if (PyFloat_CheckExact(fieldobj)){
-        return _PyFloat_FormatAdvancedWriter(fieldobj, format_spec)
-    }
-    else if (PyComplex_CheckExact(fieldobj)){
-        return _PyComplex_FormatAdvancedWriter(fieldobj, format_spec)
+    else if fieldobj is PSFormattableFloatingPoint {
+        return _PyFloat_FormatAdvancedWriter(fieldobj as! PSFormattableFloatingPoint, format_spec)
     }
     else {
         /* We need to create an object out of the pointers we have, because
            __format__ takes a string/unicode object for format_spec. */
         format_spec_object = format_spec
 
-        return PyObject_Format(fieldobj, format_spec_object);
+        return .success(String(describing: fieldobj))
     }
 }
 struct ParseResult {
@@ -1093,9 +1089,7 @@ extension InternalFormatSpec: CustomDebugStringConvertible {
   if failure, sets the exception
 */
 func parse_internal_render_format_spec(_ format_spec:String,
-                                       _ start:Py_ssize_t, _ end:Py_ssize_t,
-                                       _ default_type:Character,
-                                       _ default_align:Character) -> Result<InternalFormatSpec, PyException>
+                                       _ default_format_spec:InternalFormatSpec) -> Result<InternalFormatSpec, PyException>
 {
     var format:InternalFormatSpec = .init(align: " ", type: " ")
 
@@ -1336,25 +1330,13 @@ struct GroupGenerator {
 /* describes the layout for an integer, see the comment in
    calc_number_widths() for details */
 struct NumberFieldWidths {
-    var n_lpadding: Py_ssize_t
-    var n_prefix: Py_ssize_t
-    var n_spadding: Py_ssize_t
-    var n_rpadding: Py_ssize_t
-    var sign: Character
-    var n_sign: Py_ssize_t      /* number of digits needed for sign (0/1) */
-    var n_grouped_digits: Py_ssize_t /* Space taken up by the digits, including
-                                    any grouping chars. */
-    var n_decimal: Py_ssize_t   /* 0 if only an integer */
+    var need_prefix:Bool
+    var sign: Character?
+    var need_sign: Bool      /* number of digits needed for sign (0/1) */
     var n_remainder: Py_ssize_t /* Digits in decimal and/or exponent part,
                                excluding the decimal itself, if
                                present. */
-
-    /* These 2 are not the widths of fields, but are needed by
-       STRINGLIB_GROUPING. */
-    var n_digits: Py_ssize_t    /* The number of digits before a decimal
-                               or exponent. */
-    var n_min_width: Py_ssize_t /* The min_width we used when we computed
-                               the n_grouped_digits width. */
+    var fill_char:Character = " "
 }
 /* PyOS_double_to_string's "flags" parameter can be set to 0 or more of: */
 enum Py_DTSF:Int{
@@ -1562,35 +1544,6 @@ func parse_number(_ s:String) -> (Int, Bool)
     return (n_remainder: 0, has_decimal: false)
 }
 
-/* not all fields of format are used.  for example, precision is
-   unused.  should this take discrete params in order to be more clear
-   about what it does?  or is passing a single format parameter easier
-   and more efficient enough to justify a little obfuscation?
-   Return -1 on error. */
-func calc_number_widths(_ n_prefix: Py_ssize_t,
-                        _ sign_char:Py_UCS4,
-                        _ number:PyObject,
-                        _ n_start:Py_ssize_t,
-                        _ n_end:Py_ssize_t,
-                        _ n_remainder:Py_ssize_t,
-                        _ has_decimal:Bool,
-                        _ locale:LocaleInfo,
-                        _ format:InternalFormatSpec
-                        ) -> NumberFieldWidths {
-    var n_non_digit_non_padding:Py_ssize_t
-    var n_padding:Py_ssize_t
-    var spec:NumberFieldWidths = .init(n_lpadding: 0,
-                                       n_prefix: n_prefix,
-                                       n_spadding: 0,
-                                       n_rpadding: 0,
-                                       sign: "\0",
-                                       n_sign: 0,
-                                       n_grouped_digits: <#T##Py_ssize_t#>,
-                                       n_decimal: has_decimal ? PyUnicode_GET_LENGTH(locale.decimal_point) : 0,
-                                       n_remainder: n_remainder,
-                                       n_digits: (n_end - n_start - n_remainder - (has_decimal ? 1 : 0)),
-                                       n_min_width: <#T##Py_ssize_t#>)
-
     /* the output will look like:
        |                                                                                         |
        | <lpadding> <sign> <prefix> <spadding> <grouped_digits> <decimal> <remainder> <rpadding> |
@@ -1609,82 +1562,31 @@ func calc_number_widths(_ n_prefix: Py_ssize_t,
        only one of lpadding, spadding, and rpadding can be non-zero,
        and it's calculated from the width and other fields
     */
+func calc_number_widths(_ n_prefix: Py_ssize_t,
+                    _ sign_char:Py_UCS4,
+                    _ number:PyObject,
+                    _ n_start:Py_ssize_t,
+                    _ n_end:Py_ssize_t,
+                    _ n_remainder:Py_ssize_t,
+                    _ has_decimal:Bool,
+                    _ locale:LocaleInfo,
+                    _ format:InternalFormatSpec
+                    ) -> NumberFieldWidths {
+    var spec:NumberFieldWidths = .init(need_prefix: false, sign: "\0", need_sign: false, n_remainder: 0)
 
     /* compute the various parts we're going to write */
     switch (format.sign) {
     case "+":
         /* always put a + or - */
-        spec.n_sign = 1;
         spec.sign = (sign_char == "-" ? "-" : "+");
         break;
     case " ":
-        spec.n_sign = 1;
         spec.sign = (sign_char == "-" ? "-" : " ");
         break;
     default:
         /* Not specified, or the default (-) */
         if (sign_char == "-") {
-            spec.n_sign = 1;
             spec.sign = "-";
-        }
-    }
-
-    /* The number of chars used for non-digits and non-padding. */
-    n_non_digit_non_padding = spec.n_sign + spec.n_prefix + spec.n_decimal +
-        spec.n_remainder;
-
-    /* min_width can go negative, that's okay. format->width == -1 means
-       we don't care. */
-    if (format.fill_char == "0" && format.align == "="){
-        spec.n_min_width = format.width - n_non_digit_non_padding;
-    } else{
-        spec.n_min_width = 0;
-    }
-    if (spec.n_digits == 0){
-        /* This case only occurs when using 'c' formatting, we need
-           to special case it because the grouping code always wants
-           to have at least one character. */
-        spec.n_grouped_digits = 0;
-    }
-    else {
-        switch _PyUnicode_InsertThousandsGrouping (
-        NULL, 0,
-        NULL, 0, spec.n_digits,
-        spec.n_min_width,
-        locale.grouping, locale.thousands_sep) {
-        case .success(let s):
-            spec.n_grouped_digits = s.count
-        case .failture(let errro):
-            return .failture(error)
-        }
-        // 上記の計算はメモリのアロケーションに必要な計算処理なので実際には削除される
-    }
-
-    /* Given the desired width and the total of digit and non-digit
-       space we consume, see if we need any padding. format->width can
-       be negative (meaning no padding), but this code still works in
-       that case. */
-    n_padding = format.width -
-        (n_non_digit_non_padding + spec.n_grouped_digits);
-    if (n_padding > 0) {
-        /* Some padding is needed. Determine if it's left, space, or right. */
-        switch (format.align) {
-        case "<":
-            spec.n_rpadding = n_padding;
-            break;
-        case "^":
-            spec.n_lpadding = n_padding / 2;
-            spec.n_rpadding = n_padding - spec.n_lpadding;
-            break;
-        case "=":
-            spec.n_spadding = n_padding;
-            break;
-        case ">":
-            spec.n_lpadding = n_padding;
-            break;
-        default:
-            /* Shouldn't get here, but treat it as '>' */
-            Py_UNREACHABLE
         }
     }
 
@@ -1696,99 +1598,44 @@ func calc_number_widths(_ n_prefix: Py_ssize_t,
    Return -1 on error, or 0 on success. */
 func fill_number(_ spec:NumberFieldWidths,
                  _ digits:String,
-                 _ d_start:Py_ssize_t,
-                 _ d_end:Py_ssize_t,
-                 _ prefix:PyObject?,
-                 _ p_start:Py_ssize_t,
+                 _ format:InternalFormatSpec,
+                 _ prefix:String,
                  _ fill_char:Py_UCS4,
                  _ locale:LocaleInfo,
                  _ toupper:Bool) -> FormatResult
 {
+    var (digits, dot, remine) = digits.partition(locale.decimal_point)
+    digits = _PyUnicode_InsertThousandsGrouping(digits, locale.grouping, locale.thousands_sep)
     /* Used to keep track of digits, decimal, and remainder. */
-    Py_ssize_t d_pos = d_start;
-    const void *data = writer->data;
-    Py_ssize_t r;
-
-    if (spec.n_lpadding) {
-        _PyUnicode_FastFill(writer->buffer,
-                            writer->pos, spec.n_lpadding, fill_char);
-        writer->pos += spec.n_lpadding;
-    }
-    if (spec.n_sign == 1) {
-        PyUnicode_WRITE(kind, data, writer->pos, spec->sign);
-        writer->pos++;
-    }
-    if (spec.n_prefix) {
-        _PyUnicode_FastCopyCharacters(writer->buffer, writer->pos,
-                                      prefix, p_start,
-                                      spec.n_prefix);
-        if (toupper) {
-            var t:Py_ssize_t = 0
-            while  t < spec.n_prefix {
-                var c:Py_UCS4 = PyUnicode_READ(kind, data, writer->pos + t);
-                c = Py_TOUPPER(c);
-                PyUnicode_WRITE(kind, data, writer->pos + t, c)
-                t++
-            }
-        }
-        writer->pos += spec.n_prefix;
-    }
-    if (spec.n_spadding) {
-        _PyUnicode_FastFill(writer->buffer,
-                            writer->pos, spec.n_spadding, fill_char);
-        writer->pos += spec.n_spadding;
-    }
+    digits = prefix.upper() + digits + dot + remine
 
     /* Only for type 'c' special case, it has no digits. */
-    if (spec.n_digits != 0) {
-        /* Fill the digits with InsertThousandsGrouping. */
-        r = _PyUnicode_InsertThousandsGrouping(
-            writer, spec.n_grouped_digits,
-            digits, d_pos, spec.n_digits,
-            spec.n_min_width,
-            locale.grouping, locale.thousands_sep, NULL);
-        if (r == -1){
-            return -1;
-        }
-        assert(r == spec.n_grouped_digits);
-        d_pos += spec.n_digits;
-    }
     if (toupper) {
-        Py_ssize_t t;
-        for (t = 0; t < spec->n_grouped_digits; t++) {
-            Py_UCS4 c = PyUnicode_READ(kind, data, writer->pos + t);
-            c = Py_TOUPPER(c);
-            if (c > 127) {
-                return .failure(.SystemError("non-ascii grouped digit"))
-            }
-            PyUnicode_WRITE(kind, data, writer->pos + t, c);
-        }
+        digits = digits.upper()
     }
-    writer->pos += spec->n_grouped_digits;
+    return .success(digits)
+}
 
-    if (spec.n_decimal) {
-        _PyUnicode_FastCopyCharacters(
-            writer.buffer, writer->pos,
-            locale.decimal_point, 0, spec.n_decimal);
-        writer->pos += spec.n_decimal;
-        d_pos += 1;
+func number_just(_ digits:String,_ format:InternalFormatSpec, _ spec:NumberFieldWidths, _ locale:LocaleInfo) -> String {
+    /* Some padding is needed. Determine if it's left, space, or right. */
+    switch (format.align) {
+    case "<":
+        return digits.ljust(format.width, fillchar: spec.fill_char)
+        break;
+    case "^":
+        return digits.center(format.width, fillchar: spec.fill_char)
+        break;
+    case "=":
+        return digits.rjust(format.width, fillchar: "0")
+        break;
+    case ">":
+        return digits.rjust(format.width, fillchar: spec.fill_char)
+        break;
+    default:
+        /* Shouldn't get here, but treat it as '>' */
+        Py_UNREACHABLE
     }
-
-    if (spec.n_remainder) {
-        _PyUnicode_FastCopyCharacters(
-            writer->buffer, writer->pos,
-            digits, d_pos, spec.n_remainder);
-        writer->pos += spec.n_remainder;
-        /* d_pos += spec->n_remainder; */
-    }
-
-    if (spec.n_rpadding) {
-        _PyUnicode_FastFill(writer->buffer,
-                            writer->pos, spec.n_rpadding,
-                            fill_char);
-        writer->pos += spec.n_rpadding;
-    }
-    return 0;
+    return Py_UNREACHABLE
 }
 
 /* Find the decimal point character(s?), thousands_separator(s?), and
@@ -2081,14 +1928,10 @@ extension PSFormattableInteger {
                                      locale, format);
 
         /* Populate the memory. */
-        fill_number(writer, &spec,
-                             tmp, inumeric_chars, inumeric_chars + n_digits,
-                             tmp, prefix, format.fill_char,
-                             &locale, format.type == "X");
-
-        return .success(<#T##String#>)
+        return fill_number(spec, tmp, format, "prefix(0x,etc)", format.fill_char, locale, format.type == "X")
     }
 }
+
 protocol PSFormattableFloatingPoint: PSFormattable {
     var formatableFloatingPoint: Double { get }
 }
@@ -2123,7 +1966,7 @@ extension PSFormattableFloatingPoint {
         }
         precision = format.precision;
 
-        if (format.alternate){
+        if (format.alternate.asBool) {
             flags |= Py_DTSF.ALT.rawValue
         }
 
@@ -2466,7 +2309,7 @@ func format_obj(_ obj:PyObject) -> FormatResult
 }
 
 func _PyUnicode_FormatAdvancedWriter(
-        _ obj:String,
+        _ obj:PSFormattable,
         _ format_spec:String) -> FormatResult
 {
     var format:InternalFormatSpec
@@ -2474,15 +2317,16 @@ func _PyUnicode_FormatAdvancedWriter(
     /* check for the special case of zero length format spec, make
        it equivalent to str(obj) */
     if (format_spec.isEmpty) {
-        return .success(obj)
+        return .success(obj as! String)
     }
 
     /* parse the format_spec */
-    switch parse_internal_render_format_spec(format_spec, start, end, "s", "<") {
-    case .success(format):
+    switch parse_internal_render_format_spec(format_spec,obj.defaultInternalFormatSpec) {
+    case .success(let f):
+        format = f
         break
-    case .failture(let error):
-        return .failture(error)
+    case .failure(let error):
+        return .failure(error)
     }
 
     /* type conversion? */
@@ -2497,7 +2341,7 @@ func _PyUnicode_FormatAdvancedWriter(
 }
 
 func _PyLong_FormatAdvancedWriter(
-    _ obj:Int,
+    _ obj:PSFormattableInteger,
     _ format_spec:String) -> FormatResult
 {
     var format: InternalFormatSpec
@@ -2505,31 +2349,27 @@ func _PyLong_FormatAdvancedWriter(
     /* check for the special case of zero length format spec, make
        it equivalent to str(obj) */
     if format_spec.isEmpty {
-        if (PyLong_CheckExact(obj)){
-            return .success(String(obj)
-        }
-        else {
-            return format_obj(obj)
-        }
+        return .success(String(obj.formatableInteger))
     }
 
     /* parse the format_spec */
-    switch parse_internal_render_format_spec(format_spec, start, end, "d", ">") {
-    case .success(format):
+    switch parse_internal_render_format_spec(format_spec, obj.defaultInternalFormatSpec) {
+    case .success(let f):
+        format = f
         break
-    case .failture(let error):
-        return .failture(error)
+    case .failure(let error):
+        return .failure(error)
     }
 
     /* type conversion? */
     switch (format.type) {
     case "b", "c", "d", "o", "x", "X", "n":
         /* no type conversion needed, already an int.  do the formatting */
-        return .success((obj as! PSFormattableInteger).objectFormat(format))
+        return obj.objectFormat(format)
 
     case "e", "E", "f", "F", "g", "G", "%":
         /* convert to float */
-        return _PyFloat_FormatAdvancedWriter(obj,format_spec)
+        return _PyFloat_FormatAdvancedWriter(Double(obj.formatableInteger),format_spec)
 
     default:
         /* unknown */
@@ -2538,7 +2378,7 @@ func _PyLong_FormatAdvancedWriter(
 }
 
 func _PyFloat_FormatAdvancedWriter(
-    _ obj:PyObject,
+    _ obj:PSFormattableFloatingPoint,
     _ format_spec:String) -> FormatResult
 {
     var format: InternalFormatSpec
@@ -2549,11 +2389,12 @@ func _PyFloat_FormatAdvancedWriter(
         return format_obj(obj);
     }
     /* parse the format_spec */
-    switch parse_internal_render_format_spec(format_spec, start, end, "\0", ">") {
-    case .success(format):
+    switch parse_internal_render_format_spec(format_spec, obj.defaultInternalFormatSpec) {
+    case .success(let f):
+        format = f
         break
-    case .failuer(let error):
-        return .failer(error)
+    case .failure(let error):
+        return .failure(error)
     }
 
     /* type conversion? */
@@ -2561,7 +2402,7 @@ func _PyFloat_FormatAdvancedWriter(
     case "\0", /* No format code: like 'g', but with at least one decimal. */
     "e", "E", "f", "F", "g", "G", "n", "%":
         /* no conversion, already a float.  do the formatting */
-        return (obj as PSFormattableFloatingPoint).objectFormat(format)
+        return (obj as! PSFormattableFloatingPoint).objectFormat(format)
 
     default:
         /* unknown */
