@@ -24,9 +24,8 @@
 		B51620C022CF9FB700D2BF10 /* SwiftyPyStringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_12 /* SwiftyPyStringTests.swift */; };
 		B51620C322D3862B00D2BF10 /* SwiftyPyString.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_9 /* SwiftyPyString.swift */; };
 		B51620C722D7230D00D2BF10 /* casefoldTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = B51620C622D7230D00D2BF10 /* casefoldTable.swift */; };
-		B51620C922D85B7600D2BF10 /* Format.swift in Sources */ = {isa = PBXBuildFile; fileRef = B51620C822D85B7600D2BF10 /* Format.swift */; };
-		B51620CE22E04D0200D2BF10 /* FormatTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B51620CD22E04D0100D2BF10 /* FormatTests.swift */; };
 		B54DDD6422EAD8870083970A /* SliceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B54DDD6322EAD8870083970A /* SliceTests.swift */; };
+		B551D6BF2316DD270070B5B8 /* Slice.swift in Sources */ = {isa = PBXBuildFile; fileRef = B551D6BE2316DD270070B5B8 /* Slice.swift */; };
 		OBJ_33 /* Package.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_6 /* Package.swift */; };
 		OBJ_45 /* XCTestManifests.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_13 /* XCTestManifests.swift */; };
 /* End PBXBuildFile section */
@@ -50,16 +49,15 @@
 
 /* Begin PBXFileReference section */
 		B51620C622D7230D00D2BF10 /* casefoldTable.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = casefoldTable.swift; sourceTree = "<group>"; };
-		B51620C822D85B7600D2BF10 /* Format.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Format.swift; sourceTree = "<group>"; };
-		B51620CD22E04D0100D2BF10 /* FormatTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FormatTests.swift; sourceTree = "<group>"; };
 		B54DDD6322EAD8870083970A /* SliceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SliceTests.swift; sourceTree = "<group>"; };
+		B551D6BE2316DD270070B5B8 /* Slice.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Slice.swift; sourceTree = "<group>"; };
 		OBJ_12 /* SwiftyPyStringTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftyPyStringTests.swift; sourceTree = "<group>"; };
 		OBJ_13 /* XCTestManifests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XCTestManifests.swift; sourceTree = "<group>"; };
 		OBJ_17 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		OBJ_19 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		OBJ_6 /* Package.swift */ = {isa = PBXFileReference; explicitFileType = sourcecode.swift; path = Package.swift; sourceTree = "<group>"; };
 		OBJ_9 /* SwiftyPyString.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftyPyString.swift; sourceTree = "<group>"; };
-		"SwiftyPyString::SwiftyPyString::Product" /* SwiftyPyString.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = SwiftyPyString.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		"SwiftyPyString::SwiftyPyString::Product" /* SwiftyPyString.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = SwiftyPyString.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		"SwiftyPyString::SwiftyPyStringTests::Product" /* SwiftyPyStringTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; path = SwiftyPyStringTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -95,7 +93,6 @@
 				OBJ_12 /* SwiftyPyStringTests.swift */,
 				OBJ_13 /* XCTestManifests.swift */,
 				B54DDD6322EAD8870083970A /* SliceTests.swift */,
-				B51620CD22E04D0100D2BF10 /* FormatTests.swift */,
 			);
 			name = SwiftyPyStringTests;
 			path = Tests/SwiftyPyStringTests;
@@ -133,9 +130,9 @@
 		OBJ_8 /* SwiftyPyString */ = {
 			isa = PBXGroup;
 			children = (
+				B551D6BE2316DD270070B5B8 /* Slice.swift */,
 				B51620C622D7230D00D2BF10 /* casefoldTable.swift */,
 				OBJ_9 /* SwiftyPyString.swift */,
-				B51620C822D85B7600D2BF10 /* Format.swift */,
 			);
 			name = SwiftyPyString;
 			path = Sources/SwiftyPyString;
@@ -227,8 +224,8 @@
 			buildActionMask = 0;
 			files = (
 				B51620C322D3862B00D2BF10 /* SwiftyPyString.swift in Sources */,
+				B551D6BF2316DD270070B5B8 /* Slice.swift in Sources */,
 				B51620C722D7230D00D2BF10 /* casefoldTable.swift in Sources */,
-				B51620C922D85B7600D2BF10 /* Format.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -247,7 +244,6 @@
 				OBJ_45 /* XCTestManifests.swift in Sources */,
 				B51620C022CF9FB700D2BF10 /* SwiftyPyStringTests.swift in Sources */,
 				B54DDD6422EAD8870083970A /* SliceTests.swift in Sources */,
-				B51620CE22E04D0200D2BF10 /* FormatTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -286,7 +282,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = SwiftyPyString;
 				PRODUCT_MODULE_NAME = "$(TARGET_NAME:c99extidentifier)";
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
-				SKIP_INSTALL = YES;
+				SKIP_INSTALL = NO;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited)";
 				SWIFT_VERSION = 5.0;
 				TARGET_NAME = SwiftyPyString;
@@ -314,7 +310,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = SwiftyPyString;
 				PRODUCT_MODULE_NAME = "$(TARGET_NAME:c99extidentifier)";
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
-				SKIP_INSTALL = YES;
+				SKIP_INSTALL = NO;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited)";
 				SWIFT_VERSION = 5.0;
 				TARGET_NAME = SwiftyPyString;
