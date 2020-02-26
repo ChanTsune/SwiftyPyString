@@ -2049,12 +2049,7 @@ extension PSFormattableFloatingPoint {
                                      locale, format);
 
         /* Populate the memory. */
-        fill_number(writer, &spec,
-                             unicode_tmp, index, index + n_digits,
-                             NULL, 0, format.fill_char,
-                             &locale, 0);
-
-        return .success(unicode_tmp)
+        return fill_number(spec, unicode_tmp, format,"prefix",format.fill_char, locale, false)
     }
 }
 protocol PSFormattableComplex: PSFormattable {
@@ -2466,4 +2461,41 @@ extension String {
     public func format_map(_ mapping:[String:Any?]) -> String {
         return self.format([], kwargs: mapping)
     }
+}
+
+extension Double: PSFormattableFloatingPoint {
+    var formatableFloatingPoint: Double { self }
+}
+extension Float: PSFormattableFloatingPoint {
+    var formatableFloatingPoint: Double { Double(self) }
+}
+extension Float80: PSFormattableFloatingPoint {
+    var formatableFloatingPoint: Double { Double(self) }
+}
+extension Int: PSFormattableInteger {
+    var formatableInteger: Int { self }
+}
+extension Int8: PSFormattableInteger {
+    var formatableInteger: Int { Int(self) }
+}
+extension Int16: PSFormattableInteger {
+    var formatableInteger: Int { Int(self) }
+}
+extension Int32: PSFormattableInteger {
+    var formatableInteger: Int { Int(self) }
+}
+extension Int64: PSFormattableInteger {
+    var formatableInteger: Int { Int(self) }
+}
+extension UInt8: PSFormattableInteger {
+    var formatableInteger: Int { Int(self) }
+}
+extension UInt16: PSFormattableInteger {
+    var formatableInteger: Int { Int(self) }
+}
+extension UInt32: PSFormattableInteger {
+    var formatableInteger: Int { Int(self) }
+}
+extension UInt64: PSFormattableInteger {
+    var formatableInteger: Int { Int(self) }
 }
