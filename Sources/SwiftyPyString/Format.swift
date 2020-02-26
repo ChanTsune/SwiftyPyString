@@ -70,20 +70,7 @@ class AutoNumber {
     var an_field_number: int = 0
 }
 
-func PyUnicode_GET_LENGTH(_ str:PyObject) -> Int{
-    return (str as! String).count
-}
-func _Py_RETURN_UNICODE_EMPTY() -> String {
-    return ""
-}
-func unicode_result_unchanged(_ unicode:PyObject) -> PyObject?
-{
-    return unicode
-}
-func PyUnicode_IS_ASCII(_ str:PyObject?) -> Bool {
-    return (str as! String).isascii()
-}
-func _PyUnicode_FromASCII(_ buffer:String?, _ size: Py_ssize_t) -> PyObject?
+func _PyUnicode_FromASCII(_ buffer:String, _ size: Py_ssize_t) -> String
 {
     return buffer
 }
@@ -110,8 +97,8 @@ func Py_UNICODE_TODECIMAL(_ c:Character) -> Int{
     }
     return -1
 }
-func PyUnicode_READ_CHAR(_ str:PyObject?,_ index: Int) -> Character{
-    return (str as! String)[index]
+func PyUnicode_READ_CHAR(_ str:String,_ index: Int) -> Character{
+    return str[index]
 }
 
 /************************************************************************/
@@ -146,21 +133,18 @@ func get_integer(_ str: String) -> Result<Py_ssize_t,PyException>
     return .success(accumulator)
 }
 
-func PyObject_GetAttr(_ v:PyObject?, _ name:PyObject?) -> Result<PyObject?,PyException>
+func PyObject_GetAttr(_ v:PyObject, _ name:String) -> Result<PyObject?,PyException>
 {
-    if let name = name as? String {
-        let mirror = Mirror(reflecting: v)
-        let c = mirror.children
-        var keyMap:[String:Any] = [:]
-        for i in c {
-            keyMap[i.label!] = i.value
-        }
-        if let value = keyMap[name] {
-            return .success(value)
-        }
-        return .failure(.AttributeError("'\(typeName(v))' object has no attribute '\(name)'"))
+    let mirror = Mirror(reflecting: v)
+    let c = mirror.children
+    var keyMap:[String:Any] = [:]
+    for i in c {
+        keyMap[i.label!] = i.value
     }
-    return .failure(.TypeError("attribute name must be string, not '\(typeName(name))'"))
+    if let value = keyMap[name] {
+        return .success(value)
+    }
+    return .failure(.AttributeError("'\(typeName(v))' object has no attribute '\(name)'"))
 }
 
 func PySequence_GetItem<Seq: RandomAccessCollection>(_ s:Seq, _ i:Py_ssize_t) -> PyObject? where Seq.Index == Int
@@ -177,7 +161,7 @@ func PySequence_GetItem<Seq: RandomAccessCollection>(_ s:Seq, _ i:Py_ssize_t) ->
 /************************************************************************/
 
 /* do the equivalent of obj.name */
-func getattr(_ obj:PyObject?, _ name:String) -> Result<PyObject?,PyException>
+func getattr(_ obj:PyObject, _ name:String) -> Result<PyObject?,PyException>
 {
     return PyObject_GetAttr(obj, name)
 }
@@ -423,7 +407,7 @@ func field_name_split(_ str:String,
     format_spec.  It handles getindex and getattr lookups and consumes
     the entire input string.
 */
-func get_field_object(_ input:String, _ args:[Any?], _ kwargs:[String:Any?],
+func get_field_object(_ input:String, _ args:[Any], _ kwargs:[String:Any],
                       _ auto_number:AutoNumber) -> Result<PyObject?,PyException>
 {
     var obj:PyObject? = nil;
@@ -440,7 +424,7 @@ func get_field_object(_ input:String, _ args:[Any?], _ kwargs:[String:Any?],
 
     if (index == -1) {
         /* look up in kwargs */
-        var key:String = first
+        let key:String = first
         if kwargs.isEmpty {
             return .failure(.KeyError(key))
         }
@@ -754,7 +738,7 @@ func MarkupIterator_next(_ self:MarkupIterator) -> LoopResult<MarkupIteratorNext
 
 
 /* do the !r or !s conversion on obj */
-func do_conversion(_ obj:PyObject?, _ conversion:Py_UCS4) -> FormatResult
+func do_conversion(_ obj:PyObject, _ conversion:Py_UCS4) -> FormatResult
 {
     /* XXX in pre-3.0, do we need to convert this to unicode, since it
        might have returned a string? */
@@ -792,14 +776,12 @@ func output_markup(_ field_name:String,
                    _ format_spec:String,
                    _ format_spec_needs_expanding:Bool,
                    _ conversion:Py_UCS4,
-                   _ args:[Any?],
-                   _ kwargs:[String:Any?],
+                   _ args:[Any],
+                   _ kwargs:[String:Any],
                    _ recursion_depth:int,
                    _ auto_number:AutoNumber) -> FormatResult
 {
-    var tmp:PyObject
     var fieldobj:PyObject?
-    var expanded_format_spec:String
     var actual_format_spec:String
 
     /* convert field_name to an object */
@@ -822,8 +804,8 @@ func output_markup(_ field_name:String,
     /* if needed, recurively compute the format_spec */
     if (format_spec_needs_expanding) {
         switch build_string(format_spec, args, kwargs, recursion_depth-1, auto_number) {
-        case .success(let s):
-            actual_format_spec = s
+        case .success(let expanded_format_spec):
+            actual_format_spec = expanded_format_spec
         case .failure(let error):
             return .failure(error)
         }
@@ -848,7 +830,7 @@ func output_markup(_ field_name:String,
 
 
 
-func do_markup(_ input:String, _ args:[Any?], _ kwargs:[String:Any?],
+func do_markup(_ input:String, _ args:[Any], _ kwargs:[String:Any],
                _ recursion_depth:int, _ auto_number:AutoNumber) -> FormatResult
 {
     let iter:MarkupIterator = .init(input, 0)
@@ -891,7 +873,7 @@ func do_markup(_ input:String, _ args:[Any?], _ kwargs:[String:Any?],
     build_string allocates the output string and then
     calls do_markup to do the heavy lifting.
 */
-func build_string(_ input:String, _ args:[Any?], _ kwargs:[String:Any?],
+func build_string(_ input:String, _ args:[Any], _ kwargs:[String:Any],
                   _ recursion_depth:int, _ auto_number: AutoNumber) -> FormatResult
 {
     /* check the recursion level */
@@ -1716,7 +1698,7 @@ extension String: PSFormattable {
     func objectFormat(_ format: InternalFormatSpec) -> FormatResult {
         let value = self
 
-        var len = PyUnicode_GET_LENGTH(value);
+        var len = value.count
 
         /* sign is not allowed on strings */
         if (format.sign != "\0") {
@@ -1878,7 +1860,7 @@ extension PSFormattableInteger {
             tmp = String(value, radix: base, uppercase: false)
 
             inumeric_chars = 0;
-            n_digits = PyUnicode_GET_LENGTH(tmp);
+            n_digits = tmp.count
 
             prefix = inumeric_chars;
 
@@ -1898,10 +1880,10 @@ extension PSFormattableInteger {
         /* Determine the grouping, separator, and decimal point, if any. */
         /* Locale settings, either from the actual locale or
            from a hard-code pseudo-locale */
-        var locale:LocaleInfo = get_locale_info(format.type == "n" ? .LT_CURRENT_LOCALE :
+        let locale:LocaleInfo = get_locale_info(format.type == "n" ? .LT_CURRENT_LOCALE :
             format.thousands_separators)
         /* Calculate how much memory we'll need. */
-        var spec: NumberFieldWidths =
+        let spec: NumberFieldWidths =
         calc_number_widths(n_prefix, sign_char, tmp, inumeric_chars,
                                      inumeric_chars + n_digits, n_remainder, false,
                                      locale, format);
@@ -2020,7 +2002,7 @@ extension PSFormattableFloatingPoint {
         /* Determine the grouping, separator, and decimal point, if any. */
         /* Locale settings, either from the actual locale or
            from a hard-code pseudo-locale */
-        var locale:LocaleInfo = get_locale_info(format.type == "n" ? .LT_CURRENT_LOCALE : format.thousands_separators)
+        let locale:LocaleInfo = get_locale_info(format.type == "n" ? .LT_CURRENT_LOCALE : format.thousands_separators)
 
         /* Calculate how much memory we'll need. */
         spec = calc_number_widths( 0, sign_char, unicode_tmp, index,
