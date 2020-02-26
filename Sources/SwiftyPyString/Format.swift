@@ -169,7 +169,7 @@ func PyObject_GetAttr(_ v:PyObject?, _ name:PyObject?) -> Result<PyObject?,PyExc
     if let name = name as? String {
         let mirror = Mirror(reflecting: v)
         let c = mirror.children
-        var keyMap:[String:Any]
+        var keyMap:[String:Any] = [:]
         for i in c {
             keyMap[i.label!] = i.value
         }
@@ -488,9 +488,10 @@ func get_field_object(_ input:String, _ args:[Any?], _ kwargs:[String:Any?],
 
     /* iterate over the rest of the field_name */
     while true {
-        var is_attribute:Bool
-        var index:Int
-        var name:String
+        var is_attribute:Bool = .init() // 未初期化防止用
+        var index:Int = .init() // 未初期化防止用
+        var name:String = .init() // 未初期化防止用
+
         switch FieldNameIterator_next(rest) {
         case .failure(let error):
             return .failure(error)
@@ -509,20 +510,14 @@ func get_field_object(_ input:String, _ args:[Any?], _ kwargs:[String:Any?],
         } else {
             /* getitem lookup "[]" */
             if (index == -1){
-                tmp = getitem_str(obj, name);
+                tmp = getitem_str(obj as! AnyRandomAccessCollection<Any> , name);
             } else {
-                if (PySequence_Check(obj)){
-                    
-                    tmp = getitem_sequence(obj as! AnyRandomAccessCollection<Any>, index)
-                }
-                else{
-                    /* not a sequence */
-                    tmp = getitem_idx(obj, index);
-                }
+                tmp = PyObject_GetItem(obj as! AnyRandomAccessCollection<Any>, index as!AnyRandomAccessCollection<Any>.Index)
             }
         }
-        if (tmp == nil)
-            goto error;
+        if (tmp == nil){
+            return .failure(.AttributeError("???"))
+        }
         obj = tmp;
     }
     /* end of iterator, this is the non-error case */
@@ -874,7 +869,7 @@ func output_markup(_ field_name:String,
 func do_markup(_ input:String, _ args:[Any?], _ kwargs:[String:Any?],
                _ recursion_depth:int, _ auto_number:AutoNumber) -> FormatResult
 {
-    var iter:MarkupIterator
+    var iter:MarkupIterator = .init("", 0) // 未初期化防止用
     var result:MarkupIteratorNextResult
     var markuped:String = ""
     while true {
@@ -938,7 +933,7 @@ func do_string_format(_ self:String, _ args:[Any?], _ kwargs:[String:Any?]) -> S
     */
     var recursion_depth: int = 2
 
-    var auto_number: AutoNumber
+    var auto_number: AutoNumber = .init()
     switch build_string(self, args, kwargs, recursion_depth, auto_number) {
     case .success(let s):
         return s
@@ -989,11 +984,12 @@ func invalid_comma_and_underscore() -> PyException
     returns -1 on error.
 */
 func get_integer(_ str:String,
-                 _ ppos:Py_ssize_t,
-                 _ end:Py_ssize_t) -> Result<(int,int),PyException>
+                 _ ppos:Py_ssize_t) -> Result<(int,int),PyException>
 {
     var accumulator:Py_ssize_t = 0
     var numdigits:int = 0
+    let end = str.count
+    var ppos = ppos
     while ppos < end {
         let digitval = Py_UNICODE_TODECIMAL(str.at(ppos)!);
         if digitval < 0 {
@@ -1094,6 +1090,7 @@ func parse_internal_render_format_spec(_ format_spec:String,
     var format:InternalFormatSpec = .init(align: " ", type: " ")
 
     var pos = 0
+    let end = format_spec.count
     var length = format_spec.count // 文字列の長さ
 
 
@@ -1140,7 +1137,7 @@ func parse_internal_render_format_spec(_ format_spec:String,
         ++pos;
     }
 
-    switch get_integer(format_spec, pos, end) {
+    switch get_integer(format_spec, pos) {
     case .success(let t):
         (consumed,format.width) = t
     case .failure(let error):
@@ -1177,7 +1174,7 @@ func parse_internal_render_format_spec(_ format_spec:String,
     if let c = format_spec.at(pos), c == "." {
         ++pos;
 
-        switch get_integer(format_spec, pos, end) {
+        switch get_integer(format_spec, pos) {
         case .success(let t):
             (consumed, format.precision) = t
         case .failure(let error):
