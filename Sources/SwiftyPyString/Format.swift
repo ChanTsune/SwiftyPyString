@@ -55,24 +55,6 @@ extension BinaryInteger {
 /***********   Global data structures and forward declarations  *********/
 /************************************************************************/
 
-/*
-   A SubString consists of the characters between two string or
-   unicode pointers.
-*/
-class SubString {
-    var str: String? /* borrowed reference */
-    var start: Py_ssize_t
-    var end: Py_ssize_t
-    
-    /* fill in a SubString from a pointer and length */
-    init(_ s: String?, _ start: Py_ssize_t, _ end: Py_ssize_t)
-    {
-        self.str = s
-        self.start = start
-        self.end = end
-    }
-}
-
 
 typealias FormatResult = Result<String, PyException>
 
@@ -487,7 +469,7 @@ func get_field_object(_ input:String, _ args:[Any?], _ kwargs:[String:Any?],
     }
 
     /* iterate over the rest of the field_name */
-    while true {
+    field_name: while true {
         var is_attribute:Bool = .init() // 未初期化防止用
         var index:Int = .init() // 未初期化防止用
         var name:String = .init() // 未初期化防止用
@@ -496,7 +478,7 @@ func get_field_object(_ input:String, _ args:[Any?], _ kwargs:[String:Any?],
         case .failure(let error):
             return .failure(error)
         case .finish:
-            break
+            break field_name
         case .success(let result):
             is_attribute = result.is_attribute
             index = result.name_idx
@@ -869,13 +851,13 @@ func output_markup(_ field_name:String,
 func do_markup(_ input:String, _ args:[Any?], _ kwargs:[String:Any?],
                _ recursion_depth:int, _ auto_number:AutoNumber) -> FormatResult
 {
-    var iter:MarkupIterator = .init("", 0) // 未初期化防止用
+    let iter:MarkupIterator = .init(input, 0)
     var result:MarkupIteratorNextResult
     var markuped:String = ""
-    while true {
+    mark_up: while true {
         switch MarkupIterator_next(iter) {
         case .finish:
-            break
+            break mark_up
         case .failure(let error):
             return .failure(error)
         case .success(let r):
@@ -924,16 +906,16 @@ func build_string(_ input:String, _ args:[Any?], _ kwargs:[String:Any?],
 /************************************************************************/
 
 /* this is the main entry point */
-func do_string_format(_ self:String, _ args:[Any?], _ kwargs:[String:Any?]) -> String
+func do_string_format(_ self:String, _ args:[Any], _ kwargs:[String:Any]) -> String
 {
 
     /* PEP 3101 says only 2 levels, so that
        "{0:{1}}".format('abc', 's')            # works
        "{0:{1:{2}}}".format('abc', 's', '')    # fails
     */
-    var recursion_depth: int = 2
+    let recursion_depth: int = 2
 
-    var auto_number: AutoNumber = .init()
+    let auto_number: AutoNumber = .init()
     switch build_string(self, args, kwargs, recursion_depth, auto_number) {
     case .success(let s):
         return s
@@ -2450,10 +2432,10 @@ enum PyUnicode_Kind: Int {
 }
 
 extension String {
-    public func format(_ args:Any?..., kwargs:[String:Any?]=[:]) -> String {
+    public func format(_ args:Any..., kwargs:[String:Any]=[:]) -> String {
         return do_string_format(self, args, kwargs)
     }
-    public func format_map(_ mapping:[String:Any?]) -> String {
+    public func format_map(_ mapping:[String:Any]) -> String {
         return self.format([], kwargs: mapping)
     }
 }
