@@ -1688,7 +1688,10 @@ extension PSFormattable {
     }
 }
 
-extension String: PSFormattable {
+protocol PSFormattableString: PSFormattable {
+    var formattableString: String { get }
+}
+extension PSFormattableString {
     var defaultInternalFormatSpec: InternalFormatSpec {
         InternalFormatSpec(align: "s", type: "<")
     }
@@ -1696,7 +1699,7 @@ extension String: PSFormattable {
 /*********** string formatting ******************************************/
 /************************************************************************/
     func objectFormat(_ format: InternalFormatSpec) -> FormatResult {
-        let value = self
+        let value = self.formattableString
 
         var len = value.count
 
@@ -1730,6 +1733,9 @@ extension String: PSFormattable {
         /* Write into that space. First the padding. */
         return .success(fill_padding(value, format.align, format.fill_char, format.width))
     }
+}
+extension String: PSFormattableString {
+    var formattableString: String { self }
 }
 
 @inlinable
