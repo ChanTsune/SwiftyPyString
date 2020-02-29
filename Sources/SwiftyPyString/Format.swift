@@ -70,11 +70,6 @@ class AutoNumber {
     var an_field_number: int = 0
 }
 
-func _PyUnicode_FromASCII(_ buffer:String, _ size: Py_ssize_t) -> String
-{
-    return buffer
-}
-
 /* Return 1 if an error has been detected switching between automatic
    field numbering and manual field specification, else return 0. Set
    ValueError on error. */
@@ -462,9 +457,9 @@ func get_field_object(_ input:String, _ args:[Any], _ kwargs:[String:Any],
         } else {
             /* getitem lookup "[]" */
             if (index == -1){
-                tmp = getitem_str(obj as! AnyRandomAccessCollection<Any> , name);
+                tmp = getitem_str(obj as! AnyRandomAccessCollection<Any>, name)
             } else {
-                tmp = PyObject_GetItem(obj as! AnyRandomAccessCollection<Any>, index as!AnyRandomAccessCollection<Any>.Index)
+                tmp = getitem_idx(obj as! AnyRandomAccessCollection<Any>, index)
             }
         }
         if (tmp == nil){
@@ -1003,7 +998,7 @@ enum LocaleType: Character {
 struct InternalFormatSpec {
     var fill_char:Py_UCS4 = " "
     var align:Py_UCS4
-    var alternate:int = 0
+    var alternate:Bool = false
     var sign:Py_UCS4 = "\0"
     var width:Py_ssize_t = -1
     var thousands_separators:LocaleType = .LT_NO_LOCALE
@@ -1015,7 +1010,7 @@ extension InternalFormatSpec: CustomDebugStringConvertible {
     var debugDescription: String {
         return String(format:"internal format spec: fill_char \(fill_char))\n") +
         String(format:"internal format spec: align \(align)\n") +
-        String(format:"internal format spec: alternate %d\n", alternate) +
+        String(format:"internal format spec: alternate \(alternate)\n") +
         String(format:"internal format spec: sign \(sign)\n") +
         String(format:"internal format spec: width %zd\n", width) +
         String(format:"internal format spec: thousands_separators \(thousands_separators)\n") +
@@ -1069,7 +1064,7 @@ func parse_internal_render_format_spec(_ format_spec:String,
     /* If the next character is #, we're in alternate mode.  This only
        applies to integers. */
     if let c = format_spec.at(pos), c == "#" {
-        format.alternate = 1;
+        format.alternate = true
         ++pos;
     }
 
@@ -1684,7 +1679,7 @@ extension PSFormattableString {
         }
 
         /* alternate is not allowed on strings */
-        if (format.alternate.asBool) {
+        if format.alternate {
             return .failure(.ValueError("Alternate form (#) not allowed in string format specifier"))
         }
 
@@ -1769,7 +1764,7 @@ extension PSFormattableInteger {
                 return .failure(.ValueError("Sign not allowed with integer format specifier 'c'"))
             }
             /* error to request alternate format */
-            if (format.alternate.asBool) {
+            if format.alternate {
                 return .failure(.ValueError("Alternate form (#) not allowed with integer format specifier 'c'"))
             }
 
@@ -1827,12 +1822,12 @@ extension PSFormattableInteger {
 
             if isDefault {
                 /* Fast path */
-                return .success(longFormat(value, radix: base, alternate: format.alternate.asBool))
+                return .success(longFormat(value, radix: base, alternate: format.alternate))
             }
 
             /* The number of prefix chars is the same as the leading
                chars to skip */
-            if (format.alternate.asBool){
+            if format.alternate {
                 n_prefix = leading_chars_to_skip
             }
 
@@ -1906,7 +1901,7 @@ extension PSFormattableFloatingPoint {
         }
         precision = format.precision;
 
-        if (format.alternate.asBool) {
+        if format.alternate {
             flags |= Py_DTSF.ALT.rawValue
         }
 
@@ -2059,7 +2054,7 @@ extension PSFormattableComplex {
     }
 
 
-        if (format.alternate){
+        if format.alternate {
             flags |= Py_DTSF.ALT.rawValue
         }
     if (type == "\0") {
@@ -2093,12 +2088,7 @@ extension PSFormattableComplex {
     n_re_digits = strlen(re_unicode_tmp)
     n_im_digits = strlen(im_unicode_tmp)
 
-    /* Since there is no unicode version of PyOS_double_to_string,
-       just use the 8 bit version and then convert to unicode. */
-    re_unicode_tmp = _PyUnicode_FromASCII(re_unicode_tmp, n_re_digits);
     i_re = 0;
-
-    im_unicode_tmp = _PyUnicode_FromASCII(im_unicode_tmp, n_im_digits);
     i_im = 0;
 
     /* Is a sign character present in the output?  If so, remember it
@@ -2131,7 +2121,7 @@ extension PSFormattableComplex {
     /* Calculate how much memory we'll need. */
     n_re_total = calc_number_widths(&re_spec, 0, re_sign_char, re_unicode_tmp,
                                     i_re, i_re + n_re_digits, n_re_remainder,
-                                    re_has_decimal, &locale, &tmp_format)
+                                    re_has_decimal, locale, tmp_format)
 
     /* Same formatting, but always include a sign, unless the real part is
      * going to be omitted, in which case we use whatever sign convention was
@@ -2160,13 +2150,13 @@ extension PSFormattableComplex {
         }
 
     if (!skip_re) {
-        result = fill_number(writer, &re_spec,
+        result = fill_number(re_spec,
                              re_unicode_tmp, i_re, i_re + n_re_digits,
                              NULL, 0,
                              0,
                              &locale, 0)
     }
-    result = fill_number(writer, &im_spec,
+    result = fill_number(im_spec,
                          im_unicode_tmp, i_im, i_im + n_im_digits,
                          NULL, 0,
                          0,
