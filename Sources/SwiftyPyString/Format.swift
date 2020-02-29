@@ -1164,39 +1164,6 @@ func parse_internal_render_format_spec(_ format_spec:String,
     return .success(format)
 }
 
-/* Calculate the padding needed. */
-func calc_padding(Py_ssize_t nchars, Py_ssize_t width, Py_UCS4 align,
-             Py_ssize_t *n_lpadding, Py_ssize_t *n_rpadding,
-             Py_ssize_t *n_total)
-{
-    if (width >= 0) {
-        if (nchars > width){
-            *n_total = nchars;
-        }
-        else{
-            *n_total = width;
-        }
-    }
-    else {
-        /* not specified, use all of the chars and no more */
-        *n_total = nchars;
-    }
-
-    /* Figure out how much leading space we need, based on the
-       aligning */
-    if (align == ">")
-        {*n_lpadding = *n_total - nchars}
-    else if (align == "^")
-       { *n_lpadding = (*n_total - nchars) / 2}
-    else if (align == "<" || align == "=")
-        {*n_lpadding = 0}
-    else {
-        /* We should never have an unspecified alignment. */
-        Py_UNREACHABLE();
-    }
-
-    *n_rpadding = *n_total - nchars - *n_lpadding;
-}
 let Py_UNREACHABLE = "Py_FatalError(\"Unreachable C code path reached\")"
 /* Do the padding, and return a pointer to where the caller-supplied
    content goes. */
@@ -1538,7 +1505,7 @@ func fill_number(_ spec:NumberFieldWidths,
                  _ prefix:String,
                  _ fill_char:Py_UCS4,
                  _ locale:LocaleInfo,
-                 _ toupper:Bool) -> FormatResult
+                 _ toupper:Bool) -> String
 {
     var (digits, dot, remine) = digits.partition(locale.decimal_point)
     digits = _PyUnicode_InsertThousandsGrouping(digits, locale.grouping, locale.thousands_sep)
@@ -1549,7 +1516,7 @@ func fill_number(_ spec:NumberFieldWidths,
     if (toupper) {
         digits = digits.upper()
     }
-    return .success(digits)
+    return digits
 }
 
 func number_just(_ digits:String,_ format:InternalFormatSpec, _ spec:NumberFieldWidths, _ locale:LocaleInfo) -> String {
@@ -1863,8 +1830,7 @@ extension PSFormattableInteger {
                                      inumeric_chars + n_digits, n_remainder, false,
                                      locale, format);
 
-        /* Populate the memory. */
-        return fill_number(spec, tmp, format, "prefix(0x,etc)", format.fill_char, locale, format.type == "X")
+        return .success(fill_number(spec, tmp, format, "prefix(0x,etc)", format.fill_char, locale, format.type == "X"))
     }
 }
 
@@ -1983,8 +1949,7 @@ extension PSFormattableFloatingPoint {
                                      index + n_digits, n_remainder, has_decimal,
                                      locale, format);
 
-        /* Populate the memory. */
-        return fill_number(spec, unicode_tmp, format,"prefix",format.fill_char, locale, false)
+        return .success(fill_number(spec, unicode_tmp, format,"prefix",format.fill_char, locale, false))
     }
 }
 protocol PSFormattableComplex: PSFormattable {
@@ -2009,8 +1974,6 @@ extension PSFormattableComplex {
         var n_im_digits:Py_ssize_t
         var n_re_remainder:Py_ssize_t
         var n_im_remainder:Py_ssize_t
-        var n_re_total:Py_ssize_t
-        var n_im_total:Py_ssize_t
         var re_has_decimal:Bool
         var im_has_decimal:Bool
         var precision:int
@@ -2021,16 +1984,12 @@ extension PSFormattableComplex {
         var re_spec:NumberFieldWidths
         var im_spec:NumberFieldWidths
         var flags:int = 0
-        var result:String
         var re_sign_char:Py_UCS4 = "\0"
         var im_sign_char:Py_UCS4 = "\0"
-        var re_float_type:int /* Used to see if we have a nan, inf, or regular float. */
-        var im_float_type:int
+        var re_float_type:int = 0 /* Used to see if we have a nan, inf, or regular float. */
+        var im_float_type:int = 0
         var add_parens:Bool = false
         var skip_re:Bool = false
-        var lpad:Py_ssize_t
-        var rpad:Py_ssize_t
-        var total:Py_ssize_t
         var re_unicode_tmp:String
         var im_unicode_tmp:String
 
@@ -2119,7 +2078,7 @@ extension PSFormattableComplex {
     tmp_format.width = -1;
 
     /* Calculate how much memory we'll need. */
-    n_re_total = calc_number_widths(&re_spec, 0, re_sign_char, re_unicode_tmp,
+    re_spec = calc_number_widths(0, re_sign_char, re_unicode_tmp,
                                     i_re, i_re + n_re_digits, n_re_remainder,
                                     re_has_decimal, locale, tmp_format)
 
@@ -2129,38 +2088,30 @@ extension PSFormattableComplex {
     if (!skip_re){
         tmp_format.sign = "+"
     }
-    n_im_total = calc_number_widths(&im_spec, 0, im_sign_char, im_unicode_tmp,
+    im_spec = calc_number_widths(0, im_sign_char, im_unicode_tmp,
                                     i_im, i_im + n_im_digits, n_im_remainder,
-                                    im_has_decimal, &locale, &tmp_format)
+                                    im_has_decimal, locale, tmp_format)
 
-    if (skip_re){
-        n_re_total = 0;}
-
-    /* Add 1 for the 'j', and optionally 2 for parens. */
-    calc_padding(n_re_total + n_im_total + 1 + add_parens * 2,
-                 format->width, format->align, &lpad, &rpad, &total);
-
-
-    /* Populate the memory. First, the padding. */
-    result = fill_padding(writer,
-                          n_re_total + n_im_total + 1 + add_parens * 2,
-                          format->fill_char, lpad, rpad)
+        re_unicode_tmp = number_just(re_unicode_tmp, tmp_format, re_spec, locale)
+        im_unicode_tmp = number_just(im_unicode_tmp, tmp_format, im_spec, locale)
+        
         if (add_parens) {
             buf = "(" + buf
         }
 
-    if (!skip_re) {
-        result = fill_number(re_spec,
-                             re_unicode_tmp, i_re, i_re + n_re_digits,
-                             NULL, 0,
-                             0,
-                             &locale, 0)
-    }
-    result = fill_number(im_spec,
-                         im_unicode_tmp, i_im, i_im + n_im_digits,
-                         NULL, 0,
-                         0,
-                         &locale, 0);
+        if !skip_re {
+            buf += fill_number(re_spec,
+                                 re_unicode_tmp,
+                                 tmp_format,
+                                 "",
+                                 "\0",
+                                 locale, false)
+        }
+        buf += fill_number(im_spec,
+                             im_unicode_tmp,
+                             tmp_format,
+                             "", "\0",
+                             locale, false)
         buf += "j"
 
         if (add_parens) {
