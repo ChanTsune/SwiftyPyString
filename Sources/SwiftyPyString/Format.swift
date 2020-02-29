@@ -493,7 +493,7 @@ func render_field(_ fieldobj:PyObject, _ format_spec:String) -> FormatResult
 
     /* If we know the type exactly, skip the lookup of __format__ and just
        call the formatter directly. */
-    if fieldobj is PSFormattable {
+    if fieldobj is PSFormattableString {
         return _PyUnicode_FormatAdvancedWriter(fieldobj as! PSFormattable, format_spec)
     }
     else if fieldobj is PSFormattableInteger {
