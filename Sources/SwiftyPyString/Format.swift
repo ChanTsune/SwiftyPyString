@@ -502,6 +502,9 @@ func render_field(_ fieldobj:PyObject, _ format_spec:String) -> FormatResult
     else if fieldobj is PSFormattableFloatingPoint {
         return _PyFloat_FormatAdvancedWriter(fieldobj as! PSFormattableFloatingPoint, format_spec)
     }
+    else if fieldobj is PSFormattableComplex {
+        return _PyComplex_FormatAdvancedWriter(fieldobj as! PSFormattableComplex, format_spec)
+    }
     else {
         /* We need to create an object out of the pointers we have, because
            __format__ takes a string/unicode object for format_spec. */
@@ -1135,7 +1138,6 @@ func parse_internal_render_format_spec(_ format_spec:String,
     }
 
     /* Finally, parse the type field. */
-
     if (end-pos > 1) {
         /* More than one char remain, invalid format specifier. */
         return .failure(.ValueError("Invalid format specifier"))
@@ -2346,7 +2348,7 @@ func _PyFloat_FormatAdvancedWriter(
 }
 
 func _PyComplex_FormatAdvancedWriter(
-    _ obj:PyObject,
+    _ obj:PSFormattableComplex,
     _ format_spec:String) -> FormatResult
 {
     var format:InternalFormatSpec
@@ -2358,11 +2360,11 @@ func _PyComplex_FormatAdvancedWriter(
     }
 
     /* parse the format_spec */
-    switch parse_internal_render_format_spec(format_spec, start, end, "\0", ">") {
-    case .success(format):
-        break
-    case .failture(let error):
-        return .failture(error)
+    switch parse_internal_render_format_spec(format_spec, obj.defaultInternalFormatSpec) {
+    case .success(let f):
+        format = f
+    case .failure(let error):
+        return .failure(error)
     }
 
     /* type conversion? */
@@ -2370,7 +2372,7 @@ func _PyComplex_FormatAdvancedWriter(
     case "\0", /* No format code: like 'g', but with at least one decimal. */
     "e", "E", "f", "F","g", "G", "n":
         /* no conversion, already a complex.  do the formatting */
-        return (obj as! PSFormattableComplex).objectFormat(format)
+        return obj.objectFormat(format)
 
     default:
         /* unknown */
