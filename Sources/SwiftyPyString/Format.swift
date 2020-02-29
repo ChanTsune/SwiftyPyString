@@ -1582,21 +1582,16 @@ func number_just(_ digits:String,_ format:InternalFormatSpec, _ spec:NumberField
     switch (format.align) {
     case "<":
         return digits.ljust(format.width, fillchar: spec.fill_char)
-        break;
     case "^":
         return digits.center(format.width, fillchar: spec.fill_char)
-        break;
     case "=":
         return digits.rjust(format.width, fillchar: "0")
-        break;
     case ">":
         return digits.rjust(format.width, fillchar: spec.fill_char)
-        break;
     default:
         /* Shouldn't get here, but treat it as '>' */
-        Py_UNREACHABLE
+        return Py_UNREACHABLE
     }
-    return Py_UNREACHABLE
 }
 
 /* Find the decimal point character(s?), thousands_separator(s?), and
@@ -1773,7 +1768,6 @@ extension PSFormattableInteger {
         var n_digits:Py_ssize_t       /* count of digits need from the computed string */
         var n_remainder:Py_ssize_t = 0 /* Used only for 'c' formatting, which produces non-digits */
         var n_prefix: Py_ssize_t = 0;   /* Count of prefix chars, (e.g., '0x') */
-        var n_total: Py_ssize_t
         var prefix: Py_ssize_t = 0;
         var x:long
 
@@ -1810,7 +1804,7 @@ extension PSFormattableInteger {
                because the characters are likely to be non-digits. */
             n_remainder = 1;
         } else {
-            var isDefault = (
+            let isDefault = (
                 format.sign != "+" &&
                 format.sign != " " &&
                 format.width == -1 &&
@@ -1908,7 +1902,6 @@ extension PSFormattableFloatingPoint {
         var buf:String       /* buffer returned from PyOS_double_to_string */
         var n_digits:Py_ssize_t
         var n_remainder:Py_ssize_t
-        var n_total:Py_ssize_t
         var has_decimal:Bool
 
         var precision:Int
@@ -2356,7 +2349,7 @@ func _PyFloat_FormatAdvancedWriter(
     case "\0", /* No format code: like 'g', but with at least one decimal. */
     "e", "E", "f", "F", "g", "G", "n", "%":
         /* no conversion, already a float.  do the formatting */
-        return (obj as! PSFormattableFloatingPoint).objectFormat(format)
+        return obj.objectFormat(format)
 
     default:
         /* unknown */
