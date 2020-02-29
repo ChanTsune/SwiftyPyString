@@ -2006,41 +2006,38 @@ extension PSFormattableComplex {
     func objectFormat(_ format: InternalFormatSpec) -> FormatResult {
         let re = self.formatableReal
         let im = self.formatableImag
+        
+        var buf:String = ""
 
-    char *re_buf = NULL;       /* buffer returned from PyOS_double_to_string */
-    char *im_buf = NULL;       /* buffer returned from PyOS_double_to_string */
-
-    var tmp_format:InternalFormatSpec = format
-    Py_ssize_t n_re_digits;
-    Py_ssize_t n_im_digits;
-    Py_ssize_t n_re_remainder;
-    Py_ssize_t n_im_remainder;
-    Py_ssize_t n_re_total;
-    Py_ssize_t n_im_total;
-    int re_has_decimal;
-    int im_has_decimal;
-    int precision, default_precision = 6;
-        var type:Py_UCS4 = format.type;
-    Py_ssize_t i_re;
-    Py_ssize_t i_im;
-    NumberFieldWidths re_spec;
-    NumberFieldWidths im_spec;
-    int flags = 0;
-    int result = -1;
-    Py_UCS4 maxchar = 127;
-    enum PyUnicode_Kind rkind;
-    void *rdata;
-    Py_UCS4 re_sign_char = "\0";
-    Py_UCS4 im_sign_char = "\0";
-    int re_float_type; /* Used to see if we have a nan, inf, or regular float. */
-    int im_float_type;
-    int add_parens = 0;
-    int skip_re = 0;
-    Py_ssize_t lpad;
-    Py_ssize_t rpad;
-    Py_ssize_t total;
-    PyObject *re_unicode_tmp = NULL;
-    PyObject *im_unicode_tmp = NULL;
+        var tmp_format:InternalFormatSpec = format
+        var n_re_digits:Py_ssize_t
+        var n_im_digits:Py_ssize_t
+        var n_re_remainder:Py_ssize_t
+        var n_im_remainder:Py_ssize_t
+        var n_re_total:Py_ssize_t
+        var n_im_total:Py_ssize_t
+        var re_has_decimal:Bool
+        var im_has_decimal:Bool
+        var precision:int
+        var default_precision = 6;
+        var type:Py_UCS4 = format.type
+        var i_re:Py_ssize_t
+        var i_im:Py_ssize_t
+        var re_spec:NumberFieldWidths
+        var im_spec:NumberFieldWidths
+        var flags:int = 0
+        var result:String
+        var re_sign_char:Py_UCS4 = "\0"
+        var im_sign_char:Py_UCS4 = "\0"
+        var re_float_type:int /* Used to see if we have a nan, inf, or regular float. */
+        var im_float_type:int
+        var add_parens:Bool = false
+        var skip_re:Bool = false
+        var lpad:Py_ssize_t
+        var rpad:Py_ssize_t
+        var total:Py_ssize_t
+        var re_unicode_tmp:String
+        var im_unicode_tmp:String
 
     /* Locale settings, either from the actual locale or
        from a hard-code pseudo-locale */
@@ -2061,26 +2058,18 @@ extension PSFormattableComplex {
             return .failure(.ValueError("'=' alignment flag is not allowed in complex format specifier"))
     }
 
-    re = PyComplex_RealAsDouble(value);
-    if (re == -1.0 && PyErr_Occurred()){
-        goto done;
-    }
-    im = PyComplex_ImagAsDouble(value);
-    if (im == -1.0 && PyErr_Occurred()){
-        goto done;
-    }
 
         if (format.alternate){
-        flags |= Py_DTSF.ALT.rawValue
-    }
+            flags |= Py_DTSF.ALT.rawValue
+        }
     if (type == "\0") {
         /* Omitted type specifier. Should be like str(self). */
         type = "r";
         default_precision = 0;
         if (re == 0.0 && copysign(1.0, re) == 1.0){
-            skip_re = 1;
+            skip_re = true
         } else {
-            add_parens = 1;
+            add_parens = true
         }
     }
 
@@ -2097,28 +2086,19 @@ extension PSFormattableComplex {
     /* Cast "type", because if we're in unicode we need to pass an
        8-bit char. This is safe, because we've restricted what "type"
        can be. */
-    re_buf = PyOS_double_to_string(re, type, precision, flags,
-                                   &re_float_type);
-    if (re_buf == NULL){
-        goto done;}
-    im_buf = PyOS_double_to_string(im, type, precision, flags,
-                                   &im_float_type);
-    if (im_buf == NULL){
-        goto done;
-    }
-    n_re_digits = strlen(re_buf);
-    n_im_digits = strlen(im_buf);
+    (re_unicode_tmp, re_float_type) = PyOS_double_to_string(re, type, precision, flags,
+                                   re_float_type);
+    (im_unicode_tmp, im_float_type) = PyOS_double_to_string(im, type, precision, flags,
+                                   im_float_type);
+    n_re_digits = strlen(re_unicode_tmp)
+    n_im_digits = strlen(im_unicode_tmp)
 
     /* Since there is no unicode version of PyOS_double_to_string,
        just use the 8 bit version and then convert to unicode. */
-    re_unicode_tmp = _PyUnicode_FromASCII(re_buf, n_re_digits);
-    if (re_unicode_tmp == NULL){
-        goto done;}
+    re_unicode_tmp = _PyUnicode_FromASCII(re_unicode_tmp, n_re_digits);
     i_re = 0;
 
-    im_unicode_tmp = _PyUnicode_FromASCII(im_buf, n_im_digits);
-    if (im_unicode_tmp == NULL){
-        goto done;}
+    im_unicode_tmp = _PyUnicode_FromASCII(im_unicode_tmp, n_im_digits);
     i_im = 0;
 
     /* Is a sign character present in the output?  If so, remember it
@@ -2151,11 +2131,7 @@ extension PSFormattableComplex {
     /* Calculate how much memory we'll need. */
     n_re_total = calc_number_widths(&re_spec, 0, re_sign_char, re_unicode_tmp,
                                     i_re, i_re + n_re_digits, n_re_remainder,
-                                    re_has_decimal, &locale, &tmp_format,
-                                    &maxchar);
-    if (n_re_total == -1) {
-        goto done;
-    }
+                                    re_has_decimal, &locale, &tmp_format)
 
     /* Same formatting, but always include a sign, unless the real part is
      * going to be omitted, in which case we use whatever sign convention was
@@ -2165,11 +2141,7 @@ extension PSFormattableComplex {
     }
     n_im_total = calc_number_widths(&im_spec, 0, im_sign_char, im_unicode_tmp,
                                     i_im, i_im + n_im_digits, n_im_remainder,
-                                    im_has_decimal, &locale, &tmp_format,
-                                    &maxchar);
-    if (n_im_total == -1) {
-        goto done;
-    }
+                                    im_has_decimal, &locale, &tmp_format)
 
     if (skip_re){
         n_re_total = 0;}
@@ -2178,59 +2150,34 @@ extension PSFormattableComplex {
     calc_padding(n_re_total + n_im_total + 1 + add_parens * 2,
                  format->width, format->align, &lpad, &rpad, &total);
 
-    if (_PyUnicodeWriter_Prepare(writer, total, maxchar) == -1){
-        goto done;}
-    rkind = writer->kind;
-    rdata = writer->data;
 
     /* Populate the memory. First, the padding. */
     result = fill_padding(writer,
                           n_re_total + n_im_total + 1 + add_parens * 2,
-                          format->fill_char, lpad, rpad);
-    if (result == -1){
-        goto done;
-    }
-
-    if (add_parens) {
-        PyUnicode_WRITE(rkind, rdata, writer->pos, "(");
-        writer->pos++;
-    }
+                          format->fill_char, lpad, rpad)
+        if (add_parens) {
+            buf = "(" + buf
+        }
 
     if (!skip_re) {
         result = fill_number(writer, &re_spec,
                              re_unicode_tmp, i_re, i_re + n_re_digits,
                              NULL, 0,
                              0,
-                             &locale, 0);
-        if (result == -1){
-            goto done;
-        }
+                             &locale, 0)
     }
     result = fill_number(writer, &im_spec,
                          im_unicode_tmp, i_im, i_im + n_im_digits,
                          NULL, 0,
                          0,
                          &locale, 0);
-    if (result == -1){
-        goto done;
+        buf += "j"
+
+        if (add_parens) {
+            buf += ")"
+        }
+        return .success(buf)
     }
-    PyUnicode_WRITE(rkind, rdata, writer->pos, "j");
-    writer->pos++;
-
-    if (add_parens) {
-        PyUnicode_WRITE(rkind, rdata, writer->pos, ")");
-        writer->pos++;
-    }
-
-    writer->pos += rpad;
-
-done:
-    PyMem_Free(re_buf);
-    PyMem_Free(im_buf);
-    Py_XDECREF(re_unicode_tmp);
-    Py_XDECREF(im_unicode_tmp);
-    return result;
-}
 }
 
 /************************************************************************/
