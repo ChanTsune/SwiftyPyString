@@ -133,7 +133,7 @@ func get_integer(_ str: String) -> Result<Py_ssize_t,PyException>
     return .success(accumulator)
 }
 
-func PyObject_GetAttr(_ v:PyObject, _ name:String) -> Result<PyObject?,PyException>
+func PyObject_GetAttr(_ v:PyObject, _ name:String) -> Result<PyObject,PyException>
 {
     let mirror = Mirror(reflecting: v)
     let c = mirror.children
@@ -147,31 +147,17 @@ func PyObject_GetAttr(_ v:PyObject, _ name:String) -> Result<PyObject?,PyExcepti
     return .failure(.AttributeError("'\(typeName(v))' object has no attribute '\(name)'"))
 }
 
-func PySequence_GetItem<Seq: RandomAccessCollection>(_ s:Seq, _ i:Py_ssize_t) -> PyObject? where Seq.Index == Int
-{
-    if s.count > i {
-        return s[i]
-    }
-    return nil
-}
-
 
 /************************************************************************/
 /******** Functions to get field objects and specification strings ******/
 /************************************************************************/
 
 /* do the equivalent of obj.name */
-func getattr(_ obj:PyObject, _ name:String) -> Result<PyObject?,PyException>
+func getattr(_ obj:PyObject, _ name:String) -> Result<PyObject,PyException>
 {
     return PyObject_GetAttr(obj, name)
 }
-
-/* do the equivalent of obj[idx], where obj is a sequence */
-func getitem_sequence<Seq: RandomAccessCollection>(_ obj:Seq, _ idx:Py_ssize_t) -> PyObject? where Seq.Index == Int
-{
-    return PySequence_GetItem(obj, idx)
-}
-func PyObject_GetItem<D: RandomAccessCollection>(_ obj:D, _ key:D.Index) -> Any {
+func PyObject_GetItem<D: RandomAccessCollection>(_ obj:D, _ key:D.Index) -> Any? {
     return obj[key]
 }
 /* do the equivalent of obj[idx], where obj is not a sequence */
@@ -408,9 +394,9 @@ func field_name_split(_ str:String,
     the entire input string.
 */
 func get_field_object(_ input:String, _ args:[Any], _ kwargs:[String:Any],
-                      _ auto_number:AutoNumber) -> Result<PyObject?,PyException>
+                      _ auto_number:AutoNumber) -> Result<PyObject,PyException>
 {
-    var obj:PyObject? = nil;
+    var obj:PyObject
     var first: String
     var index:Py_ssize_t
     var rest:FieldNameIterator
@@ -431,10 +417,10 @@ func get_field_object(_ input:String, _ args:[Any], _ kwargs:[String:Any],
         /* Use PyObject_GetItem instead of PyDict_GetItem because this
            code is no longer just used with kwargs. It might be passed
            a non-dict when called through format_map. */
-        obj = kwargs[key]
-        if (obj == nil) {
+        guard let v = kwargs[key] else {
             return .failure(.KeyError(key))
         }
+        obj = v
     }
     else {
         /* If args is NULL, we have a format string with a positional field
@@ -446,10 +432,10 @@ func get_field_object(_ input:String, _ args:[Any], _ kwargs:[String:Any],
         }
 
         /* look up in args */
-        obj = PySequence_GetItem(args, index);
-        if (obj == nil) {
+        if args.count <= index {
             return .failure(.IndexError("Replacement index \(index) out of range for positional args tuple"))
         }
+        obj = args[index]
     }
 
     /* iterate over the rest of the field_name */
@@ -504,7 +490,6 @@ func get_field_object(_ input:String, _ args:[Any], _ kwargs:[String:Any],
 */
 func render_field(_ fieldobj:PyObject, _ format_spec:String) -> FormatResult
 {
-    var format_spec_object:String = ""
 
     /* If we know the type exactly, skip the lookup of __format__ and just
        call the formatter directly. */
@@ -520,7 +505,6 @@ func render_field(_ fieldobj:PyObject, _ format_spec:String) -> FormatResult
     else {
         /* We need to create an object out of the pointers we have, because
            __format__ takes a string/unicode object for format_spec. */
-        format_spec_object = format_spec
 
         return .success(String(describing: fieldobj))
     }
@@ -781,7 +765,7 @@ func output_markup(_ field_name:String,
                    _ recursion_depth:int,
                    _ auto_number:AutoNumber) -> FormatResult
 {
-    var fieldobj:PyObject?
+    var fieldobj:PyObject
     var actual_format_spec:String
 
     /* convert field_name to an object */
@@ -1055,8 +1039,6 @@ func parse_internal_render_format_spec(_ format_spec:String,
 
     var pos = 0
     let end = format_spec.count
-    var length = format_spec.count // 文字列の長さ
-
 
     var consumed:Py_ssize_t
     var align_specified:Bool = false
