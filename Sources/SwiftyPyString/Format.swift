@@ -493,22 +493,18 @@ func render_field(_ fieldobj:PyObject, _ format_spec:String) -> FormatResult
 
     /* If we know the type exactly, skip the lookup of __format__ and just
        call the formatter directly. */
-    if fieldobj is PSFormattableString {
-        return _PyUnicode_FormatAdvancedWriter(fieldobj as! PSFormattable, format_spec)
-    }
-    else if fieldobj is PSFormattableInteger {
-        return _PyLong_FormatAdvancedWriter(fieldobj as! PSFormattableInteger, format_spec)
-    }
-    else if fieldobj is PSFormattableFloatingPoint {
-        return _PyFloat_FormatAdvancedWriter(fieldobj as! PSFormattableFloatingPoint, format_spec)
-    }
-    else if fieldobj is PSFormattableComplex {
-        return _PyComplex_FormatAdvancedWriter(fieldobj as! PSFormattableComplex, format_spec)
-    }
-    else {
+    switch fieldobj {
+    case let obj as PSFormattableString:
+        return _PyUnicode_FormatAdvancedWriter(obj, format_spec)
+    case let obj as PSFormattableInteger:
+        return _PyLong_FormatAdvancedWriter(obj, format_spec)
+    case let obj as PSFormattableFloatingPoint:
+        return _PyFloat_FormatAdvancedWriter(obj, format_spec)
+    case let obj as PSFormattableComplex:
+        return _PyComplex_FormatAdvancedWriter(obj, format_spec)
+    default:
         /* We need to create an object out of the pointers we have, because
            __format__ takes a string/unicode object for format_spec. */
-
         return .success(String(describing: fieldobj))
     }
 }
@@ -703,7 +699,7 @@ func MarkupIterator_next(_ self:MarkupIterator) -> LoopResult<MarkupIteratorNext
     }
 
     /* record the literal text */
-    var literal = self.str[start,start + len]
+    result.literal = self.str[start,start + len]
 
     if (!markup_follows){
         return .success(result)
@@ -2240,13 +2236,8 @@ done:
 /************************************************************************/
 /*********** built in formatters ****************************************/
 /************************************************************************/
-func format_obj(_ obj:PyObject) -> FormatResult
-{
-    return .success(obj as? String ?? "nil?")
-}
-
 func _PyUnicode_FormatAdvancedWriter(
-        _ obj:PSFormattable,
+        _ obj:PSFormattableString,
         _ format_spec:String) -> FormatResult
 {
     var format:InternalFormatSpec
@@ -2323,7 +2314,7 @@ func _PyFloat_FormatAdvancedWriter(
     /* check for the special case of zero length format spec, make
        it equivalent to str(obj) */
     if format_spec.isEmpty {
-        return format_obj(obj);
+        return .success(.init(obj.formatableFloatingPoint))
     }
     /* parse the format_spec */
     switch parse_internal_render_format_spec(format_spec, obj.defaultInternalFormatSpec) {
@@ -2356,7 +2347,7 @@ func _PyComplex_FormatAdvancedWriter(
     /* check for the special case of zero length format spec, make
        it equivalent to str(obj) */
     if format_spec.isEmpty {
-        return format_obj(obj)
+        return .success(.init(describing: obj))
     }
 
     /* parse the format_spec */
