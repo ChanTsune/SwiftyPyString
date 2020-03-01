@@ -1044,7 +1044,7 @@ func parse_internal_render_format_spec(_ format_spec:String,
         // 現在の対象から二文字先にアラインメント指定があればアラインメントの指定に加えて、
         // パディング文字の指定もあることがわかる
         format.align = align
-        format.fill_char = format_spec.at(pos)!
+        format.fill_char = format_spec[pos]
         fill_char_specified = true
         align_specified = true
         pos += 2
@@ -1237,9 +1237,6 @@ struct NumberFieldWidths {
     var need_prefix:Bool
     var sign: Character?
     var need_sign: Bool      /* number of digits needed for sign (0/1) */
-    var n_remainder: Py_ssize_t /* Digits in decimal and/or exponent part,
-                               excluding the decimal itself, if
-                               present. */
     var fill_char:Character = " "
 }
 /* PyOS_double_to_string's "flags" parameter can be set to 0 or more of: */
@@ -1466,31 +1463,27 @@ func parse_number(_ s:String) -> (Int, Bool)
        only one of lpadding, spadding, and rpadding can be non-zero,
        and it's calculated from the width and other fields
     */
-func calc_number_widths(_ n_prefix: Py_ssize_t,
+func calc_number_widths(
                     _ sign_char:Py_UCS4,
                     _ number:PyObject,
-                    _ n_start:Py_ssize_t,
-                    _ n_end:Py_ssize_t,
-                    _ n_remainder:Py_ssize_t,
                     _ has_decimal:Bool,
-                    _ locale:LocaleInfo,
                     _ format:InternalFormatSpec
                     ) -> NumberFieldWidths {
-    var spec:NumberFieldWidths = .init(need_prefix: false, sign: "\0", need_sign: false, n_remainder: 0)
+    var spec:NumberFieldWidths = .init(need_prefix: false, sign: "\0", need_sign: false)
 
     /* compute the various parts we're going to write */
-    switch (format.sign) {
+    switch format.sign {
     case "+":
         /* always put a + or - */
-        spec.sign = (sign_char == "-" ? "-" : "+");
-        break;
+        spec.sign = (sign_char == "-" ? "-" : "+")
+        break
     case " ":
-        spec.sign = (sign_char == "-" ? "-" : " ");
-        break;
+        spec.sign = (sign_char == "-" ? "-" : " ")
+        break
     default:
         /* Not specified, or the default (-) */
         if (sign_char == "-") {
-            spec.sign = "-";
+            spec.sign = "-"
         }
     }
 
@@ -1511,13 +1504,14 @@ func fill_number(_ spec:NumberFieldWidths,
     var (digits, dot, remine) = digits.partition(locale.decimal_point)
     digits = _PyUnicode_InsertThousandsGrouping(digits, locale.grouping, locale.thousands_sep)
     /* Used to keep track of digits, decimal, and remainder. */
-    digits = prefix.upper() + digits + dot + remine
+    digits = prefix + digits + dot + remine
 
     /* Only for type 'c' special case, it has no digits. */
-    if (toupper) {
+    if toupper {
         digits = digits.upper()
     }
-    return digits
+    
+    return number_just(digits, format, spec, locale)
 }
 
 func number_just(_ digits:String,_ format:InternalFormatSpec, _ spec:NumberFieldWidths, _ locale:LocaleInfo) -> String {
@@ -1715,13 +1709,9 @@ extension PSFormattableInteger {
     func objectFormat(_ format: InternalFormatSpec) -> FormatResult {
         let value = self.formatableInteger
         var tmp: String = ""
-        var inumeric_chars:Py_ssize_t
-        var sign_char:Py_UCS4 = "\0";
-        var n_digits:Py_ssize_t       /* count of digits need from the computed string */
-        var n_remainder:Py_ssize_t = 0 /* Used only for 'c' formatting, which produces non-digits */
-        var n_prefix: Py_ssize_t = 0;   /* Count of prefix chars, (e.g., '0x') */
+        var sign_char:Py_UCS4 = "\0"
         var prefix: Py_ssize_t = 0;
-        var x:long
+        var prefix_tmp:String = ""
 
         /* no precision allowed on integers */
         if (format.precision != -1) {
@@ -1741,20 +1731,10 @@ extension PSFormattableInteger {
 
             /* taken from unicodeobject.c formatchar() */
             /* Integer input truncated to a character */
-            x = value
-            if (x < 0 || x > 0x10ffff) {
+            if (value < 0 || value > 0x10ffff) {
                 return .failure(.OverflowError("%c arg not in range(0x110000)"))
             }
-            tmp = String(Py_UCS4(x))
-            inumeric_chars = 0;
-            n_digits = 1;
-
-            /* As a sort-of hack, we tell calc_number_widths that we only
-               have "remainder" characters. calc_number_widths thinks
-               these are characters that don't get formatted, only copied
-               into the output string. We do this for 'c' formatting,
-               because the characters are likely to be non-digits. */
-            n_remainder = 1;
+            tmp = String(Py_UCS4(value))
         } else {
             let isDefault = (
                 format.sign != "+" &&
@@ -1764,24 +1744,21 @@ extension PSFormattableInteger {
                 format.type != "n" &&
                 format.thousands_separators == .LT_NO_LOCALE)
             var base:int
-            var leading_chars_to_skip:int = 0;  /* Number of characters added by
-                                               PyNumber_ToBase that we want to
-                                               skip over. */
 
             /* Compute the base and how many characters will be added by
                PyNumber_ToBase */
             switch (format.type) {
             case "b":
                 base = 2;
-                leading_chars_to_skip = 2; /* 0b */
+                prefix_tmp = format.alternate ? "0b" : ""
                 break;
             case "o":
                 base = 8;
-                leading_chars_to_skip = 2; /* 0o */
+                prefix_tmp = format.alternate ? "0o" : ""
                 break;
             case "x", "X":
                 base = 16;
-                leading_chars_to_skip = 2; /* 0x */
+                prefix_tmp = format.alternate ? "0x" : ""
                 break;
             case "d", "n":
                 fallthrough
@@ -1796,31 +1773,16 @@ extension PSFormattableInteger {
                 return .success(longFormat(value, radix: base, alternate: format.alternate))
             }
 
-            /* The number of prefix chars is the same as the leading
-               chars to skip */
-            if format.alternate {
-                n_prefix = leading_chars_to_skip
-            }
-
             /* Do the hard part, converting to a string in a given base */
             tmp = String(value, radix: base, uppercase: false)
 
-            inumeric_chars = 0;
-            n_digits = tmp.count
-
-            prefix = inumeric_chars;
 
             /* Is a sign character present in the output?  If so, remember it
                and skip it */
-            if (PyUnicode_READ_CHAR(tmp, inumeric_chars) == "-") {
+            if (PyUnicode_READ_CHAR(tmp, 0) == "-") {
                 sign_char = "-"
                 ++prefix;
-                ++leading_chars_to_skip;
             }
-
-            /* Skip over the leading chars (0x, 0b, etc.) */
-            n_digits -= leading_chars_to_skip;
-            inumeric_chars += leading_chars_to_skip;
         }
 
         /* Determine the grouping, separator, and decimal point, if any. */
@@ -1829,12 +1791,9 @@ extension PSFormattableInteger {
         let locale:LocaleInfo = get_locale_info(format.type == "n" ? .LT_CURRENT_LOCALE :
             format.thousands_separators)
         /* Calculate how much memory we'll need. */
-        let spec: NumberFieldWidths =
-        calc_number_widths(n_prefix, sign_char, tmp, inumeric_chars,
-                                     inumeric_chars + n_digits, n_remainder, false,
-                                     locale, format);
+        let spec: NumberFieldWidths = calc_number_widths(sign_char, tmp, false, format)
 
-        return .success(fill_number(spec, tmp, format, "prefix(0x,etc)", format.fill_char, locale, format.type == "X"))
+        return .success(fill_number(spec, tmp, format, prefix_tmp, format.fill_char, locale, format.type == "X"))
     }
 }
 
@@ -1852,7 +1811,6 @@ extension PSFormattableFloatingPoint {
         let value = self.formatableFloatingPoint
         var buf:String       /* buffer returned from PyOS_double_to_string */
         var n_digits:Py_ssize_t
-        var n_remainder:Py_ssize_t
         var has_decimal:Bool
 
         var precision:Int
@@ -1941,7 +1899,7 @@ extension PSFormattableFloatingPoint {
 
         /* Determine if we have any "remainder" (after the digits, might include
            decimal or exponent or both (or neither)) */
-        (n_remainder, has_decimal) = parse_number(unicode_tmp)
+        (_, has_decimal) = parse_number(unicode_tmp)
 
         /* Determine the grouping, separator, and decimal point, if any. */
         /* Locale settings, either from the actual locale or
@@ -1949,9 +1907,7 @@ extension PSFormattableFloatingPoint {
         let locale:LocaleInfo = get_locale_info(format.type == "n" ? .LT_CURRENT_LOCALE : format.thousands_separators)
 
         /* Calculate how much memory we'll need. */
-        spec = calc_number_widths( 0, sign_char, unicode_tmp, index,
-                                     index + n_digits, n_remainder, has_decimal,
-                                     locale, format);
+        spec = calc_number_widths(sign_char, unicode_tmp, has_decimal, format)
 
         return .success(fill_number(spec, unicode_tmp, format,"prefix",format.fill_char, locale, false))
     }
@@ -1976,8 +1932,6 @@ extension PSFormattableComplex {
         var tmp_format:InternalFormatSpec = format
         var n_re_digits:Py_ssize_t
         var n_im_digits:Py_ssize_t
-        var n_re_remainder:Py_ssize_t
-        var n_im_remainder:Py_ssize_t
         var re_has_decimal:Bool
         var im_has_decimal:Bool
         var precision:int
@@ -2069,8 +2023,8 @@ extension PSFormattableComplex {
 
     /* Determine if we have any "remainder" (after the digits, might include
        decimal or exponent or both (or neither)) */
-    (n_re_remainder, re_has_decimal) = parse_number(re_unicode_tmp)
-    (n_im_remainder, im_has_decimal) = parse_number(im_unicode_tmp)
+    (_, re_has_decimal) = parse_number(re_unicode_tmp)
+    (_, im_has_decimal) = parse_number(im_unicode_tmp)
 
     /* Determine the grouping, separator, and decimal point, if any. */
         locale = get_locale_info(format.type == "n" ? .LT_CURRENT_LOCALE : format.thousands_separators)
@@ -2082,9 +2036,7 @@ extension PSFormattableComplex {
     tmp_format.width = -1;
 
     /* Calculate how much memory we'll need. */
-    re_spec = calc_number_widths(0, re_sign_char, re_unicode_tmp,
-                                    i_re, i_re + n_re_digits, n_re_remainder,
-                                    re_has_decimal, locale, tmp_format)
+    re_spec = calc_number_widths(re_sign_char, re_unicode_tmp, re_has_decimal, tmp_format)
 
     /* Same formatting, but always include a sign, unless the real part is
      * going to be omitted, in which case we use whatever sign convention was
@@ -2092,9 +2044,7 @@ extension PSFormattableComplex {
     if (!skip_re){
         tmp_format.sign = "+"
     }
-    im_spec = calc_number_widths(0, im_sign_char, im_unicode_tmp,
-                                    i_im, i_im + n_im_digits, n_im_remainder,
-                                    im_has_decimal, locale, tmp_format)
+    im_spec = calc_number_widths(im_sign_char, im_unicode_tmp, im_has_decimal, tmp_format)
 
         re_unicode_tmp = number_just(re_unicode_tmp, tmp_format, re_spec, locale)
         im_unicode_tmp = number_just(im_unicode_tmp, tmp_format, im_spec, locale)
