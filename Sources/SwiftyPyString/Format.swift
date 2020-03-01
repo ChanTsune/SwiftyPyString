@@ -926,12 +926,12 @@ func invalid_comma_and_underscore() -> PyException
     returns -1 on error.
 */
 func get_integer(_ str:String,
-                 _ ppos:Py_ssize_t) -> Result<(int,int),PyException>
+                 _ start_pos:Py_ssize_t) -> Result<(int,int),PyException>
 {
     var accumulator:Py_ssize_t = 0
     var numdigits:int = 0
     let end = str.count
-    var ppos = ppos
+    var ppos = start_pos
     while ppos < end {
         let digitval = Py_UNICODE_TODECIMAL(str.at(ppos)!);
         if digitval < 0 {
@@ -1029,7 +1029,7 @@ extension InternalFormatSpec: CustomDebugStringConvertible {
 func parse_internal_render_format_spec(_ format_spec:String,
                                        _ default_format_spec:InternalFormatSpec) -> Result<InternalFormatSpec, PyException>
 {
-    var format:InternalFormatSpec = .init(align: " ", type: " ")
+    var format:InternalFormatSpec = default_format_spec
 
     var pos = 0
     let end = format_spec.count
@@ -1047,7 +1047,7 @@ func parse_internal_render_format_spec(_ format_spec:String,
         format.fill_char = format_spec.at(pos)!
         fill_char_specified = true
         align_specified = true
-        pos += 2;
+        pos += 2
     }
     else if let align = format_spec.at(pos), is_alignment_token(align).asBool {
         format.align = align
@@ -1080,6 +1080,7 @@ func parse_internal_render_format_spec(_ format_spec:String,
     switch get_integer(format_spec, pos) {
     case .success(let t):
         (consumed,format.width) = t
+        pos += consumed
     case .failure(let error):
         /* Overflow error. Exception already set. */
         return .failure(error)
@@ -1630,7 +1631,7 @@ protocol PSFormattableString: PSFormattable {
 }
 extension PSFormattableString {
     var defaultInternalFormatSpec: InternalFormatSpec {
-        InternalFormatSpec(align: "s", type: "<")
+        InternalFormatSpec(align: "<", type: "s")
     }
 /************************************************************************/
 /*********** string formatting ******************************************/
@@ -1673,6 +1674,9 @@ extension PSFormattableString {
 }
 extension String: PSFormattableString {
     var formattableString: String { self }
+    var str: String { self }
+    var repr: String { "'\(self)'" }
+    var ascii: String { "'\(self)'" }
 }
 
 @inlinable
@@ -1702,7 +1706,7 @@ protocol PSFormattableInteger: PSFormattable {
 }
 extension PSFormattableInteger {
     var defaultInternalFormatSpec: InternalFormatSpec {
-        InternalFormatSpec(align: "d", type: ">")
+        InternalFormatSpec(align: ">", type: "d")
     }
 /************************************************************************/
 /*********** long formatting ********************************************/
@@ -1839,7 +1843,7 @@ protocol PSFormattableFloatingPoint: PSFormattable {
 }
 extension PSFormattableFloatingPoint {
     var defaultInternalFormatSpec: InternalFormatSpec {
-        InternalFormatSpec(align: "\0", type: ">")
+        InternalFormatSpec(align: ">", type: "\0")
     }
 /************************************************************************/
 /*********** float formatting *******************************************/
@@ -1958,7 +1962,7 @@ protocol PSFormattableComplex: PSFormattable {
 }
 extension PSFormattableComplex {
     var defaultInternalFormatSpec: InternalFormatSpec {
-        InternalFormatSpec(align: "\0", type: ">")
+        InternalFormatSpec(align: ">", type: "\0")
     }
 /************************************************************************/
 /*********** complex formatting *****************************************/
@@ -2132,7 +2136,7 @@ func _PyUnicode_FormatAdvancedWriter(
 
     /* check for the special case of zero length format spec, make
        it equivalent to str(obj) */
-    if (format_spec.isEmpty) {
+    if format_spec.isEmpty {
         return .success(obj as! String)
     }
 
