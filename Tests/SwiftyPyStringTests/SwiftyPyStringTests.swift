@@ -87,12 +87,6 @@ final class SwiftyPyStringTests: XCTestCase {
 
         XCTAssertEqual(str2.find(""), 0)
     }
-    func testMakeTable() throws {
-        let p = "qwertyuiop"
-        for _ in 0...10000 {
-            String.make_table(p)
-        }
-    }
     func testIndex() throws {
         let s = "0123456789"
         XCTAssertEqual(try! s.index("0"), 0)
