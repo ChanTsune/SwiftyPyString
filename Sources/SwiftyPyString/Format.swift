@@ -465,7 +465,14 @@ func get_field_object(_ input:String, _ args:[Any], _ kwargs:[String:Any],
         if (tmp == nil){
             return .failure(.AttributeError("???"))
         }
-        obj = tmp;
+        if let t = tmp {
+            obj = t
+        } else {
+            if index == -1 {
+                return .failure(.KeyError(name))
+            }
+            return .failure(.IndexError("index out of range \(index)"))
+        }
     }
     /* end of iterator, this is the non-error case */
     return .success(obj)
