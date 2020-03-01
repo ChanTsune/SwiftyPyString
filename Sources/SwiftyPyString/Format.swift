@@ -625,7 +625,7 @@ class MarkupIterator {
 
 struct MarkupIteratorNextResult {
     var format_spec_needs_expanding:Bool
-    var field_present:int
+    var field_present:Bool
     var literal:String
     var field_name:String
     var format_spec:String
@@ -640,7 +640,7 @@ func MarkupIterator_next(_ self:MarkupIterator) -> LoopResult<MarkupIteratorNext
     var markup_follows:Bool = false
 
     /* initialize all of the output variables */
-    var result = MarkupIteratorNextResult(format_spec_needs_expanding: false, field_present: 0, literal: "", field_name: "", format_spec: "", conversion: "\0")
+    var result = MarkupIteratorNextResult(format_spec_needs_expanding: false, field_present: false, literal: "", field_name: "", format_spec: "", conversion: "\0")
 
     /* No more input, end of iterator.  This is the normal exit
        path. */
@@ -701,7 +701,7 @@ func MarkupIterator_next(_ self:MarkupIterator) -> LoopResult<MarkupIteratorNext
     }
 
     /* this is markup; parse the field */
-    result.field_present = 1;
+    result.field_present = true
     switch parse_field(self) {
     case .success(let r):
         result.conversion = r.conversion
@@ -826,7 +826,7 @@ func do_markup(_ input:String, _ args:[Any], _ kwargs:[String:Any],
                 markuped += result.literal
             }
 
-            if (result.field_present.asBool) {
+            if result.field_present {
                 switch output_markup(result.field_name,
                                      result.format_spec,
                                      result.format_spec_needs_expanding,
@@ -959,13 +959,13 @@ func get_integer(_ str:String,
 /************************************************************************/
 
 /* returns true if this character is a specifier alignment token */
-func is_alignment_token(_ c:Py_UCS4) -> int
+func is_alignment_token(_ c:Py_UCS4) -> Bool
 {
     switch (c) {
     case "<", ">", "=", "^":
-        return 1;
+        return true
     default:
-        return 0;
+        return false
     }
 }
 
@@ -976,13 +976,13 @@ extension Int {
 }
 
 /* returns true if this character is a sign element */
-func is_sign_element(_ c:Py_UCS4) -> int
+func is_sign_element(_ c:Py_UCS4) -> Bool
 {
     switch (c) {
     case " ", "+", "-":
-        return 1;
+        return true
     default:
-        return 0;
+        return false
     }
 }
 
@@ -1040,7 +1040,7 @@ func parse_internal_render_format_spec(_ format_spec:String,
 
     /* If the second char is an alignment token,
        then parse the fill char */
-    if let align = format_spec.at(pos+1),is_alignment_token(align).asBool {
+    if let align = format_spec.at(pos+1),is_alignment_token(align) {
         // 現在の対象から二文字先にアラインメント指定があればアラインメントの指定に加えて、
         // パディング文字の指定もあることがわかる
         format.align = align
@@ -1049,14 +1049,14 @@ func parse_internal_render_format_spec(_ format_spec:String,
         align_specified = true
         pos += 2
     }
-    else if let align = format_spec.at(pos), is_alignment_token(align).asBool {
+    else if let align = format_spec.at(pos), is_alignment_token(align) {
         format.align = align
         align_specified = true
         ++pos;
     }
 
     /* Parse the various sign options */
-    if let element = format_spec.at(pos), is_sign_element(element).asBool {
+    if let element = format_spec.at(pos), is_sign_element(element) {
         format.sign = element
         ++pos;
     }
