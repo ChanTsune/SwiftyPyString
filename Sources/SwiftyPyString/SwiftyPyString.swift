@@ -126,7 +126,7 @@ extension String {
     public func expandtabs(_ tabsize: Int = 8) -> String {
         return self.replace("\t", new: String(repeating: " ", count: tabsize))
     }
-    static public func make_table(_ pattern: String) -> [Character: Int] {
+    static func make_table(_ pattern: String) -> [Character: Int] {
         var table: [Character: Int] = [:]
         let len = pattern.count - 1
         for i in 0..<(len) {
