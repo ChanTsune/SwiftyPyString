@@ -318,7 +318,7 @@ extension String {
         }
         return String(str.dropLast(self.count))
     }
-    public func ljust(_ width: Int, fillchar: Character = " ") -> String {
+    public func rjust(_ width: Int, fillchar: Character = " ") -> String {
         if self.count >= width {
             return self
         }
@@ -415,7 +415,7 @@ extension String {
         }
         return i
     }
-    public func rjust(_ width: Int, fillchar: Character = " ") -> String {
+    public func ljust(_ width: Int, fillchar: Character = " ") -> String {
         if self.count >= width {
             return self
         }
@@ -673,10 +673,10 @@ extension String {
         if !self.isEmpty {
             let h = self[0, 1]
             if h == "+" || h == "-" {
-                return h + self[1, nil].ljust(width - 1, fillchar: "0")
+                return h + self[1, nil].rjust(width - 1, fillchar: "0")
             }
         }
-        return self.ljust(width, fillchar: "0")
+        return self.rjust(width, fillchar: "0")
     }
 }
 

@@ -174,8 +174,8 @@ final class SwiftyPyStringTests: XCTestCase {
     func testLjust() throws {
         let str = "abc"
         XCTAssertEqual(str.ljust(1), "abc")
-        XCTAssertEqual(str.ljust(5), "  abc")
-        XCTAssertEqual(str.ljust(5, fillchar: "z"), "zzabc")
+        XCTAssertEqual(str.ljust(5), "abc  ")
+        XCTAssertEqual(str.ljust(5, fillchar: "z"), "abczz")
     }
     func testLower() throws {
         XCTAssertEqual("ABCDE".lower(), "abcde")
@@ -229,8 +229,8 @@ final class SwiftyPyStringTests: XCTestCase {
     func testRjust() throws {
         let str = "abc"
         XCTAssertEqual(str.rjust(1), "abc")
-        XCTAssertEqual(str.rjust(5), "abc  ")
-        XCTAssertEqual(str.rjust(5, fillchar: "z"), "abczz")
+        XCTAssertEqual(str.rjust(5), "  abc")
+        XCTAssertEqual(str.rjust(5, fillchar: "z"), "zzabc")
     }
     func testRpartition() throws {
         XCTAssert("a,b,c".rpartition(",") == ("a,b", ",", "c"))
