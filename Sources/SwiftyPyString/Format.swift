@@ -1244,7 +1244,7 @@ struct NumberFieldWidths {
     var need_prefix:Bool
     var sign: Character?
     var need_sign: Bool      /* number of digits needed for sign (0/1) */
-    var fill_char:Character = " "
+    var fill_char:Character
 }
 /* PyOS_double_to_string's "flags" parameter can be set to 0 or more of: */
 enum Py_DTSF:Int{
@@ -1263,8 +1263,7 @@ enum Py_DTST:Int{
 func PyOS_double_to_string(_ val:double,
                            _ format_code:Character,
                            _ precision:int,
-                           _ flags:int,
-                           _ type:int) -> (String, Int)
+                           _ flags:int) -> (String, Int)
 {
     var format:String
     var buf:String
@@ -1275,26 +1274,26 @@ func PyOS_double_to_string(_ val:double,
     var precision:int = precision
 
     /* Validate format_code, and map upper and lower case */
-    switch (format_code) {
+    switch format_code {
     case "e",          /* exponent */
          "f",          /* fixed */
          "g":          /* general */
-        break;
+        break
     case "E":
         upper = true
-        format_code = "e";
-        break;
+        format_code = "e"
+        break
     case "F":
         upper = true
-        format_code = "f";
-        break;
+        format_code = "f"
+        break
     case "G":
         upper = true
-        format_code = "g";
-        break;
+        format_code = "g"
+        break
     case "r":          /* repr format */
         /* Supplied precision is unused, must be 0. */
-        if (precision != 0) {
+        if precision != 0 {
             fatalError("PyErr_BadInternalCall()")
         }
         /* The repr() precision (17 significant decimal digits) is the
@@ -1303,8 +1302,8 @@ func PyOS_double_to_string(_ val:double,
            value is recreated.  This is true for IEEE floating point
            by design, and also happens to work for all other modern
            hardware. */
-        precision = 17;
-        format_code = "g";
+        precision = 17
+        format_code = "g"
         break;
     default:
         fatalError("PyErr_BadInternalCall()")
@@ -1363,18 +1362,24 @@ func PyOS_double_to_string(_ val:double,
     } else {
         t = Py_DTST.FINITE.rawValue
         if (flags & Py_DTSF.ADD_DOT_0.rawValue).asBool {
-            format_code = "Z";
+            format = String(format: "%%\((flags & Py_DTSF.ALT.rawValue).asBool ? "#" : "")%c", format_code.unicode.value)
+        } else {
+            format = String(format: "%%\((flags & Py_DTSF.ALT.rawValue).asBool ? "#" : "").%i%c", precision, format_code.unicode.value)
         }
-        format = String(format: "%%\((flags & Py_DTSF.ALT.rawValue).asBool ? "#" : "").%i%c", precision, format_code.unicode.value)
         buf = String(format: format, val, precision)
+        if (flags & Py_DTSF.ADD_DOT_0.rawValue).asBool {
+            if buf.find(".") == -1 {
+                buf += ".0"
+            }
+        }
     }
 
     /* Add sign when requested.  It's convenient (esp. when formatting
      complex numbers) to include a sign even for inf and nan. */
-    if ((flags & Py_DTSF.SIGN.rawValue).asBool && buf[0] != "-") {
+    if (flags & Py_DTSF.SIGN.rawValue).asBool && buf[0] != "-" {
         buf = "+" + buf
     }
-    if (upper) {
+    if upper {
         /* Convert to upper case. */
         buf = buf.upper()
     }
@@ -1476,7 +1481,7 @@ func calc_number_widths(
                     _ has_decimal:Bool,
                     _ format:InternalFormatSpec
                     ) -> NumberFieldWidths {
-    var spec:NumberFieldWidths = .init(need_prefix: false, sign: "\0", need_sign: false)
+    var spec:NumberFieldWidths = .init(need_prefix: false, sign: "\0", need_sign: false, fill_char: format.fill_char)
 
     /* compute the various parts we're going to write */
     switch format.sign {
@@ -1815,71 +1820,63 @@ extension PSFormattableFloatingPoint {
 /*********** float formatting *******************************************/
 /************************************************************************/
     func objectFormat(_ format: InternalFormatSpec) -> FormatResult {
-        let value = self.formatableFloatingPoint
-        var buf:String       /* buffer returned from PyOS_double_to_string */
-        var n_digits:Py_ssize_t
+        var val = self.formatableFloatingPoint
         var has_decimal:Bool
 
-        var precision:Int
-        var default_precision = 6;
-        var type:Py_UCS4 = format.type;
+        var precision:Int = format.precision
+
+        var default_precision = 6
+        var type:Py_UCS4 = format.type
         var add_pct:Bool = false
-        var index:Py_ssize_t
         var spec:NumberFieldWidths
-        var flags:int = 0;
+        var flags:int = 0
         var sign_char:Py_UCS4 = "\0"
         var float_type:int /* Used to see if we have a nan, inf, or regular float. */ = .init()
         var unicode_tmp:String
 
-        if (format.precision > INT_MAX) {
+        if format.precision > INT_MAX {
             return .failure(.ValueError("precision too big"))
         }
-        precision = format.precision;
 
         if format.alternate {
             flags |= Py_DTSF.ALT.rawValue
         }
 
-        if (type == "\0") {
+        if type == "\0" {
             /* Omitted type specifier.  Behaves in the same way as repr(x)
                and str(x) if no precision is given, else like 'g', but with
                at least one digit after the decimal point. */
             flags |= Py_DTSF.ADD_DOT_0.rawValue
-            type = "r";
-            default_precision = 0;
-        }
-
-        if (type == "n"){
+            type = "r"
+            default_precision = 0
+        } else if type == "n" {
             /* 'n' is the same as 'g', except for the locale used to
                format the result. We take care of that later. */
-        type = "g";
-        }
-        var val = value
-        if (type == "%") {
-            type = "f";
-            val *= 100;
+            type = "g"
+        } else if type == "%" {
+            type = "f"
+            val *= 100
             add_pct = true
         }
 
-        if (precision < 0){
-            precision = default_precision;
+        if precision < 0 {
+            precision = default_precision
         }
-        else if (type == "r")
-        {type = "g";}
+        else if type == "r" {
+            type = "g"
+        }
 
         /* Cast "type", because if we're in unicode we need to pass an
            8-bit char. This is safe, because we've restricted what "type"
            can be. */
-        (buf,float_type) = PyOS_double_to_string(val, type, precision, flags, float_type)
+        (unicode_tmp ,float_type) = PyOS_double_to_string(val, type, precision, flags)
 
-        n_digits = strlen(buf);
 
-        if (add_pct) {
+        if add_pct {
             /* We know that buf has a trailing zero (since we just called
                strlen() on it), and we don't use that fact any more. So we
                can just write over the trailing zero. */
-            buf += "%"
-            n_digits += 1;
+            unicode_tmp += "%"
         }
 
         if (format.sign != "+" && format.sign != " "
@@ -1888,20 +1885,13 @@ extension PSFormattableFloatingPoint {
             && format.thousands_separators == .LT_NO_LOCALE)
         {
             /* Fast path */
-            return .success(buf)
+            return .success(unicode_tmp)
         }
-
-        /* Since there is no unicode version of PyOS_double_to_string,
-           just use the 8 bit version and then convert to unicode. */
-        unicode_tmp = buf
 
         /* Is a sign character present in the output?  If so, remember it
            and skip it */
-        index = 0;
-        if (PyUnicode_READ_CHAR(unicode_tmp, index) == "-") {
-            sign_char = "-";
-            ++index;
-            --n_digits;
+        if let c = unicode_tmp.first, c == "-" {
+            sign_char = "-"
         }
 
         /* Determine if we have any "remainder" (after the digits, might include
@@ -1916,7 +1906,7 @@ extension PSFormattableFloatingPoint {
         /* Calculate how much memory we'll need. */
         spec = calc_number_widths(sign_char, unicode_tmp, has_decimal, format)
 
-        return .success(fill_number(spec, unicode_tmp, format,"prefix",format.fill_char, locale, false))
+        return .success(fill_number(spec, unicode_tmp, format, "",format.fill_char, locale, false))
     }
 }
 protocol PSFormattableComplex: PSFormattable {
@@ -2005,10 +1995,8 @@ extension PSFormattableComplex {
     /* Cast "type", because if we're in unicode we need to pass an
        8-bit char. This is safe, because we've restricted what "type"
        can be. */
-    (re_unicode_tmp, re_float_type) = PyOS_double_to_string(re, type, precision, flags,
-                                   re_float_type);
-    (im_unicode_tmp, im_float_type) = PyOS_double_to_string(im, type, precision, flags,
-                                   im_float_type);
+    (re_unicode_tmp, re_float_type) = PyOS_double_to_string(re, type, precision, flags)
+    (im_unicode_tmp, im_float_type) = PyOS_double_to_string(im, type, precision, flags)
     n_re_digits = strlen(re_unicode_tmp)
     n_im_digits = strlen(im_unicode_tmp)
 
