@@ -100,6 +100,7 @@
 				B5D5A54D2406B7B8003FACA8 /* FormatTests.swift */,
 				OBJ_12 /* SwiftyPyStringTests.swift */,
 				OBJ_13 /* XCTestManifests.swift */,
+				B5B8D06123E6A48E007BC242 /* EmptyStringTest.swift */,
 				B54DDD6322EAD8870083970A /* SliceTests.swift */,
 			);
 			name = SwiftyPyStringTests;
@@ -205,6 +206,11 @@
 			attributes = {
 				LastSwiftMigration = 9999;
 				LastUpgradeCheck = 9999;
+				TargetAttributes = {
+					"SwiftyPyString::SwiftyPyStringPackageTests::ProductTarget" = {
+						LastSwiftMigration = 1130;
+					};
+				};
 			};
 			buildConfigurationList = OBJ_2 /* Build configuration list for PBXProject "SwiftyPyString" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -254,6 +260,7 @@
 				B5D5A54F2406B7B8003FACA8 /* FormatTests.swift in Sources */,
 				OBJ_45 /* XCTestManifests.swift in Sources */,
 				B51620C022CF9FB700D2BF10 /* SwiftyPyStringTests.swift in Sources */,
+				B5B8D06423E6A48E007BC242 /* EmptyStringTest.swift in Sources */,
 				B54DDD6422EAD8870083970A /* SliceTests.swift in Sources */,
 				B5D5A5502406B7B8003FACA8 /* EmptyStringTest.swift in Sources */,
 			);
@@ -379,12 +386,19 @@
 		OBJ_36 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
 		};
 		OBJ_37 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
 		};

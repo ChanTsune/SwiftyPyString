@@ -1323,7 +1323,3 @@ let casefoldTable:[UInt32:String] = [
    0x118BF:"\u{118DF}",
 
 ]
-
-func getFolded(_ c: Character) -> String {
-    return casefoldTable[c.unicode.value, default: String(c)]
-}
