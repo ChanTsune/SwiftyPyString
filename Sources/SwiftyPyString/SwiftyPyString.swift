@@ -50,17 +50,6 @@ extension Character {
 
 public let PYTHON_VERSION = "3.7.2"
 
-public enum PyException: Error {
-    case AttributeError(String)
-    case BaseException(String)
-    case Exception(String)
-    case ValueError(String)
-    case KeyError(String)
-    case IndexError(String)
-    case TypeError(String)
-    case SystemError(String)
-    case OverflowError(String)
-}
 
 public func * (str: String, n: Int) -> String {
     return String(repeating: str, count: n > 0 ? n : 0)
