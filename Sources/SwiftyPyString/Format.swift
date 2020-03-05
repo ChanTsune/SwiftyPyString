@@ -1242,7 +1242,7 @@ struct GroupGenerator {
    calc_number_widths() for details */
 struct NumberFieldWidths {
     var need_prefix:Bool
-    var sign: Character?
+    var sign: String
     var need_sign: Bool      /* number of digits needed for sign (0/1) */
     var fill_char:Character
 }
@@ -1425,7 +1425,7 @@ func _PyUnicode_InsertThousandsGrouping(
        should be an empty string */
     var buf = ""
     var len = groupgen.next()
-    var i = 0
+    var i = -1
     for ch in digits.reversed() {
         i += 1
         if len != 0 && len == i {
@@ -1435,7 +1435,7 @@ func _PyUnicode_InsertThousandsGrouping(
         }
         buf.append(ch)
     }
-    return buf
+    return String(buf.reversed())
 }
 
 /* Given a number of the form:
@@ -1481,7 +1481,7 @@ func calc_number_widths(
                     _ has_decimal:Bool,
                     _ format:InternalFormatSpec
                     ) -> NumberFieldWidths {
-    var spec:NumberFieldWidths = .init(need_prefix: false, sign: "\0", need_sign: false, fill_char: format.fill_char)
+    var spec:NumberFieldWidths = .init(need_prefix: false, sign: "", need_sign: false, fill_char: format.fill_char)
 
     /* compute the various parts we're going to write */
     switch format.sign {
@@ -1528,15 +1528,16 @@ func fill_number(_ spec:NumberFieldWidths,
 
 func number_just(_ digits:String,_ format:InternalFormatSpec, _ spec:NumberFieldWidths, _ locale:LocaleInfo) -> String {
     /* Some padding is needed. Determine if it's left, space, or right. */
-    switch (format.align) {
+    let sign = digits.first != "-" ? spec.sign : ""
+    switch format.align {
     case "<":
-        return digits.ljust(format.width, fillchar: spec.fill_char)
+        return (sign + digits).ljust(format.width, fillchar: spec.fill_char)
     case "^":
-        return digits.center(format.width, fillchar: spec.fill_char)
+        return (sign + digits).center(format.width, fillchar: spec.fill_char)
     case "=":
-        return digits.rjust(format.width, fillchar: "0")
+        return sign + digits.rjust(format.width - 1, fillchar: "0")
     case ">":
-        return digits.rjust(format.width, fillchar: spec.fill_char)
+        return (sign + digits).rjust(format.width, fillchar: spec.fill_char)
     default:
         /* Shouldn't get here, but treat it as '>' */
         return Py_UNREACHABLE
@@ -2210,18 +2211,6 @@ func _PyComplex_FormatAdvancedWriter(
 
 func typeName(_ object:Any) -> String {
     return String(describing: type(of: object.self))
-}
-
-
-enum PyUnicode_Kind: Int {
-/* String contains only wstr byte characters.  This is only possible
-   when the string was created with a legacy API and _PyUnicode_Ready()
-   has not been called yet.  */
-    case PyUnicode_WCHAR_KIND = 0
-/* Return values of the PyUnicode_KIND() macro: */
-    case PyUnicode_1BYTE_KIND = 1
-    case PyUnicode_2BYTE_KIND = 2
-    case PyUnicode_4BYTE_KIND = 4
 }
 
 extension String {
