@@ -23,10 +23,12 @@ final class FormatIntegerTests : XCTestCase {
         XCTAssertEqual("{:<5}".format(1), "1    ")
         XCTAssertEqual("{:^5}".format(1), "  1  ")
         XCTAssertEqual("{:>5}".format(1), "    1")
+        XCTAssertEqual("{:=5}".format(1), "00001")
         XCTAssertEqual("{:5}".format(-1), "   -1")
         XCTAssertEqual("{:<5}".format(-1), "-1   ")
         XCTAssertEqual("{:^5}".format(-1), " -1  ")
         XCTAssertEqual("{:>5}".format(-1), "   -1")
+        XCTAssertEqual("{:=5}".format(-1), "-0001")
     }
     func testSign() throws {
         XCTAssertEqual("{:+}".format(1), "+1")

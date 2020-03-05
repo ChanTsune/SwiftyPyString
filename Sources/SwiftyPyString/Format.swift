@@ -1488,14 +1488,15 @@ func calc_number_widths(
     case "+":
         /* always put a + or - */
         spec.sign = (sign_char == "-" ? "-" : "+")
-        break
+        spec.need_sign = true
     case " ":
         spec.sign = (sign_char == "-" ? "-" : " ")
-        break
+        spec.need_sign = true
     default:
         /* Not specified, or the default (-) */
         if (sign_char == "-") {
             spec.sign = "-"
+            spec.need_sign = true
         }
     }
 
@@ -1528,14 +1529,14 @@ func fill_number(_ spec:NumberFieldWidths,
 
 func number_just(_ digits:String,_ format:InternalFormatSpec, _ spec:NumberFieldWidths, _ locale:LocaleInfo) -> String {
     /* Some padding is needed. Determine if it's left, space, or right. */
-    let sign = digits.first != "-" ? spec.sign : ""
+    let sign = spec.sign
     switch format.align {
     case "<":
         return (sign + digits).ljust(format.width, fillchar: spec.fill_char)
     case "^":
         return (sign + digits).center(format.width, fillchar: spec.fill_char)
     case "=":
-        return sign + digits.rjust(format.width - 1, fillchar: "0")
+        return sign + digits.rjust(format.width - (spec.need_sign ? 1 : 0), fillchar: "0")
     case ">":
         return (sign + digits).rjust(format.width, fillchar: spec.fill_char)
     default:
@@ -1723,7 +1724,6 @@ extension PSFormattableInteger {
         let value = self.formatableInteger
         var tmp: String = ""
         var sign_char:Py_UCS4 = "\0"
-        var prefix: Py_ssize_t = 0;
         var prefix_tmp:String = ""
 
         /* no precision allowed on integers */
@@ -1794,7 +1794,7 @@ extension PSFormattableInteger {
                and skip it */
             if (PyUnicode_READ_CHAR(tmp, 0) == "-") {
                 sign_char = "-"
-                ++prefix;
+                tmp.removeFirst()
             }
         }
 
@@ -1893,6 +1893,7 @@ extension PSFormattableFloatingPoint {
            and skip it */
         if let c = unicode_tmp.first, c == "-" {
             sign_char = "-"
+            unicode_tmp.removeFirst()
         }
 
         /* Determine if we have any "remainder" (after the digits, might include
