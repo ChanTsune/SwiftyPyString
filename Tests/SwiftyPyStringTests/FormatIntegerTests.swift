@@ -41,6 +41,16 @@ final class FormatIntegerTests : XCTestCase {
         XCTAssertEqual("{: }".format(0), " 0")
         XCTAssertEqual("{: }".format(-1), "-1")
     }
+    func testSharp() throws {
+        XCTAssertEqual("{:#b}".format(197),"0b11000101")
+        XCTAssertEqual("{:#o}".format(197),"0o305")
+        XCTAssertEqual("{:#x}".format(197),"0xc5")
+        XCTAssertEqual("{:#X}".format(197),"0XC5")
+    }
+    func testZero() throws {
+        XCTAssertEqual("{:05}".format(197),"00197")
+        XCTAssertEqual("{:05}".format(-197),"-0197")
+    }
     func testWidth() throws {
         XCTAssertEqual("{:2}".format(0), " 0")
         XCTAssertEqual("{:2}".format(10), "10")
