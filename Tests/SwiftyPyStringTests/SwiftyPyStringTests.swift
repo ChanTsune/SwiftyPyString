@@ -2,7 +2,6 @@ import XCTest
 @testable import SwiftyPyString
 
 final class SwiftyPyStringTests: XCTestCase {
-    
     func testMultiplication() throws {
         XCTAssertEqual("a" * 0, "")
         XCTAssertEqual(0 * "a", "")

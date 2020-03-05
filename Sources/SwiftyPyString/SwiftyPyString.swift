@@ -63,7 +63,12 @@ public func *= (str: inout String, n: Int) {
 
 
 extension String {
-
+    func at(_ i: Int) -> Character? {
+        if self.count > i {
+            return self[self.index(self.startIndex, offsetBy: i)]
+        }
+        return nil
+    }
     public func capitalize() -> String {
         return self.prefix(1).uppercased() + self.dropFirst(1).lowercased()
     }

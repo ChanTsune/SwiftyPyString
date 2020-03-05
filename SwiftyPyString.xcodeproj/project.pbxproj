@@ -26,7 +26,12 @@
 		B51620C722D7230D00D2BF10 /* casefoldTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = B51620C622D7230D00D2BF10 /* casefoldTable.swift */; };
 		B54DDD6422EAD8870083970A /* SliceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B54DDD6322EAD8870083970A /* SliceTests.swift */; };
 		B551D6BF2316DD270070B5B8 /* Slice.swift in Sources */ = {isa = PBXBuildFile; fileRef = B551D6BE2316DD270070B5B8 /* Slice.swift */; };
-		B5B8D06423E6A48E007BC242 /* EmptyStringTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5B8D06123E6A48E007BC242 /* EmptyStringTest.swift */; };
+		B5D5A54C2406B77C003FACA8 /* Format.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5D5A54B2406B77C003FACA8 /* Format.swift */; };
+		B5D5A54F2406B7B8003FACA8 /* FormatTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5D5A54D2406B7B8003FACA8 /* FormatTests.swift */; };
+		B5D5A5502406B7B8003FACA8 /* EmptyStringTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5D5A54E2406B7B8003FACA8 /* EmptyStringTest.swift */; };
+		E00F0D922410B1390008CDF7 /* FormatStringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00F0D912410B1390008CDF7 /* FormatStringTests.swift */; };
+		E00F0D942410B5F80008CDF7 /* FormatIntegerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00F0D932410B5F80008CDF7 /* FormatIntegerTests.swift */; };
+		E00F0D962410B6360008CDF7 /* FormatFloatingPointTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00F0D952410B6360008CDF7 /* FormatFloatingPointTests.swift */; };
 		B5D5A552240FF176003FACA8 /* PyException.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5D5A551240FF176003FACA8 /* PyException.swift */; };
 		OBJ_33 /* Package.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_6 /* Package.swift */; };
 		OBJ_45 /* XCTestManifests.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_13 /* XCTestManifests.swift */; };
@@ -53,7 +58,12 @@
 		B51620C622D7230D00D2BF10 /* casefoldTable.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = casefoldTable.swift; sourceTree = "<group>"; };
 		B54DDD6322EAD8870083970A /* SliceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SliceTests.swift; sourceTree = "<group>"; };
 		B551D6BE2316DD270070B5B8 /* Slice.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Slice.swift; sourceTree = "<group>"; };
-		B5B8D06123E6A48E007BC242 /* EmptyStringTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EmptyStringTest.swift; sourceTree = "<group>"; };
+		B5D5A54B2406B77C003FACA8 /* Format.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Format.swift; sourceTree = "<group>"; };
+		B5D5A54D2406B7B8003FACA8 /* FormatTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FormatTests.swift; sourceTree = "<group>"; };
+		B5D5A54E2406B7B8003FACA8 /* EmptyStringTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EmptyStringTest.swift; sourceTree = "<group>"; };
+		E00F0D912410B1390008CDF7 /* FormatStringTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatStringTests.swift; sourceTree = "<group>"; };
+		E00F0D932410B5F80008CDF7 /* FormatIntegerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatIntegerTests.swift; sourceTree = "<group>"; };
+		E00F0D952410B6360008CDF7 /* FormatFloatingPointTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatFloatingPointTests.swift; sourceTree = "<group>"; };
 		B5D5A551240FF176003FACA8 /* PyException.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PyException.swift; sourceTree = "<group>"; };
 		OBJ_12 /* SwiftyPyStringTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftyPyStringTests.swift; sourceTree = "<group>"; };
 		OBJ_13 /* XCTestManifests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XCTestManifests.swift; sourceTree = "<group>"; };
@@ -94,9 +104,13 @@
 		OBJ_11 /* SwiftyPyStringTests */ = {
 			isa = PBXGroup;
 			children = (
+				B5D5A54E2406B7B8003FACA8 /* EmptyStringTest.swift */,
+				B5D5A54D2406B7B8003FACA8 /* FormatTests.swift */,
+				E00F0D912410B1390008CDF7 /* FormatStringTests.swift */,
+				E00F0D932410B5F80008CDF7 /* FormatIntegerTests.swift */,
+				E00F0D952410B6360008CDF7 /* FormatFloatingPointTests.swift */,
 				OBJ_12 /* SwiftyPyStringTests.swift */,
 				OBJ_13 /* XCTestManifests.swift */,
-				B5B8D06123E6A48E007BC242 /* EmptyStringTest.swift */,
 				B54DDD6322EAD8870083970A /* SliceTests.swift */,
 			);
 			name = SwiftyPyStringTests;
@@ -135,6 +149,7 @@
 		OBJ_8 /* SwiftyPyString */ = {
 			isa = PBXGroup;
 			children = (
+				B5D5A54B2406B77C003FACA8 /* Format.swift */,
 				B5D5A551240FF176003FACA8 /* PyException.swift */,
 				B551D6BE2316DD270070B5B8 /* Slice.swift */,
 				B51620C622D7230D00D2BF10 /* casefoldTable.swift */,
@@ -234,6 +249,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 0;
 			files = (
+				B5D5A54C2406B77C003FACA8 /* Format.swift in Sources */,
 				B5D5A552240FF176003FACA8 /* PyException.swift in Sources */,
 				B51620C322D3862B00D2BF10 /* SwiftyPyString.swift in Sources */,
 				B551D6BF2316DD270070B5B8 /* Slice.swift in Sources */,
@@ -253,10 +269,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 0;
 			files = (
+				B5D5A54F2406B7B8003FACA8 /* FormatTests.swift in Sources */,
 				OBJ_45 /* XCTestManifests.swift in Sources */,
 				B51620C022CF9FB700D2BF10 /* SwiftyPyStringTests.swift in Sources */,
-				B5B8D06423E6A48E007BC242 /* EmptyStringTest.swift in Sources */,
+				E00F0D962410B6360008CDF7 /* FormatFloatingPointTests.swift in Sources */,
+				E00F0D942410B5F80008CDF7 /* FormatIntegerTests.swift in Sources */,
+				E00F0D922410B1390008CDF7 /* FormatStringTests.swift in Sources */,
 				B54DDD6422EAD8870083970A /* SliceTests.swift in Sources */,
+				B5D5A5502406B7B8003FACA8 /* EmptyStringTest.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
