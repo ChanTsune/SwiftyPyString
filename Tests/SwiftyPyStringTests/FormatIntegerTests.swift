@@ -5,7 +5,7 @@
 import XCTest
 @testable import SwiftyPyString
 
-final class FormatIntegerTests : XCTestCase {
+final class FormatIntegerTests: XCTestCase {
     func testIntegerFormat() throws {
         XCTAssertEqual("{}".format(1), "1")
         XCTAssertEqual("{}".format(-1), "-1")
@@ -42,14 +42,14 @@ final class FormatIntegerTests : XCTestCase {
         XCTAssertEqual("{: }".format(-1), "-1")
     }
     func testAlternative() throws {
-        XCTAssertEqual("{:#b}".format(197),"0b11000101")
-        XCTAssertEqual("{:#o}".format(197),"0o305")
-        XCTAssertEqual("{:#x}".format(197),"0xc5")
-        XCTAssertEqual("{:#X}".format(197),"0XC5")
+        XCTAssertEqual("{:#b}".format(197), "0b11000101")
+        XCTAssertEqual("{:#o}".format(197), "0o305")
+        XCTAssertEqual("{:#x}".format(197), "0xc5")
+        XCTAssertEqual("{:#X}".format(197), "0XC5")
     }
     func testZero() throws {
-        XCTAssertEqual("{:05}".format(197),"00197")
-        XCTAssertEqual("{:05}".format(-197),"-0197")
+        XCTAssertEqual("{:05}".format(197), "00197")
+        XCTAssertEqual("{:05}".format(-197), "-0197")
     }
     func testWidth() throws {
         XCTAssertEqual("{:2}".format(0), " 0")
@@ -73,30 +73,30 @@ final class FormatIntegerTests : XCTestCase {
         XCTAssertEqual("{:,}".format(6543210), "6,543,210")
     }
     func testType() throws {
-        XCTAssertEqual("{:b}".format(97),"1100001")
-        XCTAssertEqual("{:c}".format(97),"a")
-        XCTAssertEqual("{:d}".format(97),"97")
-        XCTAssertEqual("{:e}".format(97),"9.700000e+01")
-        XCTAssertEqual("{:E}".format(97),"9.700000E+01")
-        XCTAssertEqual("{:f}".format(97),"97.000000")
-        XCTAssertEqual("{:F}".format(97),"97.000000")
-        XCTAssertEqual("{:g}".format(97),"97")
-        XCTAssertEqual("{:G}".format(97),"97")
-        XCTAssertEqual("{:n}".format(97),"97")
-        XCTAssertEqual("{:o}".format(97),"141")
-        XCTAssertEqual("{:x}".format(97),"61")
-        XCTAssertEqual("{:X}".format(97),"61")
-        XCTAssertEqual("{:%}".format(97),"9700.000000%")
+        XCTAssertEqual("{:b}".format(97), "1100001")
+        XCTAssertEqual("{:c}".format(97), "a")
+        XCTAssertEqual("{:d}".format(97), "97")
+        XCTAssertEqual("{:e}".format(97), "9.700000e+01")
+        XCTAssertEqual("{:E}".format(97), "9.700000E+01")
+        XCTAssertEqual("{:f}".format(97), "97.000000")
+        XCTAssertEqual("{:F}".format(97), "97.000000")
+        XCTAssertEqual("{:g}".format(97), "97")
+        XCTAssertEqual("{:G}".format(97), "97")
+        XCTAssertEqual("{:n}".format(97), "97")
+        XCTAssertEqual("{:o}".format(97), "141")
+        XCTAssertEqual("{:x}".format(97), "61")
+        XCTAssertEqual("{:X}".format(97), "61")
+        XCTAssertEqual("{:%}".format(97), "9700.000000%")
     }
     /// Returns path to the built products directory.
     var productsDirectory: URL {
         #if os(macOS)
-        for bundle in Bundle.allBundles where bundle.bundlePath.hasSuffix(".xctest") {
-            return bundle.bundleURL.deletingLastPathComponent()
-        }
-        fatalError("couldn't find the products directory")
+            for bundle in Bundle.allBundles where bundle.bundlePath.hasSuffix(".xctest") {
+                return bundle.bundleURL.deletingLastPathComponent()
+            }
+            fatalError("couldn't find the products directory")
         #else
-        return Bundle.main.bundleURL
+            return Bundle.main.bundleURL
         #endif
     }
 }

@@ -63,7 +63,7 @@ public func *= (str: inout String, n: Int) {
 
 
 extension String {
-    func at(_ i:Int) -> Character? {
+    func at(_ i: Int) -> Character? {
         if self.count > i {
             return self[self.index(self.startIndex, offsetBy: i)]
         }

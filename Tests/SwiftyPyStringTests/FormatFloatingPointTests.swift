@@ -5,7 +5,7 @@
 import XCTest
 @testable import SwiftyPyString
 
-final class FormatFloatingPointTests : XCTestCase {
+final class FormatFloatingPointTests: XCTestCase {
     func testFloatFormat() throws {
         XCTAssertEqual("{}".format(1.1), "1.1")
         XCTAssertEqual("{}".format(-1.1), "-1.1")
@@ -52,30 +52,30 @@ final class FormatFloatingPointTests : XCTestCase {
         XCTAssertEqual("{:4}".format(10.0), "10.0")
         XCTAssertEqual("{:4}".format(101.0), "101.0")
     }
-    
+
     func testGroupingOption() throws {
         XCTAssertEqual("{:_}".format(10001.1), "10_001.1")
     }
     func testType() throws {
-        XCTAssertEqual("{:e}".format(1.1),"1.100000e+00")
-        XCTAssertEqual("{:E}".format(1.1),"1.100000E+00")
-        XCTAssertEqual("{:f}".format(1.1),"1.100000")
-        XCTAssertEqual("{:F}".format(1.1),"1.100000")
-        XCTAssertEqual("{:g}".format(1.1),"1.1")
-        XCTAssertEqual("{:G}".format(1.1),"1.1")
-        XCTAssertEqual("{:n}".format(1.1),"1.1")
-        XCTAssertEqual("{:%}".format(1.1),"110.000000%")
+        XCTAssertEqual("{:e}".format(1.1), "1.100000e+00")
+        XCTAssertEqual("{:E}".format(1.1), "1.100000E+00")
+        XCTAssertEqual("{:f}".format(1.1), "1.100000")
+        XCTAssertEqual("{:F}".format(1.1), "1.100000")
+        XCTAssertEqual("{:g}".format(1.1), "1.1")
+        XCTAssertEqual("{:G}".format(1.1), "1.1")
+        XCTAssertEqual("{:n}".format(1.1), "1.1")
+        XCTAssertEqual("{:%}".format(1.1), "110.000000%")
     }
-    
+
     /// Returns path to the built products directory.
     var productsDirectory: URL {
         #if os(macOS)
-        for bundle in Bundle.allBundles where bundle.bundlePath.hasSuffix(".xctest") {
-            return bundle.bundleURL.deletingLastPathComponent()
-        }
-        fatalError("couldn't find the products directory")
+            for bundle in Bundle.allBundles where bundle.bundlePath.hasSuffix(".xctest") {
+                return bundle.bundleURL.deletingLastPathComponent()
+            }
+            fatalError("couldn't find the products directory")
         #else
-        return Bundle.main.bundleURL
+            return Bundle.main.bundleURL
         #endif
     }
 }
