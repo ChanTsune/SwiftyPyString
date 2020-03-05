@@ -41,7 +41,7 @@ final class FormatIntegerTests : XCTestCase {
         XCTAssertEqual("{: }".format(0), " 0")
         XCTAssertEqual("{: }".format(-1), "-1")
     }
-    func testSharp() throws {
+    func testAlternative() throws {
         XCTAssertEqual("{:#b}".format(197),"0b11000101")
         XCTAssertEqual("{:#o}".format(197),"0o305")
         XCTAssertEqual("{:#x}".format(197),"0xc5")

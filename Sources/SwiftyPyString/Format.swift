@@ -1367,6 +1367,13 @@ func PyOS_double_to_string(_ val:double,
             format = String(format: "%%\((flags & Py_DTSF.ALT.rawValue).asBool ? "#" : "").%i%c", precision, format_code.unicode.value)
         }
         buf = String(format: format, val, precision)
+        if (flags & Py_DTSF.ALT.rawValue).asBool && buf.find(".") != -1 {
+            var drop = buf.count - 1
+            while buf[drop] == "0" && buf[drop-1] != "." {
+                buf.removeLast()
+                drop -= 1
+            }
+        }
         if (flags & Py_DTSF.ADD_DOT_0.rawValue).asBool {
             if buf.find(".") == -1 {
                 buf += ".0"
