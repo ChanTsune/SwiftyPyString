@@ -100,7 +100,6 @@
 				B5D5A54D2406B7B8003FACA8 /* FormatTests.swift */,
 				OBJ_12 /* SwiftyPyStringTests.swift */,
 				OBJ_13 /* XCTestManifests.swift */,
-				B5B8D06123E6A48E007BC242 /* EmptyStringTest.swift */,
 				B54DDD6322EAD8870083970A /* SliceTests.swift */,
 			);
 			name = SwiftyPyStringTests;
@@ -260,7 +259,6 @@
 				B5D5A54F2406B7B8003FACA8 /* FormatTests.swift in Sources */,
 				OBJ_45 /* XCTestManifests.swift in Sources */,
 				B51620C022CF9FB700D2BF10 /* SwiftyPyStringTests.swift in Sources */,
-				B5B8D06423E6A48E007BC242 /* EmptyStringTest.swift in Sources */,
 				B54DDD6422EAD8870083970A /* SliceTests.swift in Sources */,
 				B5D5A5502406B7B8003FACA8 /* EmptyStringTest.swift in Sources */,
 			);
