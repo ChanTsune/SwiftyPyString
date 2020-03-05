@@ -7,18 +7,26 @@ import XCTest
 
 final class FormatIntegerTests : XCTestCase {
     func testIntegerFormat() throws {
+        XCTAssertEqual("{}".format(1), "1")
         XCTAssertEqual("{}".format(-1), "-1")
     }
-    func testIntegerFormatAlign() throws {
+    func testAlign() throws {
         XCTAssertEqual("{:5}".format(1), "    1")
         XCTAssertEqual("{:<5}".format(1), "1    ")
         XCTAssertEqual("{:^5}".format(1), "  1  ")
         XCTAssertEqual("{:>5}".format(1), "    1")
+        XCTAssertEqual("{:5}".format(-1), "   -1")
+        XCTAssertEqual("{:<5}".format(-1), "-1   ")
+        XCTAssertEqual("{:^5}".format(-1), " -1  ")
+        XCTAssertEqual("{:>5}".format(-1), "   -1")
     }
-    func testIntegerFormatFill() throws {
+    func testFill() throws {
         XCTAssertEqual("{:a<5}".format(1), "1aaaa")
         XCTAssertEqual("{:a^5}".format(1), "aa1aa")
         XCTAssertEqual("{:a>5}".format(1), "aaaa1")
+        XCTAssertEqual("{:a<5}".format(-1), "-1aaa")
+        XCTAssertEqual("{:a^5}".format(-1), "a-1aa")
+        XCTAssertEqual("{:a>5}".format(-1), "aaa-1")
     }
     /// Returns path to the built products directory.
     var productsDirectory: URL {

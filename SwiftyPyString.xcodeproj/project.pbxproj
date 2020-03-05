@@ -105,11 +105,11 @@
 				B5D5A54E2406B7B8003FACA8 /* EmptyStringTest.swift */,
 				B5D5A54D2406B7B8003FACA8 /* FormatTests.swift */,
 				E00F0D912410B1390008CDF7 /* FormatStringTests.swift */,
+				E00F0D932410B5F80008CDF7 /* FormatIntegerTests.swift */,
+				E00F0D952410B6360008CDF7 /* FormatFloatingPointTests.swift */,
 				OBJ_12 /* SwiftyPyStringTests.swift */,
 				OBJ_13 /* XCTestManifests.swift */,
 				B54DDD6322EAD8870083970A /* SliceTests.swift */,
-				E00F0D932410B5F80008CDF7 /* FormatIntegerTests.swift */,
-				E00F0D952410B6360008CDF7 /* FormatFloatingPointTests.swift */,
 			);
 			name = SwiftyPyStringTests;
 			path = Tests/SwiftyPyStringTests;
