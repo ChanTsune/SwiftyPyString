@@ -20,7 +20,9 @@ typealias size_t = Int
 typealias double = Double
 typealias Py_UCS4 = Character
 
-var PY_SSIZE_T_MAX = Int.max
+let PY_SSIZE_T_MAX = Int.max
+let INT_MAX = Int.max
+let CHAR_MAX = 127
 
 extension BinaryInteger {
     @discardableResult
