@@ -210,7 +210,7 @@ func _FieldNameIterator_item(_ self: FieldNameIterator) -> Result<String, PyExce
         break
     }
     /* make sure we ended with a ']' */
-    if (!bracket_seen) {
+    if !bracket_seen {
         return .failure(.ValueError("Missing ']' in format string"))
     }
 
@@ -1220,10 +1220,9 @@ struct GroupGenerator {
     let grouping: [Int8]
     var previous: Int = .max
     var i: Py_ssize_t = 0 /* Where we're currently pointing in grouping. */
-    let max: Int
+    let max: Int = CHAR_MAX
     init(_ grouping: [Int8]) {
         self.grouping = grouping
-        max = Int(CHAR_MAX)
     }
     mutating func next() -> Int {
         /* Note that we don't really do much error checking here. If a
@@ -1251,33 +1250,20 @@ struct GroupGenerator {
 /* describes the layout for an integer, see the comment in
    calc_number_widths() for details */
 struct NumberFieldWidths {
-    var need_prefix: Bool
     var sign: String
     var need_sign: Bool /* number of digits needed for sign (0/1) */
     var fill_char: Character
-}
-/* PyOS_double_to_string's "flags" parameter can be set to 0 or more of: */
-enum Py_DTSF: Int {
-    case SIGN = 0x01 /* always add the sign */
-    case ADD_DOT_0 = 0x02 /* if the result is an integer add ".0" */
-    case ALT = 0x04 /* "alternate" formatting. it's format_codespecific */
-}
-
-/* PyOS_double_to_string's "type", if non-NULL, will be set to one of: */
-enum Py_DTST: Int {
-    case FINITE = 0
-    case INFINITE = 1
-    case NAN = 2
 }
 
 func PyOS_double_to_string(_ val: double,
                            _ format_code: Character,
                            _ precision: int,
-                           _ flags: int) -> (String, Int)
+                           _ sign:Bool,
+                           _ addDot0:Bool,
+                           _ alt:Bool) -> String
 {
     var format: String
     var buf: String
-    var t: Int
     var upper: Bool = false
     // to mutable
     var format_code: Character = format_code
@@ -1286,8 +1272,8 @@ func PyOS_double_to_string(_ val: double,
     /* Validate format_code, and map upper and lower case */
     switch format_code {
     case "e", /* exponent */
-     "f", /* fixed */
-     "g": /* general */
+         "f", /* fixed */
+         "g": /* general */
         break
     case "E":
         upper = true
@@ -1360,7 +1346,6 @@ func PyOS_double_to_string(_ val: double,
     /* Handle nan and inf. */
     if val.isNaN {
         buf = "nan"
-        t = Py_DTST.NAN.rawValue
     } else if val.isInfinite {
         if (copysign(1.0, val) == 1.0) {
             buf = "inf"
@@ -1368,19 +1353,17 @@ func PyOS_double_to_string(_ val: double,
         else {
             buf = "-inf"
         }
-        t = Py_DTST.INFINITE.rawValue
     } else {
-        t = Py_DTST.FINITE.rawValue
-        format = String(format: "%%\((flags & Py_DTSF.ALT.rawValue).asBool ? "#" : "").%i%c", precision, format_code.unicode.value)
+        format = String(format: "%%\(alt ? "#" : "").%i%c", precision, format_code.unicode.value)
         buf = String(format: format, val, precision)
-        if (flags & Py_DTSF.ALT.rawValue).asBool && buf.find(".") != -1 {
+        if alt && buf.find(".") != -1 {
             var drop = buf.count - 1
             while buf[drop] == "0" && buf[drop - 1] != "." {
                 buf.removeLast()
                 drop -= 1
             }
         }
-        if (flags & Py_DTSF.ADD_DOT_0.rawValue).asBool {
+        if addDot0 {
             if buf.find(".") == -1 {
                 buf += ".0"
             }
@@ -1389,7 +1372,7 @@ func PyOS_double_to_string(_ val: double,
 
     /* Add sign when requested.  It's convenient (esp. when formatting
      complex numbers) to include a sign even for inf and nan. */
-    if (flags & Py_DTSF.SIGN.rawValue).asBool && buf[0] != "-" {
+    if sign && buf[0] != "-" {
         buf = "+" + buf
     }
     if upper {
@@ -1397,7 +1380,7 @@ func PyOS_double_to_string(_ val: double,
         buf = buf.upper()
     }
 
-    return (buf, t)
+    return buf
 }
 
 /**
@@ -1451,25 +1434,6 @@ func _PyUnicode_InsertThousandsGrouping(
     return String(buf.reversed())
 }
 
-/* Given a number of the form:
-   digits[remainder]
-   where ptr points to the start and end points to the end, find where
-    the integer part ends. This could be a decimal, an exponent, both,
-    or neither.
-   If a decimal point is present, set *has_decimal and increment
-    remainder beyond it.
-   Results are undefined (but shouldn't crash) for improperly
-    formatted strings.
-*/
-func parse_number(_ s: String) -> (Int, Bool)
-{
-    let i = s.find(".")
-    if i != -1 {
-        return (n_remainder: (s.count - i) - 1, has_decimal: true)
-    }
-    return (n_remainder: 0, has_decimal: false)
-}
-
 /* the output will look like:
        |                                                                                         |
        | <lpadding> <sign> <prefix> <spadding> <grouped_digits> <decimal> <remainder> <rpadding> |
@@ -1490,11 +1454,9 @@ func parse_number(_ s: String) -> (Int, Bool)
     */
 func calc_number_widths(
     _ sign_char: Py_UCS4,
-    _ number: PyObject,
-    _ has_decimal: Bool,
     _ format: InternalFormatSpec
 ) -> NumberFieldWidths {
-    var spec: NumberFieldWidths = .init(need_prefix: false, sign: "", need_sign: false, fill_char: format.fill_char)
+    var spec: NumberFieldWidths = .init(sign: "", need_sign: false, fill_char: format.fill_char)
 
     /* compute the various parts we're going to write */
     switch format.sign {
@@ -1817,7 +1779,7 @@ extension PSFormattableInteger {
         let locale: LocaleInfo = get_locale_info(format.type == "n" ? .LT_CURRENT_LOCALE:
             format.thousands_separators)
         /* Calculate how much memory we'll need. */
-        let spec: NumberFieldWidths = calc_number_widths(sign_char, tmp, false, format)
+        let spec: NumberFieldWidths = calc_number_widths(sign_char, format)
         
         tmp = fill_number(spec, tmp, format, prefix_tmp, format.fill_char, locale, format.type == "X")
         tmp = number_just(tmp, format, spec)
@@ -1837,7 +1799,6 @@ extension PSFormattableFloatingPoint {
     /************************************************************************/
     func objectFormat(_ format: InternalFormatSpec) -> FormatResult {
         var val = self.formatableFloatingPoint
-        var has_decimal: Bool
 
         var precision: Int = format.precision
 
@@ -1845,7 +1806,7 @@ extension PSFormattableFloatingPoint {
         var type: Py_UCS4 = format.type
         var add_pct: Bool = false
         var spec: NumberFieldWidths
-        var flags: int = 0
+        var addDot:Bool = false
         var sign_char: Py_UCS4 = "\0"
         var unicode_tmp: String
 
@@ -1853,15 +1814,11 @@ extension PSFormattableFloatingPoint {
             return .failure(.ValueError("precision too big"))
         }
 
-        if format.alternate {
-            flags |= Py_DTSF.ALT.rawValue
-        }
-
         if type == "\0" {
             /* Omitted type specifier.  Behaves in the same way as repr(x)
                and str(x) if no precision is given, else like 'g', but with
                at least one digit after the decimal point. */
-            flags |= Py_DTSF.ADD_DOT_0.rawValue
+            addDot = true
             type = "r"
             default_precision = 0
         } else if type == "n" {
@@ -1884,7 +1841,7 @@ extension PSFormattableFloatingPoint {
         /* Cast "type", because if we're in unicode we need to pass an
            8-bit char. This is safe, because we've restricted what "type"
            can be. */
-        (unicode_tmp, _) = PyOS_double_to_string(val, type, precision, flags)
+        unicode_tmp = PyOS_double_to_string(val, type, precision, false, addDot, format.alternate)
 
 
         if add_pct {
@@ -1910,17 +1867,12 @@ extension PSFormattableFloatingPoint {
             unicode_tmp.removeFirst()
         }
 
-        /* Determine if we have any "remainder" (after the digits, might include
-           decimal or exponent or both (or neither)) */
-        (_, has_decimal) = parse_number(unicode_tmp)
-
         /* Determine the grouping, separator, and decimal point, if any. */
         /* Locale settings, either from the actual locale or
            from a hard-code pseudo-locale */
         let locale: LocaleInfo = get_locale_info(format.type == "n" ? .LT_CURRENT_LOCALE: format.thousands_separators)
 
-        /* Calculate how much memory we'll need. */
-        spec = calc_number_widths(sign_char, unicode_tmp, has_decimal, format)
+        spec = calc_number_widths(sign_char, format)
         unicode_tmp = fill_number(spec, unicode_tmp, format, "", format.fill_char, locale, false)
         unicode_tmp = number_just(unicode_tmp, format, spec)
         return .success(unicode_tmp)
@@ -1944,14 +1896,11 @@ extension PSFormattableComplex {
         var buf: String = ""
 
         var tmp_format: InternalFormatSpec = format
-        var re_has_decimal: Bool
-        var im_has_decimal: Bool
         var precision: int
         var default_precision = 6
         var type: Py_UCS4 = format.type
         var re_spec: NumberFieldWidths
         var im_spec: NumberFieldWidths
-        var flags: int = 0
         var re_sign_char: Py_UCS4 = "\0"
         var im_sign_char: Py_UCS4 = "\0"
         var add_parens: Bool = false
@@ -1975,9 +1924,6 @@ extension PSFormattableComplex {
         }
 
 
-        if format.alternate {
-            flags |= Py_DTSF.ALT.rawValue
-        }
         if (type == "\0") {
             /* Omitted type specifier. Should be like str(self). */
             type = "r"
@@ -2002,8 +1948,8 @@ extension PSFormattableComplex {
         /* Cast "type", because if we're in unicode we need to pass an
        8-bit char. This is safe, because we've restricted what "type"
        can be. */
-        (re_unicode_tmp, _) = PyOS_double_to_string(re, type, precision, flags)
-        (im_unicode_tmp, _) = PyOS_double_to_string(im, type, precision, flags)
+        re_unicode_tmp = PyOS_double_to_string(re, type, precision, false, false, format.alternate)
+        im_unicode_tmp = PyOS_double_to_string(im, type, precision, false, false, format.alternate)
 
 
         /* Is a sign character present in the output?  If so, remember it
@@ -2017,11 +1963,6 @@ extension PSFormattableComplex {
             im_unicode_tmp.removeFirst()
         }
 
-        /* Determine if we have any "remainder" (after the digits, might include
-       decimal or exponent or both (or neither)) */
-        (_, re_has_decimal) = parse_number(re_unicode_tmp)
-        (_, im_has_decimal) = parse_number(im_unicode_tmp)
-
         /* Determine the grouping, separator, and decimal point, if any. */
          /* Locale settings, either from the actual locale or
         from a hard-code pseudo-locale */
@@ -2034,15 +1975,15 @@ extension PSFormattableComplex {
         tmp_format.width = -1
 
         /* Calculate how much memory we'll need. */
-        re_spec = calc_number_widths(re_sign_char, re_unicode_tmp, re_has_decimal, tmp_format)
+        re_spec = calc_number_widths(re_sign_char, tmp_format)
 
         /* Same formatting, but always include a sign, unless the real part is
      * going to be omitted, in which case we use whatever sign convention was
      * requested by the original format. */
-        if (!skip_re) {
+        if !skip_re {
             tmp_format.sign = "+"
         }
-        im_spec = calc_number_widths(im_sign_char, im_unicode_tmp, im_has_decimal, tmp_format)
+        im_spec = calc_number_widths(im_sign_char, tmp_format)
 
         re_unicode_tmp = number_just(re_unicode_tmp, tmp_format, re_spec)
         im_unicode_tmp = number_just(im_unicode_tmp, tmp_format, im_spec)
