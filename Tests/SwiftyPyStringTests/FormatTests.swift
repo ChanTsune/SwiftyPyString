@@ -70,6 +70,9 @@ final class FormatTests: XCTestCase {
         let a = A(field: 12)
         XCTAssertEqual("{0.field}".format(a), "12")
     }
+    static var allTests = [
+        ("testSimpleFormat", testSimpleFormat),
+    ]
     /// Returns path to the built products directory.
     var productsDirectory: URL {
         #if os(macOS)

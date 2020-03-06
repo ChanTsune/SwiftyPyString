@@ -88,6 +88,9 @@ final class FormatIntegerTests: XCTestCase {
         XCTAssertEqual("{:X}".format(97), "61")
         XCTAssertEqual("{:%}".format(97), "9700.000000%")
     }
+    static var allTests = [
+        ("testIntegerFormat", testIntegerFormat),
+    ]
     /// Returns path to the built products directory.
     var productsDirectory: URL {
         #if os(macOS)

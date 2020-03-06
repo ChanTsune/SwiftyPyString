@@ -77,6 +77,9 @@ final class FormatFloatingPointTests: XCTestCase {
         XCTAssertEqual("{}".format(Double.nan), "nan")
         XCTAssertEqual("{}".format(-Double.nan), "nan")
     }
+    static var allTests = [
+        ("testFloatFormat", testFloatFormat),
+    ]
     /// Returns path to the built products directory.
     var productsDirectory: URL {
         #if os(macOS)
