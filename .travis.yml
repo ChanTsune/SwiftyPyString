@@ -1,11 +1,23 @@
-language: swift
-osx_image: 
-  - xcode10.3
-  - xcode11
-  - xcode11.1
-  - xcode11.2
-  - xcode11.3
-xcode_project: SwiftyPyString.xcodeproj
+os:
+  - osx
+  - linux
+language: generic
+sudo: required
+dist: trusty
+env:
+  - SWIFT_VERSION=5.0
+  - SWIFT_VERSION=5.1
+install:
+  - eval "$(curl -sL https://swiftenv.fuller.li/install.sh)"
 script:
   - swift test
-  - pod spec lint SwiftyPyString.podspec
+
+matrix:
+  include:
+    - os: osx
+      language: swift
+      osx_image: xcode11.3
+      xcode_project: SwiftyPyString.xcodeproj
+      script:
+        - swift test
+        - pod spec lint SwiftyPyString.podspec
