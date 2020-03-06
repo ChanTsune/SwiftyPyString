@@ -512,6 +512,13 @@ struct ParseResult {
     var conversion: Py_UCS4 = "\0"
 }
 
+extension ParseResult {
+    init(field_name: String, format_spec_needs_expanding: Bool){
+        self.field_name = field_name
+        self.format_spec_needs_expanding = format_spec_needs_expanding
+    }
+}
+
 func parse_field(_ str: MarkupIterator) -> Result<ParseResult, PyException>
 {
     /* Note this function works if the field name is zero length,
@@ -1006,6 +1013,12 @@ struct InternalFormatSpec {
     var thousands_separators: LocaleType = .LT_NO_LOCALE
     var precision: Py_ssize_t = -1
     var type: Py_UCS4
+}
+extension InternalFormatSpec {
+    init(align: Py_UCS4, type: Py_UCS4) {
+        self.align = align
+        self.type = type
+    }
 }
 extension InternalFormatSpec: CustomDebugStringConvertible {
     /* Occasionally useful for debugging. Should normally be commented out. */
@@ -1615,9 +1628,9 @@ protocol PSFormattable {
     func objectFormat(_ format: InternalFormatSpec) -> FormatResult
 }
 extension PSFormattable {
-    var str: String { String(describing: self) }
-    var repr: String { String(describing: self) }
-    var ascii: String { String(describing: self) }
+    var str: String { return String(describing: self) }
+    var repr: String { return String(describing: self) }
+    var ascii: String { return String(describing: self) }
 
     func convertField(_ conversion: Character) -> String {
         switch conversion {
@@ -1638,7 +1651,7 @@ protocol PSFormattableString: PSFormattable {
 }
 extension PSFormattableString {
     var defaultInternalFormatSpec: InternalFormatSpec {
-        InternalFormatSpec(align: "<", type: "s")
+        return InternalFormatSpec(align: "<", type: "s")
     }
     /************************************************************************/
     /*********** string formatting ******************************************/
@@ -1680,10 +1693,10 @@ extension PSFormattableString {
     }
 }
 extension String: PSFormattableString {
-    var formattableString: String { self }
-    var str: String { self }
-    var repr: String { "'\(self)'" }
-    var ascii: String { "'\(self)'" }
+    var formattableString: String { return self }
+    var str: String { return self }
+    var repr: String { return "'\(self)'" }
+    var ascii: String { return "'\(self)'" }
 }
 
 @inlinable
@@ -1713,7 +1726,7 @@ protocol PSFormattableInteger: PSFormattable {
 }
 extension PSFormattableInteger {
     var defaultInternalFormatSpec: InternalFormatSpec {
-        InternalFormatSpec(align: ">", type: "d")
+        return InternalFormatSpec(align: ">", type: "d")
     }
     /************************************************************************/
     /*********** long formatting ********************************************/
@@ -1814,7 +1827,7 @@ protocol PSFormattableFloatingPoint: PSFormattable {
 }
 extension PSFormattableFloatingPoint {
     var defaultInternalFormatSpec: InternalFormatSpec {
-        InternalFormatSpec(align: ">", type: "\0")
+        return InternalFormatSpec(align: ">", type: "\0")
     }
     /************************************************************************/
     /*********** float formatting *******************************************/
@@ -1915,7 +1928,7 @@ protocol PSFormattableComplex: PSFormattable {
 }
 extension PSFormattableComplex {
     var defaultInternalFormatSpec: InternalFormatSpec {
-        InternalFormatSpec(align: ">", type: "\0")
+        return InternalFormatSpec(align: ">", type: "\0")
     }
     /************************************************************************/
     /*********** complex formatting *****************************************/
@@ -2214,38 +2227,38 @@ extension String {
 }
 
 extension Double: PSFormattableFloatingPoint {
-    var formatableFloatingPoint: Double { self }
+    var formatableFloatingPoint: Double { return self }
 }
 extension Float: PSFormattableFloatingPoint {
-    var formatableFloatingPoint: Double { Double(self) }
+    var formatableFloatingPoint: Double { return Double(self) }
 }
 extension Float80: PSFormattableFloatingPoint {
-    var formatableFloatingPoint: Double { Double(self) }
+    var formatableFloatingPoint: Double { return Double(self) }
 }
 extension Int: PSFormattableInteger {
-    var formatableInteger: Int { self }
+    var formatableInteger: Int { return self }
 }
 extension Int8: PSFormattableInteger {
-    var formatableInteger: Int { Int(self) }
+    var formatableInteger: Int { return Int(self) }
 }
 extension Int16: PSFormattableInteger {
-    var formatableInteger: Int { Int(self) }
+    var formatableInteger: Int { return Int(self) }
 }
 extension Int32: PSFormattableInteger {
-    var formatableInteger: Int { Int(self) }
+    var formatableInteger: Int { return Int(self) }
 }
 extension Int64: PSFormattableInteger {
-    var formatableInteger: Int { Int(self) }
+    var formatableInteger: Int { return Int(self) }
 }
 extension UInt8: PSFormattableInteger {
-    var formatableInteger: Int { Int(self) }
+    var formatableInteger: Int { return Int(self) }
 }
 extension UInt16: PSFormattableInteger {
-    var formatableInteger: Int { Int(self) }
+    var formatableInteger: Int { return Int(self) }
 }
 extension UInt32: PSFormattableInteger {
-    var formatableInteger: Int { Int(self) }
+    var formatableInteger: Int { return Int(self) }
 }
 extension UInt64: PSFormattableInteger {
-    var formatableInteger: Int { Int(self) }
+    var formatableInteger: Int { return Int(self) }
 }
