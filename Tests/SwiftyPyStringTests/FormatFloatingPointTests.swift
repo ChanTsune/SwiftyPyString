@@ -69,7 +69,14 @@ final class FormatFloatingPointTests: XCTestCase {
         XCTAssertEqual("{:n}".format(1.1), "1.1")
         XCTAssertEqual("{:%}".format(1.1), "110.000000%")
     }
-
+    func testInfinity() throws {
+        XCTAssertEqual("{}".format(Double.infinity), "inf")
+        XCTAssertEqual("{}".format(-Double.infinity), "-inf")
+    }
+    func testNan() throws {
+        XCTAssertEqual("{}".format(Double.nan), "nan")
+        XCTAssertEqual("{}".format(-Double.nan), "nan")
+    }
     /// Returns path to the built products directory.
     var productsDirectory: URL {
         #if os(macOS)
