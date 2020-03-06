@@ -2,7 +2,7 @@ os:
   - osx
   - linux
 language: generic
-sudo: required
+osx_image: xcode11.3
 dist: trusty
 env:
   - SWIFT_VERSION=5.0
