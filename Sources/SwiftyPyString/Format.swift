@@ -128,7 +128,8 @@ func get_integer(_ str: String) -> Result<Py_ssize_t, PyException>
     return .success(accumulator)
 }
 
-func PyObject_GetAttr(_ v: PyObject, _ name: String) -> Result<PyObject, PyException>
+/* do the equivalent of obj.name */
+func getattr(_ v: PyObject, _ name: String) -> Result<PyObject, PyException>
 {
     let mirror = Mirror(reflecting: v)
     let c = mirror.children
@@ -146,26 +147,6 @@ func PyObject_GetAttr(_ v: PyObject, _ name: String) -> Result<PyObject, PyExcep
 /************************************************************************/
 /******** Functions to get field objects and specification strings ******/
 /************************************************************************/
-
-/* do the equivalent of obj.name */
-func getattr(_ obj: PyObject, _ name: String) -> Result<PyObject, PyException>
-{
-    return PyObject_GetAttr(obj, name)
-}
-func PyObject_GetItem<D: RandomAccessCollection>(_ obj: D, _ key: D.Index) -> Any? {
-    return obj[key]
-}
-/* do the equivalent of obj[idx], where obj is not a sequence */
-func getitem_idx<Seq: RandomAccessCollection>(_ obj: Seq, _ idx: Py_ssize_t) -> PyObject?
-{
-    return PyObject_GetItem(obj, idx as! Seq.Index)
-}
-
-/* do the equivalent of obj[name] */
-func getitem_str<Seq: RandomAccessCollection>(_ obj: Seq, _ name: String) -> PyObject?
-{
-    return PyObject_GetItem(obj, name as! Seq.Index)
-}
 
 class FieldNameIterator {
     /* the entire string we're parsing.  we assume that someone else
@@ -409,9 +390,6 @@ func get_field_object(_ input: String, _ args: [Any], _ kwargs: [String: Any],
         if kwargs.isEmpty {
             return .failure(.KeyError(key))
         }
-        /* Use PyObject_GetItem instead of PyDict_GetItem because this
-           code is no longer just used with kwargs. It might be passed
-           a non-dict when called through format_map. */
         guard let v = kwargs[key] else {
             return .failure(.KeyError(key))
         }
@@ -453,13 +431,28 @@ func get_field_object(_ input: String, _ args: [Any], _ kwargs: [String: Any],
 
         if (is_attribute) {
             /* getattr lookup "." */
-            tmp = getattr(obj, name)
+            switch getattr(obj, name) {
+            case .success(let o):
+                tmp = o
+            case .failure(let error):
+                return .failure(error)
+            }
         } else {
             /* getitem lookup "[]" */
             if (index == -1) {
-                tmp = getitem_str(obj as! AnyRandomAccessCollection<Any>, name)
+                tmp = (obj as! [String:Any])[name]
             } else {
-                tmp = getitem_idx(obj as! AnyRandomAccessCollection<Any>, index)
+                /* do the equivalent of obj[idx], where obj is not a sequence */
+                if let o = obj as? [Int:Any] {
+                    tmp = o[index]
+                }
+                /* do the equivalent of obj[name] */
+                else if let o = obj as? [Any] {
+                    tmp = o[index]
+                }
+                else {
+                    tmp = nil
+                }
             }
         }
         if (tmp == nil) {

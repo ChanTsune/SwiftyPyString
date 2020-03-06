@@ -45,6 +45,31 @@ final class FormatTests: XCTestCase {
         XCTAssertEqual("{0:{1}}".format("abc", "s"), "abc")
         XCTAssertEqual("{0:{1}}".format("abc", "{<5"), "abc{{")
     }
+    func testMapString() throws {
+        let m = ["swift": 1, "python": 2]
+        XCTAssertEqual("{0[swift]}".format(m), "1")
+        XCTAssertEqual("{0[swift]:}".format(m), "1")
+        XCTAssertEqual("{0[python]:03}".format(m), "002")
+    }
+    func testMapInteger() throws {
+        let m = [1: 1, 2: 2]
+        XCTAssertEqual("{0[1]}".format(m), "1")
+        XCTAssertEqual("{0[1]:}".format(m), "1")
+        XCTAssertEqual("{0[2]:03}".format(m), "002")
+    }
+    func testArray() throws {
+        let a = [1, 2]
+        XCTAssertEqual("{0[0]}".format(a), "1")
+        XCTAssertEqual("{0[0]:}".format(a), "1")
+        XCTAssertEqual("{0[1]:03}".format(a), "002")
+    }
+    func testAttribute() throws {
+        struct A {
+            var field: Int
+        }
+        let a = A(field: 12)
+        XCTAssertEqual("{0.field}".format(a), "12")
+    }
     /// Returns path to the built products directory.
     var productsDirectory: URL {
         #if os(macOS)
