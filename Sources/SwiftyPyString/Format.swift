@@ -887,7 +887,7 @@ func do_string_format(_ self: String, _ args: [Any], _ kwargs: [String: Any]) ->
     case .success(let s):
         return s
     case .failure(let error):
-        return error.localizedDescription
+        return String(describing: error)
     }
 }
 
@@ -1125,6 +1125,7 @@ func parse_internal_render_format_spec(_ format_spec: String,
         switch get_integer(format_spec, pos) {
         case .success(let t):
             (consumed, format.precision) = t
+            pos += consumed
         case .failure(let error):
             /* Overflow error. Exception already set. */
             return .failure(error)
@@ -1302,7 +1303,7 @@ func PyOS_double_to_string(_ val: double,
            value is recreated.  This is true for IEEE floating point
            by design, and also happens to work for all other modern
            hardware. */
-        precision = 17
+        precision = 16 // 17
         format_code = "g"
         break
     default:
@@ -1361,11 +1362,7 @@ func PyOS_double_to_string(_ val: double,
         t = Py_DTST.INFINITE.rawValue
     } else {
         t = Py_DTST.FINITE.rawValue
-        if (flags & Py_DTSF.ADD_DOT_0.rawValue).asBool {
-            format = String(format: "%%\((flags & Py_DTSF.ALT.rawValue).asBool ? "#" : "")%c", format_code.unicode.value)
-        } else {
-            format = String(format: "%%\((flags & Py_DTSF.ALT.rawValue).asBool ? "#" : "").%i%c", precision, format_code.unicode.value)
-        }
+        format = String(format: "%%\((flags & Py_DTSF.ALT.rawValue).asBool ? "#" : "").%i%c", precision, format_code.unicode.value)
         buf = String(format: format, val, precision)
         if (flags & Py_DTSF.ALT.rawValue).asBool && buf.find(".") != -1 {
             var drop = buf.count - 1
@@ -1684,7 +1681,7 @@ extension PSFormattableString {
         }
 
         /* Write into that space. First the padding. */
-        return .success(fill_padding(value, format.align, format.fill_char, format.width))
+        return .success(fill_padding(value[0, len], format.align, format.fill_char, format.width))
     }
 }
 extension String: PSFormattableString {

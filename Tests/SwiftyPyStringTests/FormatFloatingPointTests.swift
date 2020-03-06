@@ -56,6 +56,9 @@ final class FormatFloatingPointTests: XCTestCase {
     func testGroupingOption() throws {
         XCTAssertEqual("{:_}".format(10001.1), "10_001.1")
     }
+    func testPrecision() throws {
+        XCTAssertEqual("{:.2}".format(0.8636363636363636), "0.86")
+    }
     func testType() throws {
         XCTAssertEqual("{:e}".format(1.1), "1.100000e+00")
         XCTAssertEqual("{:E}".format(1.1), "1.100000E+00")

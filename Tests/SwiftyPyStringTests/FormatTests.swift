@@ -8,11 +8,6 @@ import XCTest
 
 final class FormatTests: XCTestCase {
     func testSimpleFormat() throws {
-        let str = "{}"
-        XCTAssertEqual(str.format(""), "")
-        XCTAssertEqual(str.format("12"), "12")
-    }
-    func testSimpleFormat2Items() throws {
         let str = "{}{}"
         XCTAssertEqual(str.format(1, 12), "112")
         XCTAssertEqual(str.format("12", 4), "124")
@@ -42,6 +37,13 @@ final class FormatTests: XCTestCase {
     }
     func testFormatPositional() throws {
         XCTAssertEqual("{0} # {1} # {0}".format("@", "&"), "@ # & # @")
+    }
+    func testFormatNamed() throws {
+        XCTAssertEqual("{key}:{value}".format(kwargs:["key":"Swift","value":"Python"]), "Swift:Python")
+    }
+    func testRecursion() throws {
+        XCTAssertEqual("{0:{1}}".format("abc", "s"), "abc")
+        XCTAssertEqual("{0:{1}}".format("abc", "{<5"), "abc{{")
     }
     /// Returns path to the built products directory.
     var productsDirectory: URL {
