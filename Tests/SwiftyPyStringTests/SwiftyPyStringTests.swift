@@ -299,6 +299,9 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual(minus.zfill(5), "-0003")
         XCTAssertEqual(plus.zfill(2), "+12")
     }
+    static var allTests = [
+        ("testMultiplication", testMultiplication),
+    ]
 
     /// Returns path to the built products directory.
     var productsDirectory: URL {

@@ -138,6 +138,9 @@ final class EmptyStringTests: XCTestCase {
     func testZfill() throws {
         XCTAssertEqual(empty.zfill(2), "00")
     }
+    static var allTests = [
+        ("testCapitalize", testCapitalize),
+    ]
 
     /// Returns path to the built products directory.
     var productsDirectory: URL {
