@@ -2,8 +2,6 @@
 //  Format.swift
 //  SwiftyPyString
 //
-//  Created by 恒川大輝 on 2019/07/12.
-//
 #if os(OSX)
     import Darwin
 #elseif os(Linux)
@@ -1044,6 +1042,9 @@ extension InternalFormatSpec: CustomDebugStringConvertible {
 func parse_internal_render_format_spec(_ format_spec: String,
                                        _ default_format_spec: InternalFormatSpec) -> Result<InternalFormatSpec, PyException>
 {
+    if format_spec.isEmpty {
+        return .success(default_format_spec)
+    }
     var format: InternalFormatSpec = default_format_spec
 
     var pos = 0
@@ -1086,7 +1087,7 @@ func parse_internal_render_format_spec(_ format_spec: String,
     /* The special case for 0-padding (backwards compat) */
     if let c = format_spec.at(pos), c == "0", !fill_char_specified {
         format.fill_char = "0"
-        if (!align_specified) {
+        if !align_specified {
             format.align = "="
         }
             ++pos
@@ -1536,10 +1537,10 @@ func fill_number(_ spec: NumberFieldWidths,
         digits = digits.upper()
     }
 
-    return number_just(digits, format, spec, locale)
+    return digits
 }
 
-func number_just(_ digits: String, _ format: InternalFormatSpec, _ spec: NumberFieldWidths, _ locale: LocaleInfo) -> String {
+func number_just(_ digits: String, _ format: InternalFormatSpec, _ spec: NumberFieldWidths) -> String {
     /* Some padding is needed. Determine if it's left, space, or right. */
     let sign = spec.sign
     switch format.align {
@@ -1817,8 +1818,10 @@ extension PSFormattableInteger {
             format.thousands_separators)
         /* Calculate how much memory we'll need. */
         let spec: NumberFieldWidths = calc_number_widths(sign_char, tmp, false, format)
-
-        return .success(fill_number(spec, tmp, format, prefix_tmp, format.fill_char, locale, format.type == "X"))
+        
+        tmp = fill_number(spec, tmp, format, prefix_tmp, format.fill_char, locale, format.type == "X")
+        tmp = number_just(tmp, format, spec)
+        return .success(tmp)
     }
 }
 
@@ -1918,8 +1921,9 @@ extension PSFormattableFloatingPoint {
 
         /* Calculate how much memory we'll need. */
         spec = calc_number_widths(sign_char, unicode_tmp, has_decimal, format)
-
-        return .success(fill_number(spec, unicode_tmp, format, "", format.fill_char, locale, false))
+        unicode_tmp = fill_number(spec, unicode_tmp, format, "", format.fill_char, locale, false)
+        unicode_tmp = number_just(unicode_tmp, format, spec)
+        return .success(unicode_tmp)
     }
 }
 protocol PSFormattableComplex: PSFormattable {
@@ -1945,8 +1949,6 @@ extension PSFormattableComplex {
         var precision: int
         var default_precision = 6
         var type: Py_UCS4 = format.type
-        var i_re: Py_ssize_t
-        var i_im: Py_ssize_t
         var re_spec: NumberFieldWidths
         var im_spec: NumberFieldWidths
         var flags: int = 0
@@ -1956,10 +1958,6 @@ extension PSFormattableComplex {
         var skip_re: Bool = false
         var re_unicode_tmp: String
         var im_unicode_tmp: String
-
-        /* Locale settings, either from the actual locale or
-       from a hard-code pseudo-locale */
-        var locale: LocaleInfo = .init()
 
         if (format.precision > INT_MAX) {
             return .failure(.ValueError("precision too big"))
@@ -2007,18 +2005,16 @@ extension PSFormattableComplex {
         (re_unicode_tmp, _) = PyOS_double_to_string(re, type, precision, flags)
         (im_unicode_tmp, _) = PyOS_double_to_string(im, type, precision, flags)
 
-        i_re = 0
-        i_im = 0
 
         /* Is a sign character present in the output?  If so, remember it
        and skip it */
-        if (PyUnicode_READ_CHAR(re_unicode_tmp, i_re) == "-") {
+        if (PyUnicode_READ_CHAR(re_unicode_tmp, 0) == "-") {
             re_sign_char = "-"
-            ++i_re
+            re_unicode_tmp.removeFirst()
         }
-        if (PyUnicode_READ_CHAR(im_unicode_tmp, i_im) == "-") {
+        if (PyUnicode_READ_CHAR(im_unicode_tmp, 0) == "-") {
             im_sign_char = "-"
-            ++i_im
+            im_unicode_tmp.removeFirst()
         }
 
         /* Determine if we have any "remainder" (after the digits, might include
@@ -2027,7 +2023,9 @@ extension PSFormattableComplex {
         (_, im_has_decimal) = parse_number(im_unicode_tmp)
 
         /* Determine the grouping, separator, and decimal point, if any. */
-        locale = get_locale_info(format.type == "n" ? .LT_CURRENT_LOCALE: format.thousands_separators)
+         /* Locale settings, either from the actual locale or
+        from a hard-code pseudo-locale */
+        let locale: LocaleInfo = get_locale_info(format.type == "n" ? .LT_CURRENT_LOCALE: format.thousands_separators)
 
         /* Turn off any padding. We'll do it later after we've composed
        the numbers without padding. */
@@ -2046,10 +2044,10 @@ extension PSFormattableComplex {
         }
         im_spec = calc_number_widths(im_sign_char, im_unicode_tmp, im_has_decimal, tmp_format)
 
-        re_unicode_tmp = number_just(re_unicode_tmp, tmp_format, re_spec, locale)
-        im_unicode_tmp = number_just(im_unicode_tmp, tmp_format, im_spec, locale)
+        re_unicode_tmp = number_just(re_unicode_tmp, tmp_format, re_spec)
+        im_unicode_tmp = number_just(im_unicode_tmp, tmp_format, im_spec)
 
-        if (add_parens) {
+        if add_parens {
             buf = "(" + buf
         }
 
@@ -2068,10 +2066,10 @@ extension PSFormattableComplex {
                            locale, false)
         buf += "j"
 
-        if (add_parens) {
+        if add_parens {
             buf += ")"
         }
-        return .success(buf)
+        return .success(fill_padding(buf, format.align, format.fill_char, format.width))
     }
 }
 
@@ -2185,12 +2183,6 @@ func _PyComplex_FormatAdvancedWriter(
     _ format_spec: String) -> FormatResult
 {
     var format: InternalFormatSpec
-
-    /* check for the special case of zero length format spec, make
-       it equivalent to str(obj) */
-    if format_spec.isEmpty {
-        return .success(.init(describing: obj))
-    }
 
     /* parse the format_spec */
     switch parse_internal_render_format_spec(format_spec, obj.defaultInternalFormatSpec) {
