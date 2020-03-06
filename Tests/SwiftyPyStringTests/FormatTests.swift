@@ -72,6 +72,18 @@ final class FormatTests: XCTestCase {
     }
     static var allTests = [
         ("testSimpleFormat", testSimpleFormat),
+        ("testSimpleFormatFloat", testSimpleFormatFloat),
+        ("testFormat", testFormat),
+        ("testFormatEscape", testFormatEscape),
+        ("testEmptyFormatSpec", testEmptyFormatSpec),
+        ("testFormatSpecConversion", testFormatSpecConversion),
+        ("testFormatPositional", testFormatPositional),
+        ("testFormatNamed", testFormatNamed),
+        ("testRecursion", testRecursion),
+        ("testMapString", testMapString),
+        ("testMapInteger", testMapInteger),
+        ("testArray", testArray),
+        ("testAttribute", testAttribute),
     ]
     /// Returns path to the built products directory.
     var productsDirectory: URL {

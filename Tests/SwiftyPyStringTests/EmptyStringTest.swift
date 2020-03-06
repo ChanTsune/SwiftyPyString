@@ -131,7 +131,6 @@ final class EmptyStringTests: XCTestCase {
     func testTitle() throws {
         XCTAssertEqual("".title(), "")
     }
-
     func testUpper() throws {
         XCTAssertEqual("".upper(), "")
     }
@@ -140,6 +139,43 @@ final class EmptyStringTests: XCTestCase {
     }
     static var allTests = [
         ("testCapitalize", testCapitalize),
+        ("testCasefold", testCasefold),
+        ("testCenter", testCenter),
+        ("testCount", testCount),
+        ("testEndswith", testEndswith),
+        ("testExpandtabs", testExpandtabs),
+        ("testFind", testFind),
+        ("testIsAlnum", testIsAlnum),
+        ("testIsAlpha", testIsAlpha),
+        ("testIsAscii", testIsAscii),
+        ("testIsDecimal", testIsDecimal),
+        ("testIsDigit", testIsDigit),
+        ("testIsLower", testIsLower),
+        ("testIsPrintable", testIsPrintable),
+        ("testIsSpace", testIsSpace),
+        ("testIsNumeric", testIsNumeric),
+        ("testIsTitle", testIsTitle),
+        ("testIsUpper", testIsUpper),
+        ("testJoin", testJoin),
+        ("testLjust", testLjust),
+        ("testLower", testLower),
+        ("testLstrip", testLstrip),
+        ("testMaketrans", testMaketrans),
+        ("testPartition", testPartition),
+        ("testReplaceEmpty", testReplaceEmpty),
+        ("testRfind", testRfind),
+        ("testRjust", testRjust),
+        ("testRpartition", testRpartition),
+        ("testRsplit", testRsplit),
+        ("testRstrip", testRstrip),
+        ("testSplit", testSplit),
+        ("testSplitlines", testSplitlines),
+        ("testStartswith", testStartswith),
+        ("testStrip", testStrip),
+        ("testSwapcase", testSwapcase),
+        ("testTitle", testTitle),
+        ("testUpper", testUpper),
+        ("testZfill", testZfill),
     ]
 
     /// Returns path to the built products directory.

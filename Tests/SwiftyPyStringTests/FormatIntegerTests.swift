@@ -90,6 +90,14 @@ final class FormatIntegerTests: XCTestCase {
     }
     static var allTests = [
         ("testIntegerFormat", testIntegerFormat),
+        ("testFill", testFill),
+        ("testAlign", testAlign),
+        ("testSign", testSign),
+        ("testAlternative", testAlternative),
+        ("testZero", testZero),
+        ("testWidth", testWidth),
+        ("testGroupingOption", testGroupingOption),
+        ("testType", testType),
     ]
     /// Returns path to the built products directory.
     var productsDirectory: URL {

@@ -31,6 +31,7 @@ final class FormatComplexTests: XCTestCase {
     }
     static var allTests = [
         ("testComplexFormat", testComplexFormat),
+        ("testFill", testFill),
     ]
 
 }

@@ -23,6 +23,8 @@ final class FormatStringTests: XCTestCase {
     }
     static var allTests = [
         ("testStringFormat", testStringFormat),
+        ("testAlign", testAlign),
+        ("testFill", testFill),
     ]
     /// Returns path to the built products directory.
     var productsDirectory: URL {

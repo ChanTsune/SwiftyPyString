@@ -79,6 +79,17 @@ final class FormatFloatingPointTests: XCTestCase {
     }
     static var allTests = [
         ("testFloatFormat", testFloatFormat),
+        ("testFill", testFill),
+        ("testAlign", testAlign),
+        ("testSign", testSign),
+        ("testAlternative", testAlternative),
+        ("testZero", testZero),
+        ("testWidth", testWidth),
+        ("testGroupingOption", testGroupingOption),
+        ("testPrecision", testPrecision),
+        ("testType", testType),
+        ("testInfinity", testInfinity),
+        ("testNan", testNan),
     ]
     /// Returns path to the built products directory.
     var productsDirectory: URL {
