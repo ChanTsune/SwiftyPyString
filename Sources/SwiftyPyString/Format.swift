@@ -641,9 +641,6 @@ struct MarkupIteratorNextResult {
 
 func MarkupIterator_next(_ self: MarkupIterator) -> LoopResult<MarkupIteratorNextResult, PyException>
 {
-    var at_end: Bool
-    var start: Py_ssize_t
-    var len: Py_ssize_t
     var markup_follows: Bool = false
 
     /* initialize all of the output variables */
@@ -655,7 +652,7 @@ func MarkupIterator_next(_ self: MarkupIterator) -> LoopResult<MarkupIteratorNex
         return .finish
     }
 
-    start = self.start
+    let start: Py_ssize_t = self.start
 
     /* First read any literal text. Read until the end of string, an
        escaped '{' or '}', or an unescaped '{'.  In order to never
@@ -678,8 +675,8 @@ func MarkupIterator_next(_ self: MarkupIterator) -> LoopResult<MarkupIteratorNex
         break
     }
 
-    at_end = self.start >= self.end
-    len = self.start - start
+    let at_end: Bool = self.start >= self.end
+    var len: Py_ssize_t = self.start - start
 
     if ((c == "}") && (at_end ||
             (c != self.str[self.start]))) {
@@ -830,7 +827,7 @@ func do_markup(_ input: String, _ args: [Any], _ kwargs: [String: Any],
         case .success(let r):
             result = r
             if !result.literal.isEmpty {
-                markuped += result.literal
+                markuped.append(result.literal)
             }
 
             if result.field_present {
@@ -843,7 +840,7 @@ func do_markup(_ input: String, _ args: [Any], _ kwargs: [String: Any],
                                      recursion_depth,
                                      auto_number) {
                 case .success(let str):
-                    markuped += str
+                    markuped.append(str)
                 case .failure(let error):
                     return .failure(error)
                 }
@@ -940,7 +937,7 @@ func get_integer(_ str: String,
     let end = str.count
     var ppos = start_pos
     while ppos < end {
-        let digitval = Py_UNICODE_TODECIMAL(str.at(ppos)!)
+        let digitval = Py_UNICODE_TODECIMAL(str[ppos])
         if digitval < 0 {
             break
         }
@@ -966,7 +963,7 @@ func get_integer(_ str: String,
 /************************************************************************/
 
 /* returns true if this character is a specifier alignment token */
-func is_alignment_token(_ c: Py_UCS4) -> Bool
+func is_alignment_token(_ c: Character) -> Bool
 {
     switch (c) {
     case "<", ">", "=", "^":
@@ -976,14 +973,8 @@ func is_alignment_token(_ c: Py_UCS4) -> Bool
     }
 }
 
-extension Int {
-    var asBool: Bool {
-        return self != 0
-    }
-}
-
 /* returns true if this character is a sign element */
-func is_sign_element(_ c: Py_UCS4) -> Bool
+func is_sign_element(_ c: Character) -> Bool
 {
     switch (c) {
     case " ", "+", "-":
