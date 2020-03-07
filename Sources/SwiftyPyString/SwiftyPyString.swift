@@ -48,9 +48,6 @@ extension Character {
     }
 }
 
-public let PYTHON_VERSION = "3.7.2"
-
-
 public func * (str: String, n: Int) -> String {
     return String(repeating: str, count: n > 0 ? n : 0)
 }
@@ -100,11 +97,6 @@ extension String {
         }
         return c
     }
-    /*
-     public func encode() -> String {
-     return ""
-     }
-     */
     public func endswith(_ suffix: String, start: Int? = nil, end: Int? = nil) -> Bool {
         return self[start, end].hasSuffix(suffix)
     }
@@ -215,11 +207,6 @@ extension String {
             return false
         })
     }
-    /*
-     public func isidentifier() -> Bool {
-     return false
-     }
-     */
     public func islower() -> Bool {
         if self.isEmpty {
             return false

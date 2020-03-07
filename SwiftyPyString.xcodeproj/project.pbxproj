@@ -29,10 +29,11 @@
 		B5D5A54C2406B77C003FACA8 /* Format.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5D5A54B2406B77C003FACA8 /* Format.swift */; };
 		B5D5A54F2406B7B8003FACA8 /* FormatTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5D5A54D2406B7B8003FACA8 /* FormatTests.swift */; };
 		B5D5A5502406B7B8003FACA8 /* EmptyStringTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5D5A54E2406B7B8003FACA8 /* EmptyStringTest.swift */; };
+		B5D5A552240FF176003FACA8 /* PyException.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5D5A551240FF176003FACA8 /* PyException.swift */; };
+		E008EF982412471100DE2A91 /* FormatComplexTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E008EF972412471100DE2A91 /* FormatComplexTests.swift */; };
 		E00F0D922410B1390008CDF7 /* FormatStringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00F0D912410B1390008CDF7 /* FormatStringTests.swift */; };
 		E00F0D942410B5F80008CDF7 /* FormatIntegerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00F0D932410B5F80008CDF7 /* FormatIntegerTests.swift */; };
 		E00F0D962410B6360008CDF7 /* FormatFloatingPointTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00F0D952410B6360008CDF7 /* FormatFloatingPointTests.swift */; };
-		B5D5A552240FF176003FACA8 /* PyException.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5D5A551240FF176003FACA8 /* PyException.swift */; };
 		OBJ_33 /* Package.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_6 /* Package.swift */; };
 		OBJ_45 /* XCTestManifests.swift in Sources */ = {isa = PBXBuildFile; fileRef = OBJ_13 /* XCTestManifests.swift */; };
 /* End PBXBuildFile section */
@@ -61,10 +62,11 @@
 		B5D5A54B2406B77C003FACA8 /* Format.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Format.swift; sourceTree = "<group>"; };
 		B5D5A54D2406B7B8003FACA8 /* FormatTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FormatTests.swift; sourceTree = "<group>"; };
 		B5D5A54E2406B7B8003FACA8 /* EmptyStringTest.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EmptyStringTest.swift; sourceTree = "<group>"; };
+		B5D5A551240FF176003FACA8 /* PyException.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PyException.swift; sourceTree = "<group>"; };
+		E008EF972412471100DE2A91 /* FormatComplexTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatComplexTests.swift; sourceTree = "<group>"; };
 		E00F0D912410B1390008CDF7 /* FormatStringTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatStringTests.swift; sourceTree = "<group>"; };
 		E00F0D932410B5F80008CDF7 /* FormatIntegerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatIntegerTests.swift; sourceTree = "<group>"; };
 		E00F0D952410B6360008CDF7 /* FormatFloatingPointTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatFloatingPointTests.swift; sourceTree = "<group>"; };
-		B5D5A551240FF176003FACA8 /* PyException.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PyException.swift; sourceTree = "<group>"; };
 		OBJ_12 /* SwiftyPyStringTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftyPyStringTests.swift; sourceTree = "<group>"; };
 		OBJ_13 /* XCTestManifests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XCTestManifests.swift; sourceTree = "<group>"; };
 		OBJ_17 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
@@ -109,6 +111,7 @@
 				E00F0D912410B1390008CDF7 /* FormatStringTests.swift */,
 				E00F0D932410B5F80008CDF7 /* FormatIntegerTests.swift */,
 				E00F0D952410B6360008CDF7 /* FormatFloatingPointTests.swift */,
+				E008EF972412471100DE2A91 /* FormatComplexTests.swift */,
 				OBJ_12 /* SwiftyPyStringTests.swift */,
 				OBJ_13 /* XCTestManifests.swift */,
 				B54DDD6322EAD8870083970A /* SliceTests.swift */,
@@ -276,6 +279,7 @@
 				E00F0D942410B5F80008CDF7 /* FormatIntegerTests.swift in Sources */,
 				E00F0D922410B1390008CDF7 /* FormatStringTests.swift in Sources */,
 				B54DDD6422EAD8870083970A /* SliceTests.swift in Sources */,
+				E008EF982412471100DE2A91 /* FormatComplexTests.swift in Sources */,
 				B5D5A5502406B7B8003FACA8 /* EmptyStringTest.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

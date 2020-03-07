@@ -8,7 +8,6 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual("a" * 2, "aa")
         XCTAssertEqual("a" * -1, "")
     }
-
     func testCapitalize() throws {
         let case1 = "hello world!"
         let case2 = "Hello World!"
@@ -68,7 +67,6 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual("abc\tabc\t".expandtabs(), "abc        abc        ")
         XCTAssertEqual("abc\tabc".expandtabs(0), "abcabc")
     }
-
     func testFind() throws {
         let str = "0123456789"
         let str2 = "123412312312345"
@@ -299,6 +297,50 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual(minus.zfill(5), "-0003")
         XCTAssertEqual(plus.zfill(2), "+12")
     }
+    static var allTests = [
+        ("testMultiplication", testMultiplication),
+        ("testCapitalize", testCapitalize),
+        ("testCasefold", testCasefold),
+        ("testCenter", testCenter),
+        ("testCount", testCount),
+        ("testEndswith", testEndswith),
+        ("testExpandtabs", testExpandtabs),
+        ("testFind", testFind),
+        ("testIndex", testIndex),
+        ("testIsAlnum", testIsAlnum),
+        ("testIsAlpha", testIsAlpha),
+        ("testIsAscii", testIsAscii),
+        ("testIsDecimal", testIsDecimal),
+        ("testIsDigit", testIsDigit),
+        ("testIsLower", testIsLower),
+        ("testIsPrintable", testIsPrintable),
+        ("testIsSpace", testIsSpace),
+        ("testIsNumeric", testIsNumeric),
+        ("testIsTitle", testIsTitle),
+        ("testIsUpper", testIsUpper),
+        ("testJoin", testJoin),
+        ("testLjust", testLjust),
+        ("testLower", testLower),
+        ("testLstrip", testLstrip),
+        ("testMaketrans", testMaketrans),
+        ("testPartition", testPartition),
+        ("testRindex", testRindex),
+        ("testReplace", testReplace),
+        ("testRfind", testRfind),
+        ("testRjust", testRjust),
+        ("testRpartition", testRpartition),
+        ("testRsplit", testRsplit),
+        ("testRstrip", testRstrip),
+        ("testSplit", testSplit),
+        ("testSplitlines", testSplitlines),
+        ("testStartswith", testStartswith),
+        ("testStrip", testStrip),
+        ("testSwapcase", testSwapcase),
+        ("testTitle", testTitle),
+        ("testTransrate", testTransrate),
+        ("testUpper", testUpper),
+        ("testZfill", testZfill),
+    ]
 
     /// Returns path to the built products directory.
     var productsDirectory: URL {

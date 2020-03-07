@@ -56,6 +56,9 @@ final class FormatFloatingPointTests: XCTestCase {
     func testGroupingOption() throws {
         XCTAssertEqual("{:_}".format(10001.1), "10_001.1")
     }
+    func testPrecision() throws {
+        XCTAssertEqual("{:.2}".format(0.8636363636363636), "0.86")
+    }
     func testType() throws {
         XCTAssertEqual("{:e}".format(1.1), "1.100000e+00")
         XCTAssertEqual("{:E}".format(1.1), "1.100000E+00")
@@ -66,7 +69,28 @@ final class FormatFloatingPointTests: XCTestCase {
         XCTAssertEqual("{:n}".format(1.1), "1.1")
         XCTAssertEqual("{:%}".format(1.1), "110.000000%")
     }
-
+    func testInfinity() throws {
+        XCTAssertEqual("{}".format(Double.infinity), "inf")
+        XCTAssertEqual("{}".format(-Double.infinity), "-inf")
+    }
+    func testNan() throws {
+        XCTAssertEqual("{}".format(Double.nan), "nan")
+        XCTAssertEqual("{}".format(-Double.nan), "nan")
+    }
+    static var allTests = [
+        ("testFloatFormat", testFloatFormat),
+        ("testFill", testFill),
+        ("testAlign", testAlign),
+        ("testSign", testSign),
+        ("testAlternative", testAlternative),
+        ("testZero", testZero),
+        ("testWidth", testWidth),
+        ("testGroupingOption", testGroupingOption),
+        ("testPrecision", testPrecision),
+        ("testType", testType),
+        ("testInfinity", testInfinity),
+        ("testNan", testNan),
+    ]
     /// Returns path to the built products directory.
     var productsDirectory: URL {
         #if os(macOS)

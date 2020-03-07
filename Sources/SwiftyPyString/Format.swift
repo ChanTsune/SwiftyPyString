@@ -2,8 +2,6 @@
 //  Format.swift
 //  SwiftyPyString
 //
-//  Created by 恒川大輝 on 2019/07/12.
-//
 #if os(OSX)
     import Darwin
 #elseif os(Linux)
@@ -20,7 +18,9 @@ typealias size_t = Int
 typealias double = Double
 typealias Py_UCS4 = Character
 
-var PY_SSIZE_T_MAX = Int.max
+let PY_SSIZE_T_MAX = Int.max
+let INT_MAX = Int.max
+let CHAR_MAX = 127
 
 extension BinaryInteger {
     @discardableResult
@@ -128,7 +128,8 @@ func get_integer(_ str: String) -> Result<Py_ssize_t, PyException>
     return .success(accumulator)
 }
 
-func PyObject_GetAttr(_ v: PyObject, _ name: String) -> Result<PyObject, PyException>
+/* do the equivalent of obj.name */
+func getattr(_ v: PyObject, _ name: String) -> Result<PyObject, PyException>
 {
     let mirror = Mirror(reflecting: v)
     let c = mirror.children
@@ -146,26 +147,6 @@ func PyObject_GetAttr(_ v: PyObject, _ name: String) -> Result<PyObject, PyExcep
 /************************************************************************/
 /******** Functions to get field objects and specification strings ******/
 /************************************************************************/
-
-/* do the equivalent of obj.name */
-func getattr(_ obj: PyObject, _ name: String) -> Result<PyObject, PyException>
-{
-    return PyObject_GetAttr(obj, name)
-}
-func PyObject_GetItem<D: RandomAccessCollection>(_ obj: D, _ key: D.Index) -> Any? {
-    return obj[key]
-}
-/* do the equivalent of obj[idx], where obj is not a sequence */
-func getitem_idx<Seq: RandomAccessCollection>(_ obj: Seq, _ idx: Py_ssize_t) -> PyObject?
-{
-    return PyObject_GetItem(obj, idx as! Seq.Index)
-}
-
-/* do the equivalent of obj[name] */
-func getitem_str<Seq: RandomAccessCollection>(_ obj: Seq, _ name: String) -> PyObject?
-{
-    return PyObject_GetItem(obj, name as! Seq.Index)
-}
 
 class FieldNameIterator {
     /* the entire string we're parsing.  we assume that someone else
@@ -229,7 +210,7 @@ func _FieldNameIterator_item(_ self: FieldNameIterator) -> Result<String, PyExce
         break
     }
     /* make sure we ended with a ']' */
-    if (!bracket_seen) {
+    if !bracket_seen {
         return .failure(.ValueError("Missing ']' in format string"))
     }
 
@@ -409,9 +390,6 @@ func get_field_object(_ input: String, _ args: [Any], _ kwargs: [String: Any],
         if kwargs.isEmpty {
             return .failure(.KeyError(key))
         }
-        /* Use PyObject_GetItem instead of PyDict_GetItem because this
-           code is no longer just used with kwargs. It might be passed
-           a non-dict when called through format_map. */
         guard let v = kwargs[key] else {
             return .failure(.KeyError(key))
         }
@@ -453,13 +431,28 @@ func get_field_object(_ input: String, _ args: [Any], _ kwargs: [String: Any],
 
         if (is_attribute) {
             /* getattr lookup "." */
-            tmp = getattr(obj, name)
+            switch getattr(obj, name) {
+            case .success(let o):
+                tmp = o
+            case .failure(let error):
+                return .failure(error)
+            }
         } else {
             /* getitem lookup "[]" */
             if (index == -1) {
-                tmp = getitem_str(obj as! AnyRandomAccessCollection<Any>, name)
+                tmp = (obj as! [String:Any])[name]
             } else {
-                tmp = getitem_idx(obj as! AnyRandomAccessCollection<Any>, index)
+                /* do the equivalent of obj[idx], where obj is not a sequence */
+                if let o = obj as? [Int:Any] {
+                    tmp = o[index]
+                }
+                /* do the equivalent of obj[name] */
+                else if let o = obj as? [Any] {
+                    tmp = o[index]
+                }
+                else {
+                    tmp = nil
+                }
             }
         }
         if (tmp == nil) {
@@ -515,6 +508,13 @@ struct ParseResult {
     var format_spec: String = ""
     var format_spec_needs_expanding: Bool
     var conversion: Py_UCS4 = "\0"
+}
+
+extension ParseResult {
+    init(field_name: String, format_spec_needs_expanding: Bool){
+        self.field_name = field_name
+        self.format_spec_needs_expanding = format_spec_needs_expanding
+    }
 }
 
 func parse_field(_ str: MarkupIterator) -> Result<ParseResult, PyException>
@@ -887,7 +887,7 @@ func do_string_format(_ self: String, _ args: [Any], _ kwargs: [String: Any]) ->
     case .success(let s):
         return s
     case .failure(let error):
-        return error.localizedDescription
+        return String(describing: error)
     }
 }
 
@@ -1012,6 +1012,12 @@ struct InternalFormatSpec {
     var precision: Py_ssize_t = -1
     var type: Py_UCS4
 }
+extension InternalFormatSpec {
+    init(align: Py_UCS4, type: Py_UCS4) {
+        self.align = align
+        self.type = type
+    }
+}
 extension InternalFormatSpec: CustomDebugStringConvertible {
     /* Occasionally useful for debugging. Should normally be commented out. */
     var debugDescription: String {
@@ -1036,6 +1042,9 @@ extension InternalFormatSpec: CustomDebugStringConvertible {
 func parse_internal_render_format_spec(_ format_spec: String,
                                        _ default_format_spec: InternalFormatSpec) -> Result<InternalFormatSpec, PyException>
 {
+    if format_spec.isEmpty {
+        return .success(default_format_spec)
+    }
     var format: InternalFormatSpec = default_format_spec
 
     var pos = 0
@@ -1078,7 +1087,7 @@ func parse_internal_render_format_spec(_ format_spec: String,
     /* The special case for 0-padding (backwards compat) */
     if let c = format_spec.at(pos), c == "0", !fill_char_specified {
         format.fill_char = "0"
-        if (!align_specified) {
+        if !align_specified {
             format.align = "="
         }
             ++pos
@@ -1125,6 +1134,7 @@ func parse_internal_render_format_spec(_ format_spec: String,
         switch get_integer(format_spec, pos) {
         case .success(let t):
             (consumed, format.precision) = t
+            pos += consumed
         case .failure(let error):
             /* Overflow error. Exception already set. */
             return .failure(error)
@@ -1210,10 +1220,9 @@ struct GroupGenerator {
     let grouping: [Int8]
     var previous: Int = .max
     var i: Py_ssize_t = 0 /* Where we're currently pointing in grouping. */
-    let max: Int
+    let max: Int = CHAR_MAX
     init(_ grouping: [Int8]) {
         self.grouping = grouping
-        max = Int(CHAR_MAX)
     }
     mutating func next() -> Int {
         /* Note that we don't really do much error checking here. If a
@@ -1241,33 +1250,20 @@ struct GroupGenerator {
 /* describes the layout for an integer, see the comment in
    calc_number_widths() for details */
 struct NumberFieldWidths {
-    var need_prefix: Bool
     var sign: String
     var need_sign: Bool /* number of digits needed for sign (0/1) */
     var fill_char: Character
-}
-/* PyOS_double_to_string's "flags" parameter can be set to 0 or more of: */
-enum Py_DTSF: Int {
-    case SIGN = 0x01 /* always add the sign */
-    case ADD_DOT_0 = 0x02 /* if the result is an integer add ".0" */
-    case ALT = 0x04 /* "alternate" formatting. it's format_codespecific */
-}
-
-/* PyOS_double_to_string's "type", if non-NULL, will be set to one of: */
-enum Py_DTST: Int {
-    case FINITE = 0
-    case INFINITE = 1
-    case NAN = 2
 }
 
 func PyOS_double_to_string(_ val: double,
                            _ format_code: Character,
                            _ precision: int,
-                           _ flags: int) -> (String, Int)
+                           _ sign:Bool,
+                           _ addDot0:Bool,
+                           _ alt:Bool) -> String
 {
     var format: String
     var buf: String
-    var t: Int
     var upper: Bool = false
     // to mutable
     var format_code: Character = format_code
@@ -1276,8 +1272,8 @@ func PyOS_double_to_string(_ val: double,
     /* Validate format_code, and map upper and lower case */
     switch format_code {
     case "e", /* exponent */
-     "f", /* fixed */
-     "g": /* general */
+         "f", /* fixed */
+         "g": /* general */
         break
     case "E":
         upper = true
@@ -1302,7 +1298,7 @@ func PyOS_double_to_string(_ val: double,
            value is recreated.  This is true for IEEE floating point
            by design, and also happens to work for all other modern
            hardware. */
-        precision = 17
+        precision = 16 // 17
         format_code = "g"
         break
     default:
@@ -1350,7 +1346,6 @@ func PyOS_double_to_string(_ val: double,
     /* Handle nan and inf. */
     if val.isNaN {
         buf = "nan"
-        t = Py_DTST.NAN.rawValue
     } else if val.isInfinite {
         if (copysign(1.0, val) == 1.0) {
             buf = "inf"
@@ -1358,23 +1353,17 @@ func PyOS_double_to_string(_ val: double,
         else {
             buf = "-inf"
         }
-        t = Py_DTST.INFINITE.rawValue
     } else {
-        t = Py_DTST.FINITE.rawValue
-        if (flags & Py_DTSF.ADD_DOT_0.rawValue).asBool {
-            format = String(format: "%%\((flags & Py_DTSF.ALT.rawValue).asBool ? "#" : "")%c", format_code.unicode.value)
-        } else {
-            format = String(format: "%%\((flags & Py_DTSF.ALT.rawValue).asBool ? "#" : "").%i%c", precision, format_code.unicode.value)
-        }
+        format = String(format: "%%\(alt ? "#" : "").%i%c", precision, format_code.unicode.value)
         buf = String(format: format, val, precision)
-        if (flags & Py_DTSF.ALT.rawValue).asBool && buf.find(".") != -1 {
+        if alt && buf.find(".") != -1 {
             var drop = buf.count - 1
             while buf[drop] == "0" && buf[drop - 1] != "." {
                 buf.removeLast()
                 drop -= 1
             }
         }
-        if (flags & Py_DTSF.ADD_DOT_0.rawValue).asBool {
+        if addDot0 {
             if buf.find(".") == -1 {
                 buf += ".0"
             }
@@ -1383,7 +1372,7 @@ func PyOS_double_to_string(_ val: double,
 
     /* Add sign when requested.  It's convenient (esp. when formatting
      complex numbers) to include a sign even for inf and nan. */
-    if (flags & Py_DTSF.SIGN.rawValue).asBool && buf[0] != "-" {
+    if sign && buf[0] != "-" {
         buf = "+" + buf
     }
     if upper {
@@ -1391,7 +1380,7 @@ func PyOS_double_to_string(_ val: double,
         buf = buf.upper()
     }
 
-    return (buf, t)
+    return buf
 }
 
 /**
@@ -1445,25 +1434,6 @@ func _PyUnicode_InsertThousandsGrouping(
     return String(buf.reversed())
 }
 
-/* Given a number of the form:
-   digits[remainder]
-   where ptr points to the start and end points to the end, find where
-    the integer part ends. This could be a decimal, an exponent, both,
-    or neither.
-   If a decimal point is present, set *has_decimal and increment
-    remainder beyond it.
-   Results are undefined (but shouldn't crash) for improperly
-    formatted strings.
-*/
-func parse_number(_ s: String) -> (Int, Bool)
-{
-    let i = s.find(".")
-    if i != -1 {
-        return (n_remainder: (s.count - i) - 1, has_decimal: true)
-    }
-    return (n_remainder: 0, has_decimal: false)
-}
-
 /* the output will look like:
        |                                                                                         |
        | <lpadding> <sign> <prefix> <spadding> <grouped_digits> <decimal> <remainder> <rpadding> |
@@ -1484,11 +1454,9 @@ func parse_number(_ s: String) -> (Int, Bool)
     */
 func calc_number_widths(
     _ sign_char: Py_UCS4,
-    _ number: PyObject,
-    _ has_decimal: Bool,
     _ format: InternalFormatSpec
 ) -> NumberFieldWidths {
-    var spec: NumberFieldWidths = .init(need_prefix: false, sign: "", need_sign: false, fill_char: format.fill_char)
+    var spec: NumberFieldWidths = .init(sign: "", need_sign: false, fill_char: format.fill_char)
 
     /* compute the various parts we're going to write */
     switch format.sign {
@@ -1531,10 +1499,10 @@ func fill_number(_ spec: NumberFieldWidths,
         digits = digits.upper()
     }
 
-    return number_just(digits, format, spec, locale)
+    return digits
 }
 
-func number_just(_ digits: String, _ format: InternalFormatSpec, _ spec: NumberFieldWidths, _ locale: LocaleInfo) -> String {
+func number_just(_ digits: String, _ format: InternalFormatSpec, _ spec: NumberFieldWidths) -> String {
     /* Some padding is needed. Determine if it's left, space, or right. */
     let sign = spec.sign
     switch format.align {
@@ -1623,9 +1591,9 @@ protocol PSFormattable {
     func objectFormat(_ format: InternalFormatSpec) -> FormatResult
 }
 extension PSFormattable {
-    var str: String { String(describing: self) }
-    var repr: String { String(describing: self) }
-    var ascii: String { String(describing: self) }
+    var str: String { return String(describing: self) }
+    var repr: String { return String(describing: self) }
+    var ascii: String { return String(describing: self) }
 
     func convertField(_ conversion: Character) -> String {
         switch conversion {
@@ -1646,7 +1614,7 @@ protocol PSFormattableString: PSFormattable {
 }
 extension PSFormattableString {
     var defaultInternalFormatSpec: InternalFormatSpec {
-        InternalFormatSpec(align: "<", type: "s")
+        return InternalFormatSpec(align: "<", type: "s")
     }
     /************************************************************************/
     /*********** string formatting ******************************************/
@@ -1684,14 +1652,14 @@ extension PSFormattableString {
         }
 
         /* Write into that space. First the padding. */
-        return .success(fill_padding(value, format.align, format.fill_char, format.width))
+        return .success(fill_padding(value[0, len], format.align, format.fill_char, format.width))
     }
 }
 extension String: PSFormattableString {
-    var formattableString: String { self }
-    var str: String { self }
-    var repr: String { "'\(self)'" }
-    var ascii: String { "'\(self)'" }
+    var formattableString: String { return self }
+    var str: String { return self }
+    var repr: String { return "'\(self)'" }
+    var ascii: String { return "'\(self)'" }
 }
 
 @inlinable
@@ -1721,7 +1689,7 @@ protocol PSFormattableInteger: PSFormattable {
 }
 extension PSFormattableInteger {
     var defaultInternalFormatSpec: InternalFormatSpec {
-        InternalFormatSpec(align: ">", type: "d")
+        return InternalFormatSpec(align: ">", type: "d")
     }
     /************************************************************************/
     /*********** long formatting ********************************************/
@@ -1811,9 +1779,11 @@ extension PSFormattableInteger {
         let locale: LocaleInfo = get_locale_info(format.type == "n" ? .LT_CURRENT_LOCALE:
             format.thousands_separators)
         /* Calculate how much memory we'll need. */
-        let spec: NumberFieldWidths = calc_number_widths(sign_char, tmp, false, format)
-
-        return .success(fill_number(spec, tmp, format, prefix_tmp, format.fill_char, locale, format.type == "X"))
+        let spec: NumberFieldWidths = calc_number_widths(sign_char, format)
+        
+        tmp = fill_number(spec, tmp, format, prefix_tmp, format.fill_char, locale, format.type == "X")
+        tmp = number_just(tmp, format, spec)
+        return .success(tmp)
     }
 }
 
@@ -1822,14 +1792,13 @@ protocol PSFormattableFloatingPoint: PSFormattable {
 }
 extension PSFormattableFloatingPoint {
     var defaultInternalFormatSpec: InternalFormatSpec {
-        InternalFormatSpec(align: ">", type: "\0")
+        return InternalFormatSpec(align: ">", type: "\0")
     }
     /************************************************************************/
     /*********** float formatting *******************************************/
     /************************************************************************/
     func objectFormat(_ format: InternalFormatSpec) -> FormatResult {
         var val = self.formatableFloatingPoint
-        var has_decimal: Bool
 
         var precision: Int = format.precision
 
@@ -1837,7 +1806,7 @@ extension PSFormattableFloatingPoint {
         var type: Py_UCS4 = format.type
         var add_pct: Bool = false
         var spec: NumberFieldWidths
-        var flags: int = 0
+        var addDot:Bool = false
         var sign_char: Py_UCS4 = "\0"
         var unicode_tmp: String
 
@@ -1845,15 +1814,11 @@ extension PSFormattableFloatingPoint {
             return .failure(.ValueError("precision too big"))
         }
 
-        if format.alternate {
-            flags |= Py_DTSF.ALT.rawValue
-        }
-
         if type == "\0" {
             /* Omitted type specifier.  Behaves in the same way as repr(x)
                and str(x) if no precision is given, else like 'g', but with
                at least one digit after the decimal point. */
-            flags |= Py_DTSF.ADD_DOT_0.rawValue
+            addDot = true
             type = "r"
             default_precision = 0
         } else if type == "n" {
@@ -1876,7 +1841,7 @@ extension PSFormattableFloatingPoint {
         /* Cast "type", because if we're in unicode we need to pass an
            8-bit char. This is safe, because we've restricted what "type"
            can be. */
-        (unicode_tmp, _) = PyOS_double_to_string(val, type, precision, flags)
+        unicode_tmp = PyOS_double_to_string(val, type, precision, false, addDot, format.alternate)
 
 
         if add_pct {
@@ -1902,19 +1867,15 @@ extension PSFormattableFloatingPoint {
             unicode_tmp.removeFirst()
         }
 
-        /* Determine if we have any "remainder" (after the digits, might include
-           decimal or exponent or both (or neither)) */
-        (_, has_decimal) = parse_number(unicode_tmp)
-
         /* Determine the grouping, separator, and decimal point, if any. */
         /* Locale settings, either from the actual locale or
            from a hard-code pseudo-locale */
         let locale: LocaleInfo = get_locale_info(format.type == "n" ? .LT_CURRENT_LOCALE: format.thousands_separators)
 
-        /* Calculate how much memory we'll need. */
-        spec = calc_number_widths(sign_char, unicode_tmp, has_decimal, format)
-
-        return .success(fill_number(spec, unicode_tmp, format, "", format.fill_char, locale, false))
+        spec = calc_number_widths(sign_char, format)
+        unicode_tmp = fill_number(spec, unicode_tmp, format, "", format.fill_char, locale, false)
+        unicode_tmp = number_just(unicode_tmp, format, spec)
+        return .success(unicode_tmp)
     }
 }
 protocol PSFormattableComplex: PSFormattable {
@@ -1923,7 +1884,7 @@ protocol PSFormattableComplex: PSFormattable {
 }
 extension PSFormattableComplex {
     var defaultInternalFormatSpec: InternalFormatSpec {
-        InternalFormatSpec(align: ">", type: "\0")
+        return InternalFormatSpec(align: ">", type: "\0")
     }
     /************************************************************************/
     /*********** complex formatting *****************************************/
@@ -1935,26 +1896,17 @@ extension PSFormattableComplex {
         var buf: String = ""
 
         var tmp_format: InternalFormatSpec = format
-        var re_has_decimal: Bool
-        var im_has_decimal: Bool
         var precision: int
         var default_precision = 6
         var type: Py_UCS4 = format.type
-        var i_re: Py_ssize_t
-        var i_im: Py_ssize_t
         var re_spec: NumberFieldWidths
         var im_spec: NumberFieldWidths
-        var flags: int = 0
         var re_sign_char: Py_UCS4 = "\0"
         var im_sign_char: Py_UCS4 = "\0"
         var add_parens: Bool = false
         var skip_re: Bool = false
         var re_unicode_tmp: String
         var im_unicode_tmp: String
-
-        /* Locale settings, either from the actual locale or
-       from a hard-code pseudo-locale */
-        var locale: LocaleInfo = .init()
 
         if (format.precision > INT_MAX) {
             return .failure(.ValueError("precision too big"))
@@ -1972,9 +1924,6 @@ extension PSFormattableComplex {
         }
 
 
-        if format.alternate {
-            flags |= Py_DTSF.ALT.rawValue
-        }
         if (type == "\0") {
             /* Omitted type specifier. Should be like str(self). */
             type = "r"
@@ -1999,30 +1948,25 @@ extension PSFormattableComplex {
         /* Cast "type", because if we're in unicode we need to pass an
        8-bit char. This is safe, because we've restricted what "type"
        can be. */
-        (re_unicode_tmp, _) = PyOS_double_to_string(re, type, precision, flags)
-        (im_unicode_tmp, _) = PyOS_double_to_string(im, type, precision, flags)
+        re_unicode_tmp = PyOS_double_to_string(re, type, precision, false, false, format.alternate)
+        im_unicode_tmp = PyOS_double_to_string(im, type, precision, false, false, format.alternate)
 
-        i_re = 0
-        i_im = 0
 
         /* Is a sign character present in the output?  If so, remember it
        and skip it */
-        if (PyUnicode_READ_CHAR(re_unicode_tmp, i_re) == "-") {
+        if (PyUnicode_READ_CHAR(re_unicode_tmp, 0) == "-") {
             re_sign_char = "-"
-            ++i_re
+            re_unicode_tmp.removeFirst()
         }
-        if (PyUnicode_READ_CHAR(im_unicode_tmp, i_im) == "-") {
+        if (PyUnicode_READ_CHAR(im_unicode_tmp, 0) == "-") {
             im_sign_char = "-"
-            ++i_im
+            im_unicode_tmp.removeFirst()
         }
-
-        /* Determine if we have any "remainder" (after the digits, might include
-       decimal or exponent or both (or neither)) */
-        (_, re_has_decimal) = parse_number(re_unicode_tmp)
-        (_, im_has_decimal) = parse_number(im_unicode_tmp)
 
         /* Determine the grouping, separator, and decimal point, if any. */
-        locale = get_locale_info(format.type == "n" ? .LT_CURRENT_LOCALE: format.thousands_separators)
+         /* Locale settings, either from the actual locale or
+        from a hard-code pseudo-locale */
+        let locale: LocaleInfo = get_locale_info(format.type == "n" ? .LT_CURRENT_LOCALE: format.thousands_separators)
 
         /* Turn off any padding. We'll do it later after we've composed
        the numbers without padding. */
@@ -2031,20 +1975,20 @@ extension PSFormattableComplex {
         tmp_format.width = -1
 
         /* Calculate how much memory we'll need. */
-        re_spec = calc_number_widths(re_sign_char, re_unicode_tmp, re_has_decimal, tmp_format)
+        re_spec = calc_number_widths(re_sign_char, tmp_format)
 
         /* Same formatting, but always include a sign, unless the real part is
      * going to be omitted, in which case we use whatever sign convention was
      * requested by the original format. */
-        if (!skip_re) {
+        if !skip_re {
             tmp_format.sign = "+"
         }
-        im_spec = calc_number_widths(im_sign_char, im_unicode_tmp, im_has_decimal, tmp_format)
+        im_spec = calc_number_widths(im_sign_char, tmp_format)
 
-        re_unicode_tmp = number_just(re_unicode_tmp, tmp_format, re_spec, locale)
-        im_unicode_tmp = number_just(im_unicode_tmp, tmp_format, im_spec, locale)
+        re_unicode_tmp = number_just(re_unicode_tmp, tmp_format, re_spec)
+        im_unicode_tmp = number_just(im_unicode_tmp, tmp_format, im_spec)
 
-        if (add_parens) {
+        if add_parens {
             buf = "(" + buf
         }
 
@@ -2063,10 +2007,10 @@ extension PSFormattableComplex {
                            locale, false)
         buf += "j"
 
-        if (add_parens) {
+        if add_parens {
             buf += ")"
         }
-        return .success(buf)
+        return .success(fill_padding(buf, format.align, format.fill_char, format.width))
     }
 }
 
@@ -2181,12 +2125,6 @@ func _PyComplex_FormatAdvancedWriter(
 {
     var format: InternalFormatSpec
 
-    /* check for the special case of zero length format spec, make
-       it equivalent to str(obj) */
-    if format_spec.isEmpty {
-        return .success(.init(describing: obj))
-    }
-
     /* parse the format_spec */
     switch parse_internal_render_format_spec(format_spec, obj.defaultInternalFormatSpec) {
     case .success(let f):
@@ -2222,38 +2160,38 @@ extension String {
 }
 
 extension Double: PSFormattableFloatingPoint {
-    var formatableFloatingPoint: Double { self }
+    var formatableFloatingPoint: Double { return self }
 }
 extension Float: PSFormattableFloatingPoint {
-    var formatableFloatingPoint: Double { Double(self) }
+    var formatableFloatingPoint: Double { return Double(self) }
 }
 extension Float80: PSFormattableFloatingPoint {
-    var formatableFloatingPoint: Double { Double(self) }
+    var formatableFloatingPoint: Double { return Double(self) }
 }
 extension Int: PSFormattableInteger {
-    var formatableInteger: Int { self }
+    var formatableInteger: Int { return self }
 }
 extension Int8: PSFormattableInteger {
-    var formatableInteger: Int { Int(self) }
+    var formatableInteger: Int { return Int(self) }
 }
 extension Int16: PSFormattableInteger {
-    var formatableInteger: Int { Int(self) }
+    var formatableInteger: Int { return Int(self) }
 }
 extension Int32: PSFormattableInteger {
-    var formatableInteger: Int { Int(self) }
+    var formatableInteger: Int { return Int(self) }
 }
 extension Int64: PSFormattableInteger {
-    var formatableInteger: Int { Int(self) }
+    var formatableInteger: Int { return Int(self) }
 }
 extension UInt8: PSFormattableInteger {
-    var formatableInteger: Int { Int(self) }
+    var formatableInteger: Int { return Int(self) }
 }
 extension UInt16: PSFormattableInteger {
-    var formatableInteger: Int { Int(self) }
+    var formatableInteger: Int { return Int(self) }
 }
 extension UInt32: PSFormattableInteger {
-    var formatableInteger: Int { Int(self) }
+    var formatableInteger: Int { return Int(self) }
 }
 extension UInt64: PSFormattableInteger {
-    var formatableInteger: Int { Int(self) }
+    var formatableInteger: Int { return Int(self) }
 }

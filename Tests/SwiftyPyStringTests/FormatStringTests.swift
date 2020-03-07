@@ -21,6 +21,11 @@ final class FormatStringTests: XCTestCase {
         XCTAssertEqual("{:0^5}".format("s"), "00s00")
         XCTAssertEqual("{:0>5}".format("s"), "0000s")
     }
+    static var allTests = [
+        ("testStringFormat", testStringFormat),
+        ("testAlign", testAlign),
+        ("testFill", testFill),
+    ]
     /// Returns path to the built products directory.
     var productsDirectory: URL {
         #if os(macOS)

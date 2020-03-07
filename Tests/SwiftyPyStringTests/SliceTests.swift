@@ -75,6 +75,17 @@ final class SliceTests: XCTestCase {
         XCTAssertEqual(list[nil, nil, -1], [3, 2, 1])
         XCTAssertEqual(list[0], 1)
     }
+    static var allTests = [
+        ("testSliceInit", testSliceInit),
+        ("testIndicse", testIndicse),
+        ("testSubscriptByInt", testSubscriptByInt),
+        ("testSlice", testSlice),
+        ("testSliceNil", testSliceNil),
+        ("testSliceNegate", testSliceNegate),
+        ("testSliceEmpty", testSliceEmpty),
+        ("testAssign", testAssign),
+        ("testSliceable", testSliceable),
+    ]
     /// Returns path to the built products directory.
     var productsDirectory: URL {
         #if os(macOS)
