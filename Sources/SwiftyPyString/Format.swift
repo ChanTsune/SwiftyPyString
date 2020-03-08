@@ -18,8 +18,6 @@ typealias size_t = Int
 typealias double = Double
 typealias Py_UCS4 = Character
 
-let PY_SSIZE_T_MAX = Int.max
-let INT_MAX = Int.max
 let CHAR_MAX = 127
 
 extension BinaryInteger {
@@ -75,14 +73,11 @@ class AutoNumber {
    ValueError on error. */
 func autonumber_state_error(_ state: AutoNumberState, _ field_name_is_empty: Bool) -> Result<int, PyException>
 {
-    if (state == .ANS_MANUAL) {
-        if field_name_is_empty {
-            return .failure(.ValueError("cannot switch from manual field specification to automatic field numbering"))
-        }
-    } else {
-        if !field_name_is_empty {
-            return .failure(.ValueError("cannot switch from automatic field numbering to manual field specification"))
-        }
+    if state == .ANS_MANUAL && field_name_is_empty {
+        return .failure(.ValueError("cannot switch from manual field specification to automatic field numbering"))
+    }
+    else if !field_name_is_empty {
+        return .failure(.ValueError("cannot switch from automatic field numbering to manual field specification"))
     }
     return .success(0) // 戻り値に特に意味はない
 }
@@ -120,7 +115,7 @@ func get_integer(_ str: String) -> Result<Py_ssize_t, PyException>
               accumulator * 10 + digitval > PY_SSIZE_T_MAX if and only if
               accumulator > (PY_SSIZE_T_MAX - digitval) / 10.
         */
-        if (accumulator > (PY_SSIZE_T_MAX - digitval) / 10) {
+        if (accumulator > (Int.max - digitval) / 10) {
             return .failure(.ValueError("Too many decimal digits in format string"))
         }
         accumulator = accumulator * 10 + digitval
@@ -947,7 +942,7 @@ func get_integer(_ str: String,
               accumulator * 10 + digitval > PY_SSIZE_T_MAX if and only if
               accumulator > (PY_SSIZE_T_MAX - digitval) / 10.
         */
-        if (accumulator > (PY_SSIZE_T_MAX - digitval) / 10) {
+        if (accumulator > (Int.max - digitval) / 10) {
 
             return .failure(.ValueError("Too many decimal digits in format string"))
         }
@@ -1801,10 +1796,6 @@ extension PSFormattableFloatingPoint {
         var sign_char: Py_UCS4 = "\0"
         var unicode_tmp: String
 
-        if format.precision > INT_MAX {
-            return .failure(.ValueError("precision too big"))
-        }
-
         if type == "\0" {
             /* Omitted type specifier.  Behaves in the same way as repr(x)
                and str(x) if no precision is given, else like 'g', but with
@@ -1899,9 +1890,6 @@ extension PSFormattableComplex {
         var re_unicode_tmp: String
         var im_unicode_tmp: String
 
-        if (format.precision > INT_MAX) {
-            return .failure(.ValueError("precision too big"))
-        }
         precision = format.precision
 
         /* Zero padding is not allowed. */
