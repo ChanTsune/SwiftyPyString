@@ -73,11 +73,14 @@ class AutoNumber {
    ValueError on error. */
 func autonumber_state_error(_ state: AutoNumberState, _ field_name_is_empty: Bool) -> Result<int, PyException>
 {
-    if state == .ANS_MANUAL && field_name_is_empty {
-        return .failure(.ValueError("cannot switch from manual field specification to automatic field numbering"))
-    }
-    else if !field_name_is_empty {
-        return .failure(.ValueError("cannot switch from automatic field numbering to manual field specification"))
+    if (state == .ANS_MANUAL) {
+        if field_name_is_empty {
+            return .failure(.ValueError("cannot switch from manual field specification to automatic field numbering"))
+        }
+    } else {
+        if !field_name_is_empty {
+            return .failure(.ValueError("cannot switch from automatic field numbering to manual field specification"))
+        }
     }
     return .success(0) // 戻り値に特に意味はない
 }
