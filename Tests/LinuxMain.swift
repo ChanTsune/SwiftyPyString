@@ -2,7 +2,5 @@ import XCTest
 
 import SwiftyPyStringTests
 
-var tests = [XCTestCaseEntry]()
-tests += SwiftyPyStringTests.allTests()
-tests += SliceTests.allTests()
+var tests = SwiftyPyStringTests.allTests()
 XCTMain(tests)
