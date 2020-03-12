@@ -1,7 +1,7 @@
 Pod::Spec.new do |spec|
 
   spec.name         = "SwiftyPyString"
-  spec.version      = "1.1.3"
+  spec.version      = "2.0.0"
   spec.summary      = "A library that provides Swift with string operations equivalent to Python."
   spec.description  = <<-DESC
   A library that provides Swift with string operations equivalent to Python.
