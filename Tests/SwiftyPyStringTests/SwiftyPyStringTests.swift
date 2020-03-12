@@ -2,7 +2,12 @@ import XCTest
 @testable import SwiftyPyString
 
 final class SwiftyPyStringTests: XCTestCase {
-
+    func testMultiplication() throws {
+        XCTAssertEqual("a" * 0, "")
+        XCTAssertEqual(0 * "a", "")
+        XCTAssertEqual("a" * 2, "aa")
+        XCTAssertEqual("a" * -1, "")
+    }
     func testCapitalize() throws {
         let case1 = "hello world!"
         let case2 = "Hello World!"
@@ -11,6 +16,7 @@ final class SwiftyPyStringTests: XCTestCase {
     }
     func testCasefold() throws {
         XCTAssertEqual("ß".casefold(), "ss")
+        XCTAssertEqual("A".casefold(), "a")
     }
     func testCenter() throws {
         let even = "1234"
@@ -61,7 +67,6 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual("abc\tabc\t".expandtabs(), "abc        abc        ")
         XCTAssertEqual("abc\tabc".expandtabs(0), "abcabc")
     }
-
     func testFind() throws {
         let str = "0123456789"
         let str2 = "123412312312345"
@@ -79,11 +84,9 @@ final class SwiftyPyStringTests: XCTestCase {
 
         XCTAssertEqual(str2.find(""), 0)
     }
-    func testMakeTable() throws {
-        let p = "qwertyuiop"
-        for _ in 0...10000 {
-            String.make_table(p)
-        }
+    func testIndex() throws {
+        let s = "0123456789"
+        XCTAssertEqual(try! s.index("0"), 0)
     }
     func testIsAlnum() throws {
         XCTAssertTrue("123abc".isalnum())
@@ -162,8 +165,8 @@ final class SwiftyPyStringTests: XCTestCase {
     func testLjust() throws {
         let str = "abc"
         XCTAssertEqual(str.ljust(1), "abc")
-        XCTAssertEqual(str.ljust(5), "  abc")
-        XCTAssertEqual(str.ljust(5, fillchar: "z"), "zzabc")
+        XCTAssertEqual(str.ljust(5), "abc  ")
+        XCTAssertEqual(str.ljust(5, fillchar: "z"), "abczz")
     }
     func testLower() throws {
         XCTAssertEqual("ABCDE".lower(), "abcde")
@@ -184,6 +187,10 @@ final class SwiftyPyStringTests: XCTestCase {
     func testPartition() throws {
         XCTAssert("a,b,c".partition(",") == ("a", ",", "b,c"))
         XCTAssert("a,b,c".partition("x") == ("a,b,c", "", ""))
+    }
+    func testRindex() throws {
+        let s = "0123456789"
+        XCTAssertEqual(try! s.rindex("0"), 0)
     }
     func testReplace() throws {
         XCTAssertEqual("abc".replace("bc", new: "bcd"), "abcd")
@@ -213,8 +220,8 @@ final class SwiftyPyStringTests: XCTestCase {
     func testRjust() throws {
         let str = "abc"
         XCTAssertEqual(str.rjust(1), "abc")
-        XCTAssertEqual(str.rjust(5), "abc  ")
-        XCTAssertEqual(str.rjust(5, fillchar: "z"), "abczz")
+        XCTAssertEqual(str.rjust(5), "  abc")
+        XCTAssertEqual(str.rjust(5, fillchar: "z"), "zzabc")
     }
     func testRpartition() throws {
         XCTAssert("a,b,c".rpartition(",") == ("a,b", ",", "c"))
@@ -290,6 +297,50 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertEqual(minus.zfill(5), "-0003")
         XCTAssertEqual(plus.zfill(2), "+12")
     }
+    static var allTests = [
+        ("testMultiplication", testMultiplication),
+        ("testCapitalize", testCapitalize),
+        ("testCasefold", testCasefold),
+        ("testCenter", testCenter),
+        ("testCount", testCount),
+        ("testEndswith", testEndswith),
+        ("testExpandtabs", testExpandtabs),
+        ("testFind", testFind),
+        ("testIndex", testIndex),
+        ("testIsAlnum", testIsAlnum),
+        ("testIsAlpha", testIsAlpha),
+        ("testIsAscii", testIsAscii),
+        ("testIsDecimal", testIsDecimal),
+        ("testIsDigit", testIsDigit),
+        ("testIsLower", testIsLower),
+        ("testIsPrintable", testIsPrintable),
+        ("testIsSpace", testIsSpace),
+        ("testIsNumeric", testIsNumeric),
+        ("testIsTitle", testIsTitle),
+        ("testIsUpper", testIsUpper),
+        ("testJoin", testJoin),
+        ("testLjust", testLjust),
+        ("testLower", testLower),
+        ("testLstrip", testLstrip),
+        ("testMaketrans", testMaketrans),
+        ("testPartition", testPartition),
+        ("testRindex", testRindex),
+        ("testReplace", testReplace),
+        ("testRfind", testRfind),
+        ("testRjust", testRjust),
+        ("testRpartition", testRpartition),
+        ("testRsplit", testRsplit),
+        ("testRstrip", testRstrip),
+        ("testSplit", testSplit),
+        ("testSplitlines", testSplitlines),
+        ("testStartswith", testStartswith),
+        ("testStrip", testStrip),
+        ("testSwapcase", testSwapcase),
+        ("testTitle", testTitle),
+        ("testTransrate", testTransrate),
+        ("testUpper", testUpper),
+        ("testZfill", testZfill),
+    ]
 
     /// Returns path to the built products directory.
     var productsDirectory: URL {

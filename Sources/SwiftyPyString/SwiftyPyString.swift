@@ -48,40 +48,31 @@ extension Character {
     }
 }
 
-public let PYTHON_VERSION = "3.7.2"
-
-public enum PyException: Error {
-    case AttributeError(String)
-    case BaseException(String)
-    case Exception(String)
-    case ValueError(String)
-    case KeyError(String)
-    case IndexError(String)
-    case TypeError(String)
-    case SystemError(String)
-    case OverflowError(String)
-}
-
 public func * (str: String, n: Int) -> String {
-    return String(repeating: str, count: n)
+    return String(repeating: str, count: n > 0 ? n : 0)
 }
 public func * (n: Int, str: String) -> String {
-    return String(repeating: str, count: n)
+    return String(repeating: str, count: n > 0 ? n : 0)
 }
 public func *= (str: inout String, n: Int) {
-    str = String(repeating: str, count: n)
+    str = String(repeating: str, count: n > 0 ? n : 0)
 }
 
 
 extension String {
-
+    func at(_ i: Int) -> Character? {
+        if self.count > i {
+            return self[self.index(self.startIndex, offsetBy: i)]
+        }
+        return nil
+    }
     public func capitalize() -> String {
         return self.prefix(1).uppercased() + self.dropFirst(1).lowercased()
     }
     public func casefold() -> String {
         var folded = ""
-        for chr in self {
-            folded.append(getFolded(chr))
+        for c in self {
+            folded.append(casefoldTable[c.unicode.value, default: String(c)])
         }
         return folded
     }
@@ -94,7 +85,7 @@ extension String {
         return String(repeating: fillchar, count: left - right) + self + String(repeating: fillchar, count: right)
     }
     public func count(_ sub: String, start: Int? = nil, end: Int? = nil) -> Int {
-        let (start,end,_,length) = Slice(start: start,stop: end).adjustIndex(self.count)
+        let (start, end, _, length) = Slice(start: start, stop: end).adjustIndex(self.count)
         if sub.count == 0 {
             return length + 1
         }
@@ -106,11 +97,6 @@ extension String {
         }
         return c
     }
-    /*
-     public func encode() -> String {
-     return ""
-     }
-     */
     public func endswith(_ suffix: String, start: Int? = nil, end: Int? = nil) -> Bool {
         return self[start, end].hasSuffix(suffix)
     }
@@ -126,7 +112,7 @@ extension String {
     public func expandtabs(_ tabsize: Int = 8) -> String {
         return self.replace("\t", new: String(repeating: " ", count: tabsize))
     }
-    static public func make_table(_ pattern: String) -> [Character: Int] {
+    static func make_table(_ pattern: String) -> [Character: Int] {
         var table: [Character: Int] = [:]
         let len = pattern.count - 1
         for i in 0..<(len) {
@@ -221,11 +207,6 @@ extension String {
             return false
         })
     }
-    /*
-     public func isidentifier() -> Bool {
-     return false
-     }
-     */
     public func islower() -> Bool {
         if self.isEmpty {
             return false
@@ -318,7 +299,7 @@ extension String {
         }
         return String(str.dropLast(self.count))
     }
-    public func ljust(_ width: Int, fillchar: Character = " ") -> String {
+    public func rjust(_ width: Int, fillchar: Character = " ") -> String {
         if self.count >= width {
             return self
         }
@@ -396,7 +377,7 @@ extension String {
         }
         var (s, e, _, _) = Slice(start: start, stop: end).adjustIndex(self.count)
         if (e - s) < sub.count {
-            return -1;
+            return -1
         }
         s -= 1
         var fin = e - sub.count
@@ -415,7 +396,7 @@ extension String {
         }
         return i
     }
-    public func rjust(_ width: Int, fillchar: Character = " ") -> String {
+    public func ljust(_ width: Int, fillchar: Character = " ") -> String {
         if self.count >= width {
             return self
         }
@@ -673,10 +654,10 @@ extension String {
         if !self.isEmpty {
             let h = self[0, 1]
             if h == "+" || h == "-" {
-                return h + self[1, nil].ljust(width - 1, fillchar: "0")
+                return h + self[1, nil].rjust(width - 1, fillchar: "0")
             }
         }
-        return self.ljust(width, fillchar: "0")
+        return self.rjust(width, fillchar: "0")
     }
 }
 

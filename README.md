@@ -32,7 +32,7 @@ import PackageDescription
 let package = Package(
     name: "YourProject",
     dependencies: [
-        .Package(url: "https://github.com/ChanTsune/SwiftyPyString.git", from: "1.1.3")
+        .package(url: "https://github.com/ChanTsune/SwiftyPyString.git", from: "2.0.0")
     ]
 )
 ```
@@ -145,6 +145,34 @@ var s = "Hello World! " * 2
 "123412312312345".find("31") // 6
 "123412312312345".find("0") // -1
 ```
+
+#### format(args...,kwargs)  
+
+**Available after v2.0**  
+
+```swift
+"{}, {}, {}".format("a", "b", "c") // "a, b, c"
+"{0}, {1}, {2}".format("a", "b", "c") // "a, b, c"
+"{0}{1}{0}".format("abra", "cad") // "abracadabra"
+"{:,}".format(1234567890) // "1,234,567,890"
+```
+
+Format specification
+
+https://docs.python.org/3/library/string.html#format-specification-mini-language
+
+#### format_map(kwargs) 
+
+**Available after v2.0**  
+
+```swift
+"{A}, {B}, {C}".format(["A": "a", "B": "b", "C": "c"]) // "a, b, c"
+"{number:,}".format(["number":1234567890]) // "1,234,567,890"
+```
+
+Format specification
+
+https://docs.python.org/3/library/string.html#format-specification-mini-language
 
 #### index(sub [,start [,end]]) throws  
 
