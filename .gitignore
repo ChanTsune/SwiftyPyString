@@ -127,3 +127,5 @@ iOSInjectionProject/
 # End of https://www.gitignore.io/api/swift,xcode,macos
 
 udata/
+# vagrant
+.vagrant/
