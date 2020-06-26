@@ -580,14 +580,9 @@ extension String {
     public func startswith(_ prefix: String, start: Int? = nil, end: Int? = nil) -> Bool {
         return self[start, end].hasPrefix(prefix)
     }
-    public func startswith(_ prefix: [String], start: Int? = nil, end: Int? = nil) -> Bool {
+    public func startswith(_ prefixes: [String], start: Int? = nil, end: Int? = nil) -> Bool {
         let str = self[start, end]
-        for s in prefix {
-            if str.hasPrefix(s) {
-                return true
-            }
-        }
-        return false
+        return prefixes.contains(where: {str.hasPrefix($0)})
     }
 
     public func strip(_ chars: String? = nil) -> String {
