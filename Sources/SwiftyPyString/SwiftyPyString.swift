@@ -160,12 +160,7 @@ extension String {
         if self.isEmpty {
             return empty
         }
-        for chr in self {
-            if !conditional(chr) {
-                return false
-            }
-        }
-        return true
+        return self.allSatisfy({conditional($0)})
     }
 
     public func isalnum() -> Bool {
