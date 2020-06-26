@@ -107,14 +107,6 @@ extension String {
     public func expandtabs(_ tabsize: Int = 8) -> String {
         return self.replace("\t", new: String(repeating: " ", count: tabsize))
     }
-    static func make_table(_ pattern: String) -> [Character: Int] {
-        var table: [Character: Int] = [:]
-        let len = pattern.count - 1
-        for i in 0..<(len) {
-            table[pattern[i]] = len - i
-        }
-        return table
-    }
 
     public func find(_ sub: String, start: Int? = nil, end: Int? = nil) -> Int {
         if sub.isEmpty {
@@ -129,24 +121,6 @@ extension String {
             }
             i += 1
         }
-
-        // let table = String.make_table(sub)
-        // print("table:",table)
-
-        // func skip_table(_ c:Character) -> Int {
-        //     return table[c,default: sub.count]
-        // }
-        // var skip = s
-        // while self.count - skip >= sub.count {
-        //     var i = sub.count - 1
-        //     while self[skip + i] == sub[i] {
-        //         if i == 0 {
-        //             return skip
-        //         }
-        //         i = i - 1
-        //     }
-        //     skip = skip + skip_table(self[skip + sub.count - 1])
-        // }
         return -1
     }
     public func index(_ sub: String, start: Int? = nil, end: Int? = nil) throws -> Int {
