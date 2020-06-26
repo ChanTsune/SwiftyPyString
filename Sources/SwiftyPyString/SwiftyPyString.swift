@@ -100,14 +100,9 @@ extension String {
     public func endswith(_ suffix: String, start: Int? = nil, end: Int? = nil) -> Bool {
         return self[start, end].hasSuffix(suffix)
     }
-    public func endswith(_ suffix: [String], start: Int? = nil, end: Int? = nil) -> Bool {
+    public func endswith(_ suffixes: [String], start: Int? = nil, end: Int? = nil) -> Bool {
         let str = self[start, end]
-        for s in suffix {
-            if str.hasSuffix(s) {
-                return true
-            }
-        }
-        return false
+        return suffixes.contains(where: {str.hasSuffix($0)})
     }
     public func expandtabs(_ tabsize: Int = 8) -> String {
         return self.replace("\t", new: String(repeating: " ", count: tabsize))
