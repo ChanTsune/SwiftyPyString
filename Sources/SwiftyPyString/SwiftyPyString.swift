@@ -102,7 +102,7 @@ extension String {
     }
     public func endswith(_ suffixes: [String], start: Int? = nil, end: Int? = nil) -> Bool {
         let str = self[start, end]
-        return suffixes.contains(where: {str.hasSuffix($0)})
+        return suffixes.contains(where: { str.hasSuffix($0) })
     }
     public func expandtabs(_ tabsize: Int = 8) -> String {
         return self.replace("\t", new: String(repeating: " ", count: tabsize))
@@ -134,7 +134,7 @@ extension String {
         if self.isEmpty {
             return empty
         }
-        return self.allSatisfy({conditional($0)})
+        return self.allSatisfy({ conditional($0) })
     }
 
     public func isalnum() -> Bool {
@@ -551,7 +551,7 @@ extension String {
     }
     public func startswith(_ prefixes: [String], start: Int? = nil, end: Int? = nil) -> Bool {
         let str = self[start, end]
-        return prefixes.contains(where: {str.hasPrefix($0)})
+        return prefixes.contains(where: { str.hasPrefix($0) })
     }
 
     public func strip(_ chars: String? = nil) -> String {
