@@ -3,7 +3,6 @@ os:
   - linux
 language: generic
 osx_image: xcode11.3
-dist: trusty
 env:
   - SWIFT_VERSION=5.0
   - SWIFT_VERSION=5.1
