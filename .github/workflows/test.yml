@@ -26,3 +26,10 @@ jobs:
       run: eval "$(curl -sL https://swiftenv.fuller.li/install.sh)"
     - name: Test
       run: swift test
+
+  pod_spec_lint:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Test
+      run: pod spec lint SwiftyPyString.podspec
