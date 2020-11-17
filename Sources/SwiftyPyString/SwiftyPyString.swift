@@ -305,13 +305,7 @@ extension String {
     }
     static public func maketrans(_ x: String, y: String, z: String = "") -> [Character: String] {
         var cvTable: [Character: String] = [:]
-        func max(x: Int, y: Int) -> Int {
-            if x > y {
-                return x
-            }
-            return y
-        }
-        let loop: Int = max(x: x.count, y: y.count)
+        let loop: Int = Swift.max(x.count, y.count)
         for i in 0..<loop {
             cvTable[x[i]] = String(y[i])
         }
