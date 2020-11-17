@@ -2147,9 +2147,6 @@ extension Double: PSFormattableFloatingPoint {
 extension Float: PSFormattableFloatingPoint {
     var formatableFloatingPoint: Double { return Double(self) }
 }
-extension Float80: PSFormattableFloatingPoint {
-    var formatableFloatingPoint: Double { return Double(self) }
-}
 extension Int: PSFormattableInteger {
     var formatableInteger: Int { return self }
 }
