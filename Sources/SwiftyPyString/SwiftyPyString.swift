@@ -130,7 +130,7 @@ extension String {
         }
         return i
     }
-    private func isX(_ conditional: (Character) -> Bool, empty: Bool = false) -> Bool {
+    private func isX(_ conditional: (Character) -> Bool, empty: Bool) -> Bool {
         if self.isEmpty {
             return empty
         }
@@ -141,14 +141,14 @@ extension String {
         let alphaTypes: [Unicode.GeneralCategory] = [.modifierLetter, .titlecaseLetter, .uppercaseLetter, .lowercaseLetter, .otherLetter, .decimalNumber]
         return self.isX({ (chr) -> Bool in
             return alphaTypes.contains(chr.properties.generalCategory) || chr.properties.numericType != nil
-        })
+        }, empty: false)
     }
 
     public func isalpha() -> Bool {
         let alphaTypes: [Unicode.GeneralCategory] = [.modifierLetter, .titlecaseLetter, .uppercaseLetter, .lowercaseLetter, .otherLetter]
         return self.isX({ (chr) -> Bool in
             return alphaTypes.contains(chr.properties.generalCategory)
-        })
+        }, empty: false)
     }
 
     public func isascii() -> Bool {
@@ -160,7 +160,7 @@ extension String {
     public func isdecimal() -> Bool {
         return self.isX({ (chr) -> Bool in
             return chr.properties.generalCategory == .decimalNumber
-        })
+        }, empty: false)
     }
 
     public func isdigit() -> Bool {
@@ -169,7 +169,7 @@ extension String {
                 return numericType == .decimal || numericType == .digit
             }
             return false
-        })
+        }, empty: false)
     }
     public func islower() -> Bool {
         if self.isEmpty {
@@ -190,7 +190,7 @@ extension String {
     public func isnumeric() -> Bool {
         return self.isX({ (chr) -> Bool in
             return chr.properties.numericType != nil
-        })
+        }, empty: false)
     }
 
     public func isprintable() -> Bool {
@@ -209,7 +209,7 @@ extension String {
         return self.isX({ (chr) -> Bool in
             // TODO:unicode propaty
             return chr.isWhitespace
-        })
+        }, empty: false)
     }
     public func istitle() -> Bool {
         if self.isEmpty {
