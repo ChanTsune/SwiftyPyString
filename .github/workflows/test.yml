@@ -32,4 +32,4 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Test
-      run: pod spec lint SwiftyPyString.podspec
+      run: pod lib lint
