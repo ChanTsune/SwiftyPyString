@@ -1,0 +1,35 @@
+name: "Test"
+
+on:
+  push:
+  pull_request:
+    branches:
+      - master
+jobs:
+  test:
+    strategy:
+      matrix:
+        os:
+        - 'macos-latest'
+        - 'ubuntu-latest'
+        swift-version:
+        - '5.0'
+        - '5.1'
+        - '5.2'
+        - '5.3'
+    runs-on: ${{ matrix.os }}
+    env:
+      SWIFT_VERSION: ${{ matrix.swift-version }}
+    steps:
+    - uses: actions/checkout@v1
+    - name: SetUp
+      run: eval "$(curl -sL https://swiftenv.fuller.li/install.sh)"
+    - name: Test
+      run: swift test
+
+  pod_spec_lint:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Test
+      run: pod lib lint
