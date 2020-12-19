@@ -8,7 +8,8 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: ChanTsune/release-with-commit@v2.0.1
+      - id: release
+        uses: ChanTsune/release-with-commit@v2.0.1
         with:
           regexp: "Release (\\d+([.]\\d+)*)\n*((\\s|\\S)+)"
           regexp_options: "us"
@@ -19,3 +20,17 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
+    outputs:
+      created: ${{ steps.release.outputs.created }}
+  publish:
+    runs-on: macOS-latest
+    needs: release
+    if: ${{ needs.release.outputs.created == 'true' }}
+    steps:
+    - uses: actions/checkout@v1
+    - name: Lint
+      run: pod spec lint
+    - name: Deploy
+      env:
+        COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
+      run: pod trunk push SwiftyPyString.podspec
