@@ -440,12 +440,12 @@ func get_field_object(_ input: String, _ args: [Any], _ kwargs: [String: Any],
                 tmp = (obj as? [String: Any])?[name]
             } else {
                 /* do the equivalent of obj[idx], where obj is not a sequence */
-                if let o = obj as? [Int:Any] {
+                if case let o as [Int: Any] = obj {
                     tmp = o[index]
                 }
                 /* do the equivalent of obj[name] */
-                else if let o = obj as? [Any] {
-                    tmp = o[index]
+                else if case let o as [Any] = obj {
+                        tmp = o[index]
                 }
                 else {
                     tmp = nil
