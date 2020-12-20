@@ -438,7 +438,7 @@ func get_field_object(_ input: String, _ args: [Any], _ kwargs: [String: Any],
         } else {
             /* getitem lookup "[]" */
             if (index == -1) {
-                tmp = (obj as! [String:Any])[name]
+                tmp = (obj as? [String: Any])?[name]
             } else {
                 /* do the equivalent of obj[idx], where obj is not a sequence */
                 if let o = obj as? [Int:Any] {
@@ -2008,7 +2008,7 @@ func _PyUnicode_FormatAdvancedWriter(
     /* check for the special case of zero length format spec, make
        it equivalent to str(obj) */
     if format_spec.isEmpty {
-        return .success(obj as! String)
+        return .success(obj.formattableString)
     }
 
     /* parse the format_spec */
