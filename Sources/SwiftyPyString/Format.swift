@@ -129,13 +129,8 @@ func get_integer(_ str: String) -> Result<Py_ssize_t, PyException>
 func getattr(_ v: PyObject, _ name: String) -> Result<PyObject, PyException>
 {
     let mirror = Mirror(reflecting: v)
-    let c = mirror.children
-    var keyMap: [String: Any] = [:]
-    for i in c {
-        keyMap[i.label!] = i.value
-    }
-    if let value = keyMap[name] {
-        return .success(value)
+    if let i = mirror.children.first(where: { $0.label == name }) {
+        return .success(i.value)
     }
     return .failure(.AttributeError("'\(typeName(v))' object has no attribute '\(name)'"))
 }
