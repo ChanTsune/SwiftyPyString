@@ -101,14 +101,13 @@ func PyUnicode_READ_CHAR(_ str: String, _ index: Int) -> Character {
 func get_integer(_ str: String) -> Result<Py_ssize_t, PyException>
 {
     var accumulator: Py_ssize_t = 0
-    var digitval: Py_ssize_t
 
     /* empty string is an error */
     if str.isEmpty {
         return .success(-1) // error path
     }
     for c in str {
-        digitval = Py_UNICODE_TODECIMAL(c)
+        let digitval = Py_UNICODE_TODECIMAL(c)
         if (digitval < 0) {
             return .success(-1) // error path
         }
@@ -552,7 +551,6 @@ func parse_field(_ str: MarkupIterator) -> Result<ParseResult, PyException>
 
     result.field_name = str.str[start, str.start - 1] // フィールド名に相当する部分の部分の字列の切り出し
     if (c == "!" || c == ":") {
-        var count: Py_ssize_t = 0
         /* we have a format specifier and/or a conversion */
         /* don't include the last character */
 
@@ -575,7 +573,7 @@ func parse_field(_ str: MarkupIterator) -> Result<ParseResult, PyException>
             }
         }
         let start = str.start
-        count = 1
+        var count = 1
         while (str.start < str.end) {
             c = PyUnicode_READ_CHAR(str.str, str.start++)
             switch c {
