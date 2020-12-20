@@ -452,9 +452,6 @@ func get_field_object(_ input: String, _ args: [Any], _ kwargs: [String: Any],
                 }
             }
         }
-        if (tmp == nil) {
-            return .failure(.AttributeError("???"))
-        }
         if let t = tmp {
             obj = t
         } else {
