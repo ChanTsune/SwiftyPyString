@@ -427,20 +427,10 @@ extension String {
         return self._rsplit(maxsplit: maxsplit)
     }
     public func rstrip(_ chars: String? = nil) -> String {
-        if self.isEmpty {
-            return ""
-        }
-        var i = -1
         if let chars = chars {
-            while chars.contains(self[i]) {
-                i -= 1
-            }
-            return self[nil, i == -1 ? nil : i + 1]
+            return "".join(reversed().drop(while: { chars.contains($0) }).reversed())
         }
-        while self[i].isWhitespace {
-            i -= 1
-        }
-        return self[nil, i == -1 ? nil : i + 1]
+        return "".join(reversed().drop(while: { $0.isWhitespace }).reversed())
     }
     func _split(_ sep: String, maxsplit: Int) -> [String] {
         if self.isEmpty {
