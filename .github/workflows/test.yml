@@ -41,6 +41,6 @@ jobs:
     - name: Test carthage install
       run: |
         echo -n 'git "file://' > Cartfile
-        echo -n $PATH >> Cartfile
+        echo -n $(pwd) >> Cartfile
         echo -n '"' >> Cartfile
         carthage update
