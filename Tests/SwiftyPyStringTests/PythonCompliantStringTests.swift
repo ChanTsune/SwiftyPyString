@@ -2,6 +2,39 @@ import XCTest
 import Foundation
 @testable import SwiftyPyString
 
+func XCTAssertEqual(_ expression1: (String, String, String), _ expression2: (String, String, String)) {
+    let (e11, e12, e13) = expression1
+    let (e21, e22, e23) = expression2
+    XCTAssertEqual(e11, e21)
+    XCTAssertEqual(e12, e22)
+    XCTAssertEqual(e13, e23)
+}
+extension String {
+
+    func removeprefix(_ prefix: String) -> String {
+        if startswith(prefix) {
+            return ""
+        }
+        return self
+    }
+    func removesuffix(_ suffix: String) -> String {
+        if endswith(suffix) {
+            return ""
+        }
+        return self
+    }
+    func join<T: Sequence>(_ iterable: T) -> String {
+        ""
+    }
+    static var ASCII_LETTERS: String { "" }
+    static var DIGITS: String { "" }
+}
+
+func * (_ s: [String], n: Int) -> [String] {
+    return []
+}
+
+func % (_ s: String, v: Any) -> String { return "" }
 
 class PythonCompliantStringTests: XCTestCase {
     func range(_ s: Int, _ e: Int) -> Range<Int> {
@@ -11,8 +44,12 @@ class PythonCompliantStringTests: XCTestCase {
         return 0..<e
     }
     func pow(_ x: Int, _ y: Int) -> Int {
-        return Int(pow(Decimal(x), y))
+        return Int(Foundation.pow(Double(x), Double(y)))
     }
+    func divmod(_ x: Int, _ y: Int) -> (Int, Int) {
+        return (x / y, x % y)
+    }
+
     func test_count() throws {
         XCTAssertEqual("aaa".count("a"), 3)
         XCTAssertEqual("aaa".count("b"), 0)
@@ -43,19 +80,19 @@ class PythonCompliantStringTests: XCTestCase {
         let charset = ["", "a", "b"]
         let digits = 7
         let base = charset.count
-        let teststrings = Set<String>()
+        var teststrings = Set<String>()
         for i in range(pow(base, digits)) {
-            entry = []
+            var entry: [String] = []
             for j in range(digits) {
-                (i, m) = divmod(i, base)
+                let (i, m) = divmod(i, base)
                 entry.append(charset[m])
             }
-            teststrings.add("".join(entry))
+            teststrings.insert("".join(entry))
         }
         for i in teststrings {
-            n = len(i)
+            let n = i.count
             for j in teststrings {
-                r1 = i.count(j)
+                let r1 = i.count(j)
             }
         }
     }
@@ -77,29 +114,24 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("".find("xx"), -1)
         XCTAssertEqual("".find("xx", start: 1, end: 1), -1)
         XCTAssertEqual("".find("xx", start: .max, end: 0), -1)
-        XCTAssertEqual(
-            "ab".find(
-                "xxx",
-                start: Int.max + 1, end: 0), -1)
+//        XCTAssertEqual("ab".find("xxx", start: Int.max + 1, end: 0), -1)
         let charset = ["", "a", "b", "c"]
         let digits = 5
         let base = charset.count
-        let teststrings = set()
+        var teststrings = Set<String>()
         for i in range(pow(base, digits)) {
-            entry = []
+            var entry: [String] = []
             for j in range(digits) {
-                (i, m) = divmod(i, base)
+                let (i, m) = divmod(i, base)
                 entry.append(charset[m])
             }
-            teststrings.add("".join(entry))
+            teststrings.insert("".join(entry))
         }
-        teststrings = nil
         for i in teststrings {
             for j in teststrings {
-                loc = i.find(j)
-                r1 =
-                    loc != -1
-                r2 = i.contains(j)
+                let loc = i.find(j)
+                let r1 = loc != -1
+                let r2 = i.contains(j)
                 XCTAssertEqual(r2, r1)
             }
         }
@@ -119,30 +151,25 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("rrarrrrrrrrra".rfind("a", start: nil, end: 6), 2)
         let charset = ["", "a", "b", "c"]
         let digits = 5
-        let base = len(charset)
-        let teststrings = set()
+        let base = charset.count
+        var teststrings = Set<String>()
         for i in range(pow(base, digits)) {
-            entry = []
+            var entry: [String] = []
             for j in range(digits) {
-                (i, m) = divmod(i, base)
+                let (i, m) = divmod(i, base)
                 entry.append(charset[m])
             }
-            teststrings.add("".join(entry))
+            teststrings.insert("".join(entry))
         }
-        teststrings = nil
         for i in teststrings {
             for j in teststrings {
-                loc = i.rfind(j)
-                r1 =
-                    loc != -1
-                r2 = i.contains(j)
+                let loc = i.rfind(j)
+                let r1 = loc != -1
+                let r2 = i.contains(j)
                 XCTAssertEqual(r2, r1)
             }
         }
-        XCTAssertEqual(
-            "ab".rfind(
-                "xxx",
-                start: Int.max + 1, end: 0), -1)
+//        XCTAssertEqual("ab".rfind("xxx", start: Int.max + 1, end: 0), -1)
         XCTAssertEqual("<......м...".rfind("<"), 0)
     }
     func test_index() throws {
@@ -213,14 +240,14 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("| startcase".split("|"), ["", " startcase"])
         XCTAssertEqual("|bothcase|".split("|"), ["", "bothcase", ""])
         XCTAssertEqual("a\0\0b\0c\0d".split("\0", maxsplit: 2), ["a", "", "b\0c\0d"])
-        XCTAssertEqual(("a|" * 20)[Slice(nil, -1, nil)].split("|"), ["a"] * 20)
-        XCTAssertEqual(("a|" * 20)[Slice(nil, -1, nil)].split("|", 15), ["a"] * 15 + ["a|a|a|a|a"])
+        XCTAssertEqual(("a|" * 20)[Slice(start: nil, stop: -1, step: nil)].split("|"), ["a"] * 20)
+        XCTAssertEqual(("a|" * 20)[Slice(start: nil, stop: -1, step: nil)].split("|", maxsplit: 15), ["a"] * 15 + ["a|a|a|a|a"])
         XCTAssertEqual("a//b//c//d".split("//"), ["a", "b", "c", "d"])
         XCTAssertEqual("a//b//c//d".split("//", maxsplit: 1), ["a", "b//c//d"])
         XCTAssertEqual("a//b//c//d".split("//", maxsplit: 2), ["a", "b", "c//d"])
         XCTAssertEqual("a//b//c//d".split("//", maxsplit: 3), ["a", "b", "c", "d"])
         XCTAssertEqual("a//b//c//d".split("//", maxsplit: 4), ["a", "b", "c", "d"])
-        XCTAssertEqual("a//b//c//d".split("//", Int.max - 10), ["a", "b", "c", "d"])
+        XCTAssertEqual("a//b//c//d".split("//", maxsplit: Int.max - 10), ["a", "b", "c", "d"])
         XCTAssertEqual("a//b//c//d".split("//", maxsplit: 0), ["a//b//c//d"])
         XCTAssertEqual("a////b////c////d".split("//", maxsplit: 2), ["a", "", "b////c////d"])
         XCTAssertEqual("endcase test".split("test"), ["endcase ", ""])
@@ -235,14 +262,14 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("aa".split("aaa"), ["aa"])
         XCTAssertEqual("Abbobbbobb".split("bbobb"), ["A", "bobb"])
         XCTAssertEqual("AbbobbBbbobb".split("bbobb"), ["A", "B", ""])
-        XCTAssertEqual(("aBLAH" * 20)[Slice(nil, -4, nil)].split("BLAH"), ["a"] * 20)
-        XCTAssertEqual(("aBLAH" * 20)[Slice(nil, -4, nil)].split("BLAH", 19), ["a"] * 20)
-        XCTAssertEqual(("aBLAH" * 20)[Slice(nil, -4, nil)].split("BLAH", 18), ["a"] * 18 + ["aBLAHa"])
+        XCTAssertEqual(("aBLAH" * 20)[Slice(start: nil, stop: -4, step: nil)].split("BLAH"), ["a"] * 20)
+        XCTAssertEqual(("aBLAH" * 20)[Slice(start: nil, stop: -4, step: nil)].split("BLAH", maxsplit: 19), ["a"] * 20)
+        XCTAssertEqual(("aBLAH" * 20)[Slice(start: nil, stop: -4, step: nil)].split("BLAH", maxsplit: 18), ["a"] * 18 + ["aBLAHa"])
         XCTAssertEqual("a|b|c|d".split("|"), ["a", "b", "c", "d"])
         XCTAssertEqual("a|b|c|d".split("|", maxsplit: 1), ["a", "b|c|d"])
         XCTAssertEqual("a|b|c|d".split("|", maxsplit: 1), ["a", "b|c|d"])
         XCTAssertEqual("a|b|c|d".split(separator: "|", maxSplits: 1), ["a", "b|c|d"])
-        XCTAssertEqual("a b c d".split(maxSplit: 1), ["a", "b c d"])
+        XCTAssertEqual("a b c d".split(maxsplit: 1), ["a", "b c d"])
         XCTAssertThrowsError({ try "hello".split("") })
         XCTAssertThrowsError({ try "hello".split("", maxsplit: 0) })
     }
@@ -252,7 +279,7 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("a|b|c|d".rsplit("|", maxsplit: 2), ["a|b", "c", "d"])
         XCTAssertEqual("a|b|c|d".rsplit("|", maxsplit: 3), ["a", "b", "c", "d"])
         XCTAssertEqual("a|b|c|d".rsplit("|", maxsplit: 4), ["a", "b", "c", "d"])
-        XCTAssertEqual("a|b|c|d".rsplit("|", Int.max - 100), ["a", "b", "c", "d"])
+        XCTAssertEqual("a|b|c|d".rsplit("|", maxsplit: Int.max - 100), ["a", "b", "c", "d"])
         XCTAssertEqual("a|b|c|d".rsplit("|", maxsplit: 0), ["a|b|c|d"])
         XCTAssertEqual("a||b||c||d".rsplit("|", maxsplit: 2), ["a||b||c", "", "d"])
         XCTAssertEqual("abcd".rsplit("|"), ["abcd"])
@@ -261,14 +288,14 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("endcase |".rsplit("|"), ["endcase ", ""])
         XCTAssertEqual("|bothcase|".rsplit("|"), ["", "bothcase", ""])
         XCTAssertEqual("a\0\0b\0c\0d".rsplit("\0", maxsplit: 2), ["a\0\0b", "c", "d"])
-        XCTAssertEqual(("a|" * 20)[Slice(nil, -1, nil)].rsplit("|"), ["a"] * 20)
-        XCTAssertEqual(("a|" * 20)[Slice(nil, -1, nil)].rsplit("|", 15), ["a|a|a|a|a"] + ["a"] * 15)
+        XCTAssertEqual(("a|" * 20)[Slice(start: nil, stop: -1, step: nil)].rsplit("|"), ["a"] * 20)
+        XCTAssertEqual(("a|" * 20)[Slice(start: nil, stop: -1, step: nil)].rsplit("|", maxsplit: 15), ["a|a|a|a|a"] + ["a"] * 15)
         XCTAssertEqual("a//b//c//d".rsplit("//"), ["a", "b", "c", "d"])
         XCTAssertEqual("a//b//c//d".rsplit("//", maxsplit: 1), ["a//b//c", "d"])
         XCTAssertEqual("a//b//c//d".rsplit("//", maxsplit: 2), ["a//b", "c", "d"])
         XCTAssertEqual("a//b//c//d".rsplit("//", maxsplit: 3), ["a", "b", "c", "d"])
         XCTAssertEqual("a//b//c//d".rsplit("//", maxsplit: 4), ["a", "b", "c", "d"])
-        XCTAssertEqual("a//b//c//d".rsplit("//", Int.max - 5), ["a", "b", "c", "d"])
+        XCTAssertEqual("a//b//c//d".rsplit("//", maxsplit: Int.max - 5), ["a", "b", "c", "d"])
         XCTAssertEqual("a//b//c//d".rsplit("//", maxsplit: 0), ["a//b//c//d"])
         XCTAssertEqual("a////b////c////d".rsplit("//", maxsplit: 2), ["a////b////c", "", "d"])
         XCTAssertEqual("test begincase".rsplit("test"), ["", " begincase"])
@@ -283,9 +310,9 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("aa".rsplit("aaa"), ["aa"])
         XCTAssertEqual("bbobbbobbA".rsplit("bbobb"), ["bbob", "A"])
         XCTAssertEqual("bbobbBbbobbA".rsplit("bbobb"), ["", "B", "A"])
-        XCTAssertEqual(("aBLAH" * 20)[Slice(nil, -4, nil)].rsplit("BLAH"), ["a"] * 20)
-        XCTAssertEqual(("aBLAH" * 20)[Slice(nil, -4, nil)].rsplit("BLAH", 19), ["a"] * 20)
-        XCTAssertEqual(("aBLAH" * 20)[Slice(nil, -4, nil)].rsplit("BLAH", 18), ["aBLAHa"] + ["a"] * 18)
+        XCTAssertEqual(("aBLAH" * 20)[Slice(start: nil, stop: -4, step: nil)].rsplit("BLAH"), ["a"] * 20)
+        XCTAssertEqual(("aBLAH" * 20)[Slice(start: nil, stop: -4, step: nil)].rsplit("BLAH", maxsplit: 19), ["a"] * 20)
+        XCTAssertEqual(("aBLAH" * 20)[Slice(start: nil, stop: -4, step: nil)].rsplit("BLAH", maxsplit: 18), ["aBLAHa"] + ["a"] * 18)
         XCTAssertEqual("a|b|c|d".rsplit("|"), ["a", "b", "c", "d"])
         XCTAssertEqual("a|b|c|d".rsplit("|", maxsplit: 1), ["a|b|c", "d"])
         XCTAssertEqual("a|b|c|d".rsplit("|", maxsplit: 1), ["a|b|c", "d"])
@@ -308,7 +335,7 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("A".replace("", new: "*-#"), "*-#A*-#")
         XCTAssertEqual("AA".replace("", new: "*-"), "*-A*-A*-")
         XCTAssertEqual("AA".replace("", new: "*-", count: -1), "*-A*-A*-")
-        XCTAssertEqual("AA".replace("", "*-", .max), "*-A*-A*-")
+        XCTAssertEqual("AA".replace("", new: "*-", count: .max), "*-A*-A*-")
         XCTAssertEqual("AA".replace("", new: "*-", count: 4), "*-A*-A*-")
         XCTAssertEqual("AA".replace("", new: "*-", count: 3), "*-A*-A*-")
         XCTAssertEqual("AA".replace("", new: "*-", count: 2), "*-A*-A")
@@ -317,7 +344,7 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("A".replace("A", new: ""), "")
         XCTAssertEqual("AAA".replace("A", new: ""), "")
         XCTAssertEqual("AAA".replace("A", new: "", count: -1), "")
-        XCTAssertEqual("AAA".replace("A", "", .max), "")
+        XCTAssertEqual("AAA".replace("A", new: "", count: .max), "")
         XCTAssertEqual("AAA".replace("A", new: "", count: 4), "")
         XCTAssertEqual("AAA".replace("A", new: "", count: 3), "")
         XCTAssertEqual("AAA".replace("A", new: "", count: 2), "A")
@@ -346,7 +373,7 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("that".replace("the", new: ""), "that")
         XCTAssertEqual("thaet".replace("the", new: ""), "thaet")
         XCTAssertEqual("here and there".replace("the", new: ""), "here and re")
-        XCTAssertEqual("here and there and there".replace("the", "", .max), "here and re and re")
+        XCTAssertEqual("here and there and there".replace("the", new: "", count: .max), "here and re and re")
         XCTAssertEqual("here and there and there".replace("the", new: "", count: -1), "here and re and re")
         XCTAssertEqual("here and there and there".replace("the", new: "", count: 3), "here and re and re")
         XCTAssertEqual("here and there and there".replace("the", new: "", count: 2), "here and re and re")
@@ -361,7 +388,7 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("aaaaaaa".replace("bob", new: ""), "aaaaaaa")
         XCTAssertEqual("Who goes there?".replace("o", new: "o"), "Who goes there?")
         XCTAssertEqual("Who goes there?".replace("o", new: "O"), "WhO gOes there?")
-        XCTAssertEqual("Who goes there?".replace("o", "O", .max), "WhO gOes there?")
+        XCTAssertEqual("Who goes there?".replace("o", new: "O", count: .max), "WhO gOes there?")
         XCTAssertEqual("Who goes there?".replace("o", new: "O", count: -1), "WhO gOes there?")
         XCTAssertEqual("Who goes there?".replace("o", new: "O", count: 3), "WhO gOes there?")
         XCTAssertEqual("Who goes there?".replace("o", new: "O", count: 2), "WhO gOes there?")
@@ -374,7 +401,7 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("Who goes there??".replace("?", new: "!"), "Who goes there!!")
         XCTAssertEqual("Who goes there?".replace(".", new: "!"), "Who goes there?")
         XCTAssertEqual("This is a tissue".replace("is", new: "**"), "Th** ** a t**sue")
-        XCTAssertEqual("This is a tissue".replace("is", "**", .max), "Th** ** a t**sue")
+        XCTAssertEqual("This is a tissue".replace("is", new: "**", count: .max), "Th** ** a t**sue")
         XCTAssertEqual("This is a tissue".replace("is", new: "**", count: -1), "Th** ** a t**sue")
         XCTAssertEqual("This is a tissue".replace("is", new: "**", count: 4), "Th** ** a t**sue")
         XCTAssertEqual("This is a tissue".replace("is", new: "**", count: 3), "Th** ** a t**sue")
@@ -386,7 +413,7 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("bobob".replace("bot", new: "bot"), "bobob")
         XCTAssertEqual("Reykjavik".replace("k", new: "KK"), "ReyKKjaviKK")
         XCTAssertEqual("Reykjavik".replace("k", new: "KK", count: -1), "ReyKKjaviKK")
-        XCTAssertEqual("Reykjavik".replace("k", "KK", .max), "ReyKKjaviKK")
+        XCTAssertEqual("Reykjavik".replace("k", new: "KK", count: .max), "ReyKKjaviKK")
         XCTAssertEqual("Reykjavik".replace("k", new: "KK", count: 2), "ReyKKjaviKK")
         XCTAssertEqual("Reykjavik".replace("k", new: "KK", count: 1), "ReyKKjavik")
         XCTAssertEqual("Reykjavik".replace("k", new: "KK", count: 0), "Reykjavik")
@@ -394,7 +421,7 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("...м......<".replace("<", new: "&lt;"), "...м......&lt;")
         XCTAssertEqual("Reykjavik".replace("q", new: "KK"), "Reykjavik")
         XCTAssertEqual("spam, spam, eggs and spam".replace("spam", new: "ham"), "ham, ham, eggs and ham")
-        XCTAssertEqual("spam, spam, eggs and spam".replace("spam", "ham", .max), "ham, ham, eggs and ham")
+        XCTAssertEqual("spam, spam, eggs and spam".replace("spam", new: "ham", count: .max), "ham, ham, eggs and ham")
         XCTAssertEqual("spam, spam, eggs and spam".replace("spam", new: "ham", count: -1), "ham, ham, eggs and ham")
         XCTAssertEqual("spam, spam, eggs and spam".replace("spam", new: "ham", count: 4), "ham, ham, eggs and ham")
         XCTAssertEqual("spam, spam, eggs and spam".replace("spam", new: "ham", count: 3), "ham, ham, eggs and ham")
@@ -427,7 +454,7 @@ class PythonCompliantStringTests: XCTestCase {
         let A2_16 = "A" * pow(2, 16)
         XCTAssertThrowsError({ try A2_16.replace("", new: A2_16) })
         XCTAssertThrowsError({ try A2_16.replace("A", new: A2_16) })
-        XCTAssertThrowsError({ try A2_16.replace("AA", A2_16 + A2_16) })
+        XCTAssertThrowsError({ try A2_16.replace("AA", new: A2_16 + A2_16) })
     }
     func test_removeprefix() throws {
         XCTAssertEqual("spam".removeprefix("sp"), "am")
@@ -439,11 +466,6 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("".removeprefix("abcde"), "")
         XCTAssertEqual("abcde".removeprefix(""), "abcde")
         XCTAssertEqual("abcde".removeprefix("abcde"), "")
-        XCTAssertThrowsError({ try "hello".removeprefix() })
-        XCTAssertThrowsError({ try "hello".removeprefix(42) })
-        XCTAssertThrowsError({ try "hello".removeprefix(42, "h") })
-        XCTAssertThrowsError({ try "hello".removeprefix("h", 42) })
-        XCTAssertThrowsError({ try "hello".removeprefix(("he", "l")) })
     }
     func test_removesuffix() throws {
         XCTAssertEqual("spam".removesuffix("am"), "sp")
@@ -455,11 +477,6 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("".removesuffix("abcde"), "")
         XCTAssertEqual("abcde".removesuffix(""), "abcde")
         XCTAssertEqual("abcde".removesuffix("abcde"), "")
-        XCTAssertThrowsError({ try "hello".removesuffix() })
-        XCTAssertThrowsError({ try "hello".removesuffix(42) })
-        XCTAssertThrowsError({ try "hello".removesuffix(42, "h") })
-        XCTAssertThrowsError({ try "hello".removesuffix("h", 42) })
-        XCTAssertThrowsError({ try "hello".removesuffix(("lo", "l")) })
     }
     func test_capitalize() throws {
         XCTAssertEqual(" hello ".capitalize(), " hello ")
@@ -476,7 +493,7 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("a b c d".split(nil, maxsplit: 2), ["a", "b", "c d"])
         XCTAssertEqual("a b c d".split(nil, maxsplit: 3), ["a", "b", "c", "d"])
         XCTAssertEqual("a b c d".split(nil, maxsplit: 4), ["a", "b", "c", "d"])
-        XCTAssertEqual("a b c d".split(nil, Int.max - 1), ["a", "b", "c", "d"])
+        XCTAssertEqual("a b c d".split(nil, maxsplit: Int.max - 1), ["a", "b", "c", "d"])
         XCTAssertEqual("a b c d".split(nil, maxsplit: 0), ["a b c d"])
         XCTAssertEqual("  a b c d".split(nil, maxsplit: 0), ["a b c d"])
         XCTAssertEqual("a  b  c  d".split(nil, maxsplit: 2), ["a", "b", "c  d"])
@@ -491,12 +508,12 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("\n\ta \t\r b \u{0B} ".split(), ["a", "b"])
         let aaa = " a " * 20
         XCTAssertEqual(aaa.split(), ["a"] * 20)
-        XCTAssertEqual(aaa.split(nil, 1), ["a"] + [aaa[Slice(4, nil, nil)]])
+        XCTAssertEqual(aaa.split(nil, maxsplit: 1), ["a"] + [aaa[Slice(start: 4, stop: nil, step: nil)]])
         XCTAssertEqual(aaa.split(nil, maxsplit: 19), ["a"] * 19 + ["a "])
-        for b in ("arf\tbarf", "arf\nbarf", "arf\rbarf", "arf\u{0C}barf", "arf\u{0B}barf") {
+        for b in ["arf\tbarf", "arf\nbarf", "arf\rbarf", "arf\u{0C}barf", "arf\u{0B}barf"] {
             XCTAssertEqual(b.split(), ["arf", "barf"])
             XCTAssertEqual(b.split(nil), ["arf", "barf"])
-            XCTAssertEqual(b.split(nil, 2), ["arf", "barf"])
+            XCTAssertEqual(b.split(nil, maxsplit: 2), ["arf", "barf"])
         }
     }
     func test_additional_rsplit() throws {
@@ -507,7 +524,7 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("a b c d".rsplit(nil, maxsplit: 2), ["a b", "c", "d"])
         XCTAssertEqual("a b c d".rsplit(nil, maxsplit: 3), ["a", "b", "c", "d"])
         XCTAssertEqual("a b c d".rsplit(nil, maxsplit: 4), ["a", "b", "c", "d"])
-        XCTAssertEqual("a b c d".rsplit(nil, Int.max - 20), ["a", "b", "c", "d"])
+        XCTAssertEqual("a b c d".rsplit(nil, maxsplit: Int.max - 20), ["a", "b", "c", "d"])
         XCTAssertEqual("a b c d".rsplit(nil, maxsplit: 0), ["a b c d"])
         XCTAssertEqual("a b c d  ".rsplit(nil, maxsplit: 0), ["a b c d"])
         XCTAssertEqual("a  b  c  d".rsplit(nil, maxsplit: 2), ["a  b", "c", "d"])
@@ -522,12 +539,12 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("\n\ta \t\r b \u{0B} ".rsplit(nil, maxsplit: 88), ["a", "b"])
         let aaa = " a " * 20
         XCTAssertEqual(aaa.rsplit(), ["a"] * 20)
-        XCTAssertEqual(aaa.rsplit(nil, 1), [aaa[Slice(nil, -4, nil)]] + ["a"])
-        XCTAssertEqual(aaa.rsplit(nil, 18), [" a  a"] + ["a"] * 18)
-        for b in ("arf\tbarf", "arf\nbarf", "arf\rbarf", "arf\u{0C}barf", "arf\u{0B}barf") {
+        XCTAssertEqual(aaa.rsplit(nil, maxsplit: 1), [aaa[Slice(start: nil, stop: -4, step: nil)]] + ["a"])
+        XCTAssertEqual(aaa.rsplit(nil, maxsplit: 18), [" a  a"] + ["a"] * 18)
+        for b in ["arf\tbarf", "arf\nbarf", "arf\rbarf", "arf\u{0C}barf", "arf\u{0B}barf"] {
             XCTAssertEqual(b.rsplit(), ["arf", "barf"])
             XCTAssertEqual(b.rsplit(nil), ["arf", "barf"])
-            XCTAssertEqual(b.rsplit(nil, 2), ["arf", "barf"])
+            XCTAssertEqual(b.rsplit(nil, maxsplit: 2), ["arf", "barf"])
         }
     }
     func test_strip_whitespace() throws {
@@ -691,15 +708,7 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("\nabc\ndef\r\nghi\n\r".splitlines(false), ["", "abc", "def", "ghi", ""])
         XCTAssertEqual("\nabc\ndef\r\nghi\n\r".splitlines(true), ["\n", "abc\n", "def\r\n", "ghi\n", "\r"])
     }
-    func test_hash() throws {
-        let a = self.type2test("DNSSEC")
-        let b = self.type2test("")
-        for c in a {
-            b = b + c
-            hash(b)
-        }
-        XCTAssertEqual(hash(b), hash(a))
-    }
+
     func test_capitalize_nonascii() throws {
         XCTAssertEqual("ῳῳῼῼ".capitalize(), "ῼῳῳῳ")
         XCTAssertEqual("ⓅⓎⓉⒽⓄⓃ".capitalize(), "Ⓟⓨⓣⓗⓞⓝ")
@@ -735,16 +744,15 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("hello".startswith("o", start: -1), true)
         XCTAssertEqual("hello".startswith("", start: -3, end: -3), true)
         XCTAssertEqual("hello".startswith("lo", start: -9), false)
-        XCTAssertEqual("hello".startswith(("he", "ha")), true)
-        XCTAssertEqual("hello".startswith(("lo", "llo")), false)
-        XCTAssertEqual("hello".startswith(("hellox", "hello")), true)
-        XCTAssertEqual("hello".startswith(()), false)
-        XCTAssertEqual("helloworld".startswith(("hellowo", "rld", "lowo"), 3), true)
-        XCTAssertEqual("helloworld".startswith(("hellowo", "ello", "rld"), 3), false)
-        XCTAssertEqual("hello".startswith(("lo", "he"), 0, -1), true)
-        XCTAssertEqual("hello".startswith(("he", "hel"), 0, 1), false)
-        XCTAssertEqual("hello".startswith(("he", "hel"), 0, 2), true)
-        XCTAssertThrowsError({ try "hello".startswith((42)) })
+        XCTAssertEqual("hello".startswith(["he", "ha"]), true)
+        XCTAssertEqual("hello".startswith(["lo", "llo"]), false)
+        XCTAssertEqual("hello".startswith(["hellox", "hello"]), true)
+        XCTAssertEqual("hello".startswith([]), false)
+        XCTAssertEqual("helloworld".startswith(["hellowo", "rld", "lowo"], start: 3), true)
+        XCTAssertEqual("helloworld".startswith(["hellowo", "ello", "rld"], start: 3), false)
+        XCTAssertEqual("hello".startswith(["lo", "he"], start: 0, end: -1), true)
+        XCTAssertEqual("hello".startswith(["he", "hel"], start: 0, end: 1), false)
+        XCTAssertEqual("hello".startswith(["he", "hel"], start: 0, end: 2), true)
     }
     func test_endswith() throws {
         XCTAssertEqual("hello".endswith("lo"), true)
@@ -777,166 +785,149 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("helloworld".endswith("lowo", start: -7, end: -3), true)
         XCTAssertEqual("helloworld".endswith("lowo", start: 3, end: -4), false)
         XCTAssertEqual("helloworld".endswith("lowo", start: -8, end: -2), false)
-        XCTAssertEqual("hello".endswith(("he", "ha")), false)
-        XCTAssertEqual("hello".endswith(("lo", "llo")), true)
-        XCTAssertEqual("hello".endswith(("hellox", "hello")), true)
-        XCTAssertEqual("hello".endswith(()), false)
-        XCTAssertEqual("helloworld".endswith(("hellowo", "rld", "lowo"), 3), true)
-        XCTAssertEqual("helloworld".endswith(("hellowo", "ello", "rld"), 3, -1), false)
-        XCTAssertEqual("hello".endswith(("hell", "ell"), 0, -1), true)
-        XCTAssertEqual("hello".endswith(("he", "hel"), 0, 1), false)
-        XCTAssertEqual("hello".endswith(("he", "hell"), 0, 4), true)
-        XCTAssertThrowsError({ try "hello".endswith((42)) })
+        XCTAssertEqual("hello".endswith(["he", "ha"]), false)
+        XCTAssertEqual("hello".endswith(["lo", "llo"]), true)
+        XCTAssertEqual("hello".endswith(["hellox", "hello"]), true)
+        XCTAssertEqual("hello".endswith([]), false)
+        XCTAssertEqual("helloworld".endswith(["hellowo", "rld", "lowo"], start: 3), true)
+        XCTAssertEqual("helloworld".endswith(["hellowo", "ello", "rld"], start: 3, end: -1), false)
+        XCTAssertEqual("hello".endswith(["hell", "ell"], start: 0, end: -1), true)
+        XCTAssertEqual("hello".endswith(["he", "hel"], start: 0, end: 1), false)
+        XCTAssertEqual("hello".endswith(["he", "hell"], start: 0, end: 4), true)
     }
     func test___contains__() throws {
-        XCTAssertEqual("".__contains__(""), true)
-        XCTAssertEqual("abc".__contains__(""), true)
-        XCTAssertEqual("abc".__contains__("\0"), false)
-        XCTAssertEqual("\0abc".__contains__("\0"), true)
-        XCTAssertEqual("abc\0".__contains__("\0"), true)
-        XCTAssertEqual("\0abc".__contains__("a"), true)
-        XCTAssertEqual("asdf".__contains__("asdf"), true)
-        XCTAssertEqual("asd".__contains__("asdf"), false)
-        XCTAssertEqual("".__contains__("asdf"), false)
+        XCTAssertEqual("".contains(""), true)
+        XCTAssertEqual("abc".contains(""), true)
+        XCTAssertEqual("abc".contains("\0"), false)
+        XCTAssertEqual("\0abc".contains("\0"), true)
+        XCTAssertEqual("abc\0".contains("\0"), true)
+        XCTAssertEqual("\0abc".contains("a"), true)
+        XCTAssertEqual("asdf".contains("asdf"), true)
+        XCTAssertEqual("asd".contains("asdf"), false)
+        XCTAssertEqual("".contains("asdf"), false)
     }
     func test_subscript() throws {
-        XCTAssertEqual("abc".__getitem__(0), "a")
-        XCTAssertEqual("abc".__getitem__(-1), "c")
-        XCTAssertEqual("abc".__getitem__(0), "a")
-        XCTAssertEqual("abc".__getitem__(Slice(start: 0, stop: 3)), "abc")
-        XCTAssertEqual("abc".__getitem__(Slice(start: 0, stop: 1000)), "abc")
-        XCTAssertEqual("abc".__getitem__(Slice(start: 0, stop: 1)), "a")
-        XCTAssertEqual("abc".__getitem__(Slice(start: 0, stop: 0)), "")
-        XCTAssertThrowsError({ try "abc".__getitem__("def") })
+        XCTAssertEqual("abc"[0], "a")
+        XCTAssertEqual("abc"[-1], "c")
+        XCTAssertEqual("abc"[0], "a")
+        XCTAssertEqual("abc"[Slice(start: 0, stop: 3)], "abc")
+        XCTAssertEqual("abc"[Slice(start: 0, stop: 1000)], "abc")
+        XCTAssertEqual("abc"[Slice(start: 0, stop: 1)], "a")
+        XCTAssertEqual("abc"[Slice(start: 0, stop: 0)], "")
     }
     func test_slice() throws {
-        XCTAssertEqual("abc".__getitem__(Slice(start: 0, stop: 1000)), "abc")
-        XCTAssertEqual("abc".__getitem__(Slice(start: 0, stop: 3)), "abc")
-        XCTAssertEqual("abc".__getitem__(Slice(start: 0, stop: 2)), "ab")
-        XCTAssertEqual("abc".__getitem__(Slice(start: 1, stop: 3)), "bc")
-        XCTAssertEqual("abc".__getitem__(Slice(start: 1, stop: 2)), "b")
-        XCTAssertEqual("abc".__getitem__(Slice(start: 2, stop: 2)), "")
-        XCTAssertEqual("abc".__getitem__(Slice(start: 1000, stop: 1000)), "")
-        XCTAssertEqual("abc".__getitem__(Slice(start: 2000, stop: 1000)), "")
-        XCTAssertEqual("abc".__getitem__(Slice(start: 2, stop: 1)), "")
+        XCTAssertEqual("abc"[Slice(start: 0, stop: 1000)], "abc")
+        XCTAssertEqual("abc"[Slice(start: 0, stop: 3)], "abc")
+        XCTAssertEqual("abc"[Slice(start: 0, stop: 2)], "ab")
+        XCTAssertEqual("abc"[Slice(start: 1, stop: 3)], "bc")
+        XCTAssertEqual("abc"[Slice(start: 1, stop: 2)], "b")
+        XCTAssertEqual("abc"[Slice(start: 2, stop: 2)], "")
+        XCTAssertEqual("abc"[Slice(start: 1000, stop: 1000)], "")
+        XCTAssertEqual("abc"[Slice(start: 2000, stop: 1000)], "")
+        XCTAssertEqual("abc"[Slice(start: 2, stop: 1)], "")
     }
     func test_extended_getslice() throws {
-        let s =
-            string.ascii_letters + string.digits
-        let indices = (0, nil, 1, 3, 41, sys.maxsize, -1, -2, -37)
+        let s = String.ASCII_LETTERS + String.DIGITS
+        let indices = [0, nil, 1, 3, 41, Int.max, -1, -2, -37]
         for start in indices {
             for stop in indices {
-                for step in indices[Slice(1, nil, nil)] {
-                    L = list(s)[Slice(start, stop, step)]
-                    XCTAssertEqual(s.__getitem__(Slice(start, stop, step)), "".join(L))
+                for step in indices[Slice(start: 1, stop: nil, step: nil)] {
+                    let L = s[Slice(start: start, stop: stop, step: step)].map { $0 }
+                    XCTAssertEqual(s[Slice(start: start, stop: stop, step: step)], "".join(L))
                 }
             }
         }
     }
     func test_mul() throws {
-        XCTAssertEqual("abc".__mul__(-1), "")
-        XCTAssertEqual("abc".__mul__(0), "")
-        XCTAssertEqual("abc".__mul__(1), "abc")
-        XCTAssertEqual("abc".__mul__(3), "abcabcabc")
-        XCTAssertThrowsError({ try "abc".__mul__() })
-        XCTAssertThrowsError({ try "abc".__mul__("") })
+        XCTAssertEqual("abc" * -1, "")
+        XCTAssertEqual("abc" * 0, "")
+        XCTAssertEqual("abc" * 1, "abc")
+        XCTAssertEqual("abc" * 3, "abcabcabc")
     }
     func test_join() throws {
         XCTAssertEqual(" ".join(["a", "b", "c", "d"]), "a b c d")
-        XCTAssertEqual("".join(("a", "b", "c", "d")), "abcd")
-        XCTAssertEqual("".join(("", "b", "", "d")), "bd")
-        XCTAssertEqual("".join(("a", "", "c", "")), "ac")
+        XCTAssertEqual("".join(["a", "b", "c", "d"]), "abcd")
+        XCTAssertEqual("".join(["", "b", "", "d"]), "bd")
+        XCTAssertEqual("".join(["a", "", "c", ""]), "ac")
         XCTAssertEqual(" ".join("wxyz"), "w x y z")
-        XCTAssertEqual("a".join(("abc")), "abc")
-        XCTAssertEqual("a".join(UserList(["z"])), "z")
+        XCTAssertEqual("a".join(["abc"]), "abc")
+        XCTAssertEqual("a".join(["z"]), "z")
         XCTAssertEqual(".".join(["a", "b", "c"]), "a.b.c")
-        XCTAssertThrowsError({ try ".".join(["a", "b", 3]) })
         for i in [5, 25, 125] {
-            XCTAssertEqual(
-                "-".join(
-                    [
-                        "a" * i
-                    ] * i),
-                ("a" * i + "-" * i)[Slice(nil, -1, nil)])
-            XCTAssertEqual(
-                "-".join(
-                    ("a" * i) * i),
-                ("a" * i + "-" * i)[Slice(nil, -1, nil)])
+            XCTAssertEqual("-".join(["a" * i] * i), ("a" * i + "-" * i)[Slice(start: nil, stop: -1, step: nil)])
+            XCTAssertEqual("-".join(("a" * i) * i), ("a" * i + "-" * i)[Slice(start: nil, stop: -1, step: nil)])
         }
         XCTAssertEqual(" ".join(["a", "b", "c"]), "a b c")
     }
-    func test_formatting() throws {
-        XCTAssertEqual("+%s+".__mod__("hello"), "+hello+")
-        XCTAssertEqual("+%d+".__mod__(10), "+10+")
-        XCTAssertEqual("%c".__mod__("a"), "a")
-        XCTAssertEqual("%c".__mod__("a"), "a")
-        XCTAssertEqual("%c".__mod__(34), "\"")
-        XCTAssertEqual("%c".__mod__(36), "$")
-        XCTAssertEqual("%d".__mod__(10), "10")
-        XCTAssertEqual("%c".__mod__(127), "\u{7F}")
-        for ordinal in (-100, 2_097_152) {
-            XCTAssertThrowsError({ try "%c".__mod__(ordinal) })
-        }
-        let longvalue = Int.max + 10
-        let slongvalue = str(longvalue)
-        XCTAssertEqual("%3ld".__mod__(42), " 42")
-        XCTAssertEqual("%d".__mod__(42.0), "42")
-        XCTAssertEqual("%d".__mod__(longvalue), slongvalue)
-        self.checkcall("%d", "__mod__", float(longvalue))
-        XCTAssertEqual("%07.2f".__mod__(42), "0042.00")
-        XCTAssertEqual("%07.2F".__mod__(42), "0042.00")
-        XCTAssertThrowsError({ try "abc".__mod__() })
-        XCTAssertThrowsError({ try "%(foo)s".__mod__(42) })
-        XCTAssertThrowsError({ try "%s%s".__mod__((42)) })
-        XCTAssertThrowsError({ try "%c".__mod__((nil)) })
-        XCTAssertThrowsError({ try "%(foo".__mod__(nil) })
-        XCTAssertThrowsError({ try "%(foo)s %(bar)s".__mod__(("foo", 42)) })
-        XCTAssertThrowsError({ try "%d".__mod__("42") })
-        XCTAssertThrowsError({
-            try "%d".__mod__(42 + nil)
-        })
-        XCTAssertEqual("%((foo))s".__mod__(nil), "bar")
-        XCTAssertEqual("%sx".__mod__(103 * "a"), 103 * "a" + "x")
-        XCTAssertThrowsError({ try "%*s".__mod__(("foo", "bar")) })
-        XCTAssertThrowsError({ try "%10.*f".__mod__(("foo", 42.0)) })
-        XCTAssertThrowsError({ try "%10".__mod__((42)) })
-        XCTAssertThrowsError({ try "%%%df" % pow(2, 64).__mod__(3.2) })
-        XCTAssertThrowsError({ try "%%.%df" % pow(2, 64).__mod__(3.2) })
-        XCTAssertThrowsError({
-            try "%*s".__mod__((sys.maxsize + 1, ""))
-        })
-        XCTAssertThrowsError({
-            try "%.*f".__mod__((sys.maxsize + 1, 1.0 / 7))
-        })
-        class X: object {
-        }
-        XCTAssertThrowsError({ try "abc".__mod__(X()) })
-    }
-    func test_formatting_c_limits() throws {
-        let SIZE_MAX = 1 << PY_SSIZE_T_MAX.bit_length() + 1 - 1
-        XCTAssertThrowsError({
-            try "%*s".__mod__((PY_SSIZE_T_MAX + 1, ""))
-        })
-        XCTAssertThrowsError({
-            try "%.*f".__mod__((INT_MAX + 1, 1.0 / 7))
-        })
-        XCTAssertThrowsError({
-            try "%*s".__mod__((SIZE_MAX + 1, ""))
-        })
-        XCTAssertThrowsError({
-            try "%.*f".__mod__((UINT_MAX + 1, 1.0 / 7))
-        })
-    }
-    func test_floatformatting() throws {
-        for prec in range(100) {
-            let format = "%%.%if" % prec
-            let value = 0.01
-            for x in range(60) {
-                value = value * 3.14159265359 / 3.0 * 10.0
-                self.checkcall(format, "__mod__", value)
-            }
-        }
-    }
+//    func test_formatting() throws {
+//        XCTAssertEqual("+%s+" % ("hello"), "+hello+")
+//        XCTAssertEqual("+%d+" % (10), "+10+")
+//        XCTAssertEqual("%c" % ("a"), "a")
+//        XCTAssertEqual("%c" % ("a"), "a")
+//        XCTAssertEqual("%c" % (34), "\"")
+//        XCTAssertEqual("%c" % (36), "$")
+//        XCTAssertEqual("%d" % (10), "10")
+//        XCTAssertEqual("%c" % (127), "\u{7F}")
+//        for ordinal in [-100, 2_097_152] {
+//            XCTAssertThrowsError({ try "%c" % (ordinal) })
+//        }
+//        let longvalue = Int.max + 10
+//        let slongvalue = String(longvalue)
+//        XCTAssertEqual("%3ld" % (42), " 42")
+//        XCTAssertEqual("%d" % (42.0), "42")
+//        XCTAssertEqual("%d" % (longvalue), slongvalue)
+//        "%d" % Float(longvalue)
+//        XCTAssertEqual("%07.2f" % (42), "0042.00")
+//        XCTAssertEqual("%07.2F" % (42), "0042.00")
+//        XCTAssertThrowsError({ try "abc" % () })
+//        XCTAssertThrowsError({ try "%(foo)s" % (42) })
+//        XCTAssertThrowsError({ try "%s%s" % ((42)) })
+//        XCTAssertThrowsError({ try "%c" % ((nil)) })
+//        XCTAssertThrowsError({ try "%(foo" % (nil) })
+//        XCTAssertThrowsError({ try "%(foo)s %(bar)s" % (("foo", 42)) })
+//        XCTAssertThrowsError({ try "%d" % ("42") })
+//        XCTAssertThrowsError({
+//            try "%d" % (42 + nil)
+//        })
+//        XCTAssertEqual("%((foo))s" % (nil), "bar")
+//        XCTAssertEqual("%sx" % (103 * "a"), 103 * "a" + "x")
+//        XCTAssertThrowsError({ try "%*s" % (("foo", "bar")) })
+//        XCTAssertThrowsError({ try "%10.*f" % (("foo", 42.0)) })
+//        XCTAssertThrowsError({ try "%10" % ((42)) })
+//        XCTAssertThrowsError({ try "%%%df" % self.pow(2, 64) % (3.2) })
+//        XCTAssertThrowsError({ try "%%.%df" % self.pow(2, 64) % (3.2) })
+//        XCTAssertThrowsError({
+//            try "%*s" % ((Int.max + 1, ""))
+//        })
+//        XCTAssertThrowsError({
+//            try "%.*f" % ((Int.max + 1, 1.0 / 7))
+//        })
+//    }
+//    func test_formatting_c_limits() throws {
+//        let SIZE_MAX = 1 << PY_SSIZE_T_MAX.bit_length() + 1 - 1
+//        XCTAssertThrowsError({
+//            try "%*s" % ((PY_SSIZE_T_MAX + 1, ""))
+//        })
+//        XCTAssertThrowsError({
+//            try "%.*f" % ((INT_MAX + 1, 1.0 / 7))
+//        })
+//        XCTAssertThrowsError({
+//            try "%*s" % ((SIZE_MAX + 1, ""))
+//        })
+//        XCTAssertThrowsError({
+//            try "%.*f" % ((UINT_MAX + 1, 1.0 / 7))
+//        })
+//    }
+//    func test_floatformatting() throws {
+//        for prec in range(100) {
+//            let format = "%%.%if" % prec
+//            var value = 0.01
+//            for x in range(60) {
+//                value = value * 3.14159265359 / 3.0 * 10.0
+//                format % value
+//            }
+//        }
+//    }
     func test_inplace_rewrites() throws {
         XCTAssertEqual("A".lower(), "a")
         XCTAssertEqual("A".isupper(), true)
@@ -1004,17 +995,5 @@ class PythonCompliantStringTests: XCTestCase {
     }
     func test_find_etc_raise_correct_error_messages() throws {
         XCTAssertEqual("...м......<".find("<"), 10)
-    }
-    func test_bug1001011() throws {
-        let t = self.type2test
-        class subclass: t {
-        }
-        let s1 = subclass("abcd")
-        let s2 = t().join([s1])
-        self.assertIsNot(s1, s2)
-        self.assertIs(type(s2), t)
-        s1 = t("abcd")
-        s2 = t().join([s1])
-        self.assertIs(s1, s2)
     }
 }
