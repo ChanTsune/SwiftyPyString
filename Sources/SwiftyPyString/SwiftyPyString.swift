@@ -274,20 +274,10 @@ extension String {
         return self.lowercased()
     }
     public func lstrip(_ chars: String? = nil) -> String {
-        if self.isEmpty {
-            return ""
-        }
-        var i = 0
         if let chars = chars {
-            while chars.contains(self[i]) {
-                i += 1
-            }
-            return self[i, nil]
+            return String(drop(while: {chars.contains($0) }))
         }
-        while self[i].isWhitespace {
-            i += 1
-        }
-        return self[i, nil]
+        return String(drop(while: { $0.isWhitespace }))
     }
     static public func maketrans(_ x: [UInt32: String?]) -> [Character: String] {
         var _x: [Character: String?] = [:]
