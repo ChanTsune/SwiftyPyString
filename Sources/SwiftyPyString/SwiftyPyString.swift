@@ -100,15 +100,16 @@ extension String {
         return String(repeating: fillchar, count: left - right) + self + String(repeating: fillchar, count: right)
     }
     public func count(_ sub: String, start: Int? = nil, end: Int? = nil) -> Int {
-        let (start, end, _, length) = Slice(start: start, stop: end).adjustIndex(self.count)
-        if sub.count == 0 {
-            return length + 1
+        let (s, e) = adjustIndex(start, end)
+        if (e - s < sub.count) { return 0 }
+        if sub.isEmpty {
+            return Swift.max(e - s, 0) + 1
         }
-        var n = self.find(sub, start: start, end: end)
+        var n = find(sub, start: s, end: e)
         var c = 0
         while n != -1 {
             c += 1
-            n = self.find(sub, start: n + sub.count, end: end)
+            n = find(sub, start: n + sub.count, end: e)
         }
         return c
     }
@@ -349,7 +350,7 @@ extension String {
         }
         return (tmp[0], sep, tmp[1])
     }
-    
+
     func replece(new: String, count: Int) -> String {
         if count == .zero {
             return self
