@@ -64,7 +64,7 @@ final class SwiftyPyStringTests: XCTestCase {
         XCTAssertTrue(s2.endswith("!"))
     }
     func testExpandtabs() throws {
-        XCTAssertEqual("abc\tabc\t".expandtabs(), "abc        abc        ")
+        XCTAssertEqual("abc\tabc\t".expandtabs(), "abc     abc     ")
         XCTAssertEqual("abc\tabc".expandtabs(0), "abcabc")
     }
     func testFind() throws {
