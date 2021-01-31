@@ -274,7 +274,7 @@ extension String {
     }
     public func lstrip(_ chars: String? = nil) -> String {
         if let chars = chars {
-            return String(drop(while: {chars.contains($0) }))
+            return String(drop(while: { chars.contains($0) }))
         }
         return String(drop(while: { $0.isWhitespace }))
     }
