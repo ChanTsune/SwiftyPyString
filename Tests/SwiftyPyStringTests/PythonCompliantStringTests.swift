@@ -310,7 +310,7 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("ABCADAA".replace("A", new: ""), "BCD")
         XCTAssertEqual("BCD".replace("A", new: ""), "BCD")
         XCTAssertEqual("*************".replace("A", new: ""), "*************")
-        XCTAssertEqual("^" + "A" * 1000 + "^".replace("A", new: "", count: 999), "^A^")
+        XCTAssertEqual(("^" + "A" * 1000 + "^").replace("A", new: "", count: 999), "^A^")
         XCTAssertEqual("the".replace("the", new: ""), "")
         XCTAssertEqual("theater".replace("the", new: ""), "ater")
         XCTAssertEqual("thethe".replace("the", new: ""), "")
