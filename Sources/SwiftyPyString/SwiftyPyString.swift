@@ -104,7 +104,25 @@ extension String {
         return suffixes.contains(where: { str.hasSuffix($0) })
     }
     public func expandtabs(_ tabsize: Int = 8) -> String {
-        return self.replace("\t", new: String(repeating: " ", count: tabsize))
+        var buffer = ""
+        buffer.reserveCapacity(count + count("\t") * tabsize)
+        var linePos = 0
+        for ch in self {
+            if (ch == "\t") {
+                if (tabsize > 0) {
+                    let incr = tabsize - (linePos % tabsize)
+                    linePos += incr
+                    buffer.append(" " * incr)
+                }
+            } else {
+                linePos += 1
+                buffer.append(ch)
+                if (ch == "\n" || ch == "\r" || ch == "\r\n") {
+                    linePos = 0
+                }
+            }
+        }
+        return buffer
     }
 
     public func find(_ sub: String, start: Int? = nil, end: Int? = nil) -> Int {
