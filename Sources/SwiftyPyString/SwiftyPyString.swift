@@ -35,7 +35,7 @@ extension Character {
         return Character(self.titlecaseMapping)
     }
     public var isTitlecase: Bool {
-        return self.toTitle() == self
+        return titlecaseMapping == String(self)
     }
     public func isdecimal() -> Bool {
         return self.properties.generalCategory == .decimalNumber
@@ -67,14 +67,13 @@ extension String {
         return nil
     }
     public func capitalize() -> String {
-        return self.prefix(1).uppercased() + self.dropFirst(1).lowercased()
+        if let f = first {
+            return f.titlecaseMapping + dropFirst().lowercased()
+        }
+        return self
     }
     public func casefold() -> String {
-        var folded = ""
-        for c in self {
-            folded.append(casefoldTable[c.unicode.value, default: String(c)])
-        }
-        return folded
+        return map { casefoldTable[$0.unicode.value, default: String($0)] }.joined()
     }
     public func center(_ width: Int, fillchar: Character = " ") -> String {
         if self.count >= width {
@@ -248,20 +247,23 @@ extension String {
         return hasCase
     }
     public func join(_ iterable: [String]) -> String {
-        var str = ""
-        for item in iterable {
-            str += item
-            str += self
-        }
-        return String(str.dropLast(self.count))
+        return iterable.joined(separator: self)
     }
-    public func join(_ iterable: [Character]) -> String {
+    public func join<T: Sequence>(_ iterable: T) -> String where T.Element == Character {
         var str = ""
         for item in iterable {
             str.append(item)
             str += self
         }
-        return String(str.dropLast(self.count))
+        return String(str.dropLast(count))
+    }
+    public func join<T: Sequence, U: StringProtocol>(_ iterable: T) -> String where T.Element == U {
+        var str = ""
+        for item in iterable {
+            str += item
+            str += self
+        }
+        return String(str.dropLast(count))
     }
     public func rjust(_ width: Int, fillchar: Character = " ") -> String {
         if self.count >= width {
@@ -275,7 +277,7 @@ extension String {
     }
     public func lstrip(_ chars: String? = nil) -> String {
         if let chars = chars {
-            return String(drop(while: {chars.contains($0) }))
+            return String(drop(while: { chars.contains($0) }))
         }
         return String(drop(while: { $0.isWhitespace }))
     }
@@ -574,23 +576,18 @@ extension String {
         return titled
     }
     public func translate(_ table: [Character: String]) -> String {
-        var transed = ""
-        for chr in self {
-            transed.append(table[chr, default: String(chr)])
-        }
-        return transed
+        return map { table[$0, default: String($0)] }.joined()
     }
     public func upper() -> String {
         return self.uppercased()
     }
     public func zfill(_ width: Int) -> String {
-        if !self.isEmpty {
-            let h = self[0, 1]
-            if h == "+" || h == "-" {
-                return h + self[1, nil].rjust(width - 1, fillchar: "0")
+        if !isEmpty {
+            if let h = first, h == "+" || h == "-" {
+                return "\(h)\(String(dropFirst()).rjust(width - 1, fillchar: "0"))"
             }
         }
-        return self.rjust(width, fillchar: "0")
+        return rjust(width, fillchar: "0")
     }
 }
 
