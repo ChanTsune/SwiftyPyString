@@ -70,11 +70,7 @@ extension String {
         return self.prefix(1).uppercased() + self.dropFirst(1).lowercased()
     }
     public func casefold() -> String {
-        var folded = ""
-        for c in self {
-            folded.append(casefoldTable[c.unicode.value, default: String(c)])
-        }
-        return folded
+        return map { casefoldTable[$0.unicode.value, default: String($0)] }.joined()
     }
     public func center(_ width: Int, fillchar: Character = " ") -> String {
         if self.count >= width {
