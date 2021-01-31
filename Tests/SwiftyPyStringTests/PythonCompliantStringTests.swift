@@ -115,26 +115,6 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("".find("xx", start: 1, end: 1), -1)
         XCTAssertEqual("".find("xx", start: .max, end: 0), -1)
 //        XCTAssertEqual("ab".find("xxx", start: Int.max + 1, end: 0), -1)
-        let charset = ["", "a", "b", "c"]
-        let digits = 5
-        let base = charset.count
-        var teststrings = Set<String>()
-        for i in range(pow(base, digits)) {
-            var entry: [String] = []
-            for j in range(digits) {
-                let (i, m) = divmod(i, base)
-                entry.append(charset[m])
-            }
-            teststrings.insert("".join(entry))
-        }
-        for i in teststrings {
-            for j in teststrings {
-                let loc = i.find(j)
-                let r1 = loc != -1
-                let r2 = i.contains(j)
-                XCTAssertEqual(r2, r1)
-            }
-        }
     }
     func test_rfind() throws {
         XCTAssertEqual("abcdefghiabc".rfind("abc"), 9)
