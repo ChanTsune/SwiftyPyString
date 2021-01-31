@@ -348,6 +348,24 @@ extension String {
         return buffer
     }
 
+    /// If the string ends with the suffix string and that suffix is not empty, return string[null, -suffix.count].
+    /// Otherwise, return a copy of the original string.
+    public func removesuffix(_ suffix: String) -> String {
+        if endswith(suffix) {
+            return String(dropLast(suffix.count))
+        }
+        return self
+    }
+
+    /// If the string starts with the prefix string, return string[prefix.count, null].
+    /// Otherwise, return a copy of the original string.
+    public func removeprefix(_ prefix: String) -> String {
+        if startswith(prefix) {
+            return String(dropFirst(prefix.count))
+        }
+        return self
+    }
+
     public func replace(_ old: String, new: String, count: Int = Int.max) -> String {
         if old.isEmpty {
             if isEmpty {
