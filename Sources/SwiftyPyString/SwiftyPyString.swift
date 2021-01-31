@@ -577,11 +577,7 @@ extension String {
         return titled
     }
     public func translate(_ table: [Character: String]) -> String {
-        var transed = ""
-        for chr in self {
-            transed.append(table[chr, default: String(chr)])
-        }
-        return transed
+        return map { table[$0, default: String($0)] }.joined()
     }
     public func upper() -> String {
         return self.uppercased()
