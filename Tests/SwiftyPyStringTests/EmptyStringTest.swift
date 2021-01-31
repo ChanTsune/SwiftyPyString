@@ -90,7 +90,7 @@ final class EmptyStringTests: XCTestCase {
     func testReplaceEmpty() throws {
         XCTAssertEqual("".replace("", new: "p"), "p")
         XCTAssertEqual("".replace("", new: "p", count: 0), "")
-        XCTAssertEqual("".replace("", new: "p", count: 1), "")
+        XCTAssertEqual("".replace("", new: "p", count: 1), "p")
     }
     func testRfind() throws {
         XCTAssertEqual(empty.rfind(""), empty.count)
