@@ -146,17 +146,15 @@ extension String {
     }
 
     public func find(_ sub: String, start: Int? = nil, end: Int? = nil) -> Int {
+        let (s, e) = adjustIndex(start, end)
+        if (e - s < sub.count) { return -1 }
         if sub.isEmpty {
-            return 0
+            return s
         }
-        let (s, e, _, _) = Slice(start: start, stop: end).adjustIndex(self.count)
-        var i = s
-        let fin = e - sub.count
-        while i <= fin {
-            if self[i, i + sub.count] == sub {
-                return i
-            }
-            i += 1
+        let start = index(startIndex, offsetBy: s)
+        let end = index(startIndex, offsetBy: e)
+        if let range = range(of: sub, options: .init(), range: start..<end) {
+            return distance(from: startIndex, to: range.lowerBound)
         }
         return -1
     }
@@ -399,21 +397,15 @@ extension String {
         return new.join(split(old, maxsplit: count))
     }
     public func rfind(_ sub: String, start: Int? = nil, end: Int? = nil) -> Int {
-        // TODO:Impl
+        let (s, e) = adjustIndex(start, end)
+        if (e - s < sub.count) { return -1 }
         if sub.isEmpty {
-            return self.count
+            return count
         }
-        var (s, e, _, _) = Slice(start: start, stop: end).adjustIndex(self.count)
-        if (e - s) < sub.count {
-            return -1
-        }
-        s -= 1
-        var fin = e - sub.count
-        while fin != s {
-            if self[fin, fin + sub.count] == sub {
-                return fin
-            }
-            fin -= 1
+        let start = index(startIndex, offsetBy: s)
+        let end = index(startIndex, offsetBy: e)
+        if let range = range(of: sub, options: .backwards, range: start..<end) {
+            return distance(from: startIndex, to: range.lowerBound)
         }
         return -1
     }
