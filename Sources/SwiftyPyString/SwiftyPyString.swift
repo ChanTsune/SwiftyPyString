@@ -26,7 +26,7 @@ extension Character {
         return self.properties.titlecaseMapping
     }
     public var isTitlecase: Bool {
-        return self.toTitle() == self
+        return titlecaseMapping == String(self)
     }
     public func isdecimal() -> Bool {
         return self.properties.generalCategory == .decimalNumber
