@@ -113,11 +113,15 @@ extension String {
         return c
     }
     public func endswith(_ suffix: String, start: Int? = nil, end: Int? = nil) -> Bool {
-        return self[start, end].hasSuffix(suffix)
+        let (s, e) = adjustIndex(start, end)
+        if (e - s < suffix.count) { return false }
+        if suffix.isEmpty {
+            return true
+        }
+        return self[s, e].hasSuffix(suffix)
     }
     public func endswith(_ suffixes: [String], start: Int? = nil, end: Int? = nil) -> Bool {
-        let str = self[start, end]
-        return suffixes.contains(where: { str.hasSuffix($0) })
+        return suffixes.contains(where: { endswith($0, start: start, end: end) })
     }
     public func expandtabs(_ tabsize: Int = 8) -> String {
         var buffer = ""
@@ -597,11 +601,15 @@ extension String {
         return result
     }
     public func startswith(_ prefix: String, start: Int? = nil, end: Int? = nil) -> Bool {
-        return self[start, end].hasPrefix(prefix)
+        let (s, e) = adjustIndex(start, end)
+        if (e - s < prefix.count) { return false }
+        if prefix.isEmpty {
+            return true
+        }
+        return self[s, e].hasPrefix(prefix)
     }
     public func startswith(_ prefixes: [String], start: Int? = nil, end: Int? = nil) -> Bool {
-        let str = self[start, end]
-        return prefixes.contains(where: { str.hasPrefix($0) })
+        return prefixes.contains(where: { startswith($0, start: start, end: end) })
     }
 
     public func strip(_ chars: String? = nil) -> String {
