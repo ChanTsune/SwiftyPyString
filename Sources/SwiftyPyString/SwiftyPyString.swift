@@ -104,7 +104,25 @@ extension String {
         return suffixes.contains(where: { str.hasSuffix($0) })
     }
     public func expandtabs(_ tabsize: Int = 8) -> String {
-        return self.replace("\t", new: String(repeating: " ", count: tabsize))
+        var buffer = ""
+        buffer.reserveCapacity(count + count("\t") * tabsize)
+        var linePos = 0
+        for ch in self {
+            if (ch == "\t") {
+                if (tabsize > 0) {
+                    let incr = tabsize - (linePos % tabsize)
+                    linePos += incr
+                    buffer.append(" " * incr)
+                }
+            } else {
+                linePos += 1
+                buffer.append(ch)
+                if (ch == "\n" || ch == "\r" || ch == "\r\n") {
+                    linePos = 0
+                }
+            }
+        }
+        return buffer
     }
 
     public func find(_ sub: String, start: Int? = nil, end: Int? = nil) -> Int {
@@ -313,12 +331,52 @@ extension String {
         }
         return (tmp[0], sep, tmp[1])
     }
+    
+    func replece(new: String, count: Int) -> String {
+        if count == .zero {
+            return self
+        }
+        var count = 0 < count ? count : .max
+        var buffer = new
+        for c in self {
+            buffer.append(c)
+            count--
+            if count > 0 {
+                buffer += new
+            }
+        }
+        return buffer
+    }
+
+    /// If the string ends with the suffix string and that suffix is not empty, return string[null, -suffix.count].
+    /// Otherwise, return a copy of the original string.
+    public func removesuffix(_ suffix: String) -> String {
+        if endswith(suffix) {
+            return String(dropLast(suffix.count))
+        }
+        return self
+    }
+
+    /// If the string starts with the prefix string, return string[prefix.count, null].
+    /// Otherwise, return a copy of the original string.
+    public func removeprefix(_ prefix: String) -> String {
+        if startswith(prefix) {
+            return String(dropFirst(prefix.count))
+        }
+        return self
+    }
 
     public func replace(_ old: String, new: String, count: Int = Int.max) -> String {
-        if self.isEmpty && old.isEmpty && count == Int.max {
-            return new
+        if old.isEmpty {
+            if isEmpty {
+                if count == .zero {
+                    return ""
+                }
+                return new
+            }
+            return replece(new: new, count: count)
         }
-        return new.join(self.split(old, maxsplit: count))
+        return new.join(split(old, maxsplit: count))
     }
     public func rfind(_ sub: String, start: Int? = nil, end: Int? = nil) -> Int {
         // TODO:Impl
