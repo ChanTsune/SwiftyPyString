@@ -77,24 +77,6 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("".count("xx"), 0)
         XCTAssertEqual("".count("xx", start: 1, end: 1), 0)
         XCTAssertEqual("".count("xx", start: .max, end: 0), 0)
-        let charset = ["", "a", "b"]
-        let digits = 7
-        let base = charset.count
-        var teststrings = Set<String>()
-        for i in range(pow(base, digits)) {
-            var entry: [String] = []
-            for j in range(digits) {
-                let (i, m) = divmod(i, base)
-                entry.append(charset[m])
-            }
-            teststrings.insert("".join(entry))
-        }
-        for i in teststrings {
-            let n = i.count
-            for j in teststrings {
-                let r1 = i.count(j)
-            }
-        }
     }
     func test_find() throws {
         XCTAssertEqual("abcdefghiabc".find("abc"), 0)
@@ -129,26 +111,6 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("rrarrrrrrrrra".rfind("a", start: 4, end: 6), -1)
         XCTAssertEqual("rrarrrrrrrrra".rfind("a", start: 4, end: nil), 12)
         XCTAssertEqual("rrarrrrrrrrra".rfind("a", start: nil, end: 6), 2)
-        let charset = ["", "a", "b", "c"]
-        let digits = 5
-        let base = charset.count
-        var teststrings = Set<String>()
-        for i in range(pow(base, digits)) {
-            var entry: [String] = []
-            for j in range(digits) {
-                let (i, m) = divmod(i, base)
-                entry.append(charset[m])
-            }
-            teststrings.insert("".join(entry))
-        }
-        for i in teststrings {
-            for j in teststrings {
-                let loc = i.rfind(j)
-                let r1 = loc != -1
-                let r2 = i.contains(j)
-                XCTAssertEqual(r2, r1)
-            }
-        }
 //        XCTAssertEqual("ab".rfind("xxx", start: Int.max + 1, end: 0), -1)
         XCTAssertEqual("<......м...".rfind("<"), 0)
     }
