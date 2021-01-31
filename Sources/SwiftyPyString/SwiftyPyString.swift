@@ -584,13 +584,12 @@ extension String {
         return self.uppercased()
     }
     public func zfill(_ width: Int) -> String {
-        if !self.isEmpty {
-            let h = self[0, 1]
-            if h == "+" || h == "-" {
-                return h + self[1, nil].rjust(width - 1, fillchar: "0")
+        if !isEmpty {
+            if let h = first, h == "+" || h == "-" {
+                return "\(h)\(String(dropFirst()).rjust(width - 1, fillchar: "0"))"
             }
         }
-        return self.rjust(width, fillchar: "0")
+        return rjust(width, fillchar: "0")
     }
 }
 
