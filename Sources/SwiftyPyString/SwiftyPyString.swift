@@ -66,6 +66,22 @@ extension String {
         }
         return nil
     }
+    func adjustIndex(_ s: Int?, _ e: Int?) -> (Int, Int) {
+        var start = s ?? 0
+        var end = e ?? count
+        if (end > count) {
+            end = count
+        } else if (end < 0) {
+            end += count
+            end = Swift.max(end, 0)
+        }
+        if (start < 0) {
+            start += count
+            start = Swift.max(start, 0)
+        }
+        return (start, end)
+    }
+
     public func capitalize() -> String {
         if let f = first {
             return f.titlecaseMapping + dropFirst().lowercased()
@@ -84,24 +100,29 @@ extension String {
         return String(repeating: fillchar, count: left - right) + self + String(repeating: fillchar, count: right)
     }
     public func count(_ sub: String, start: Int? = nil, end: Int? = nil) -> Int {
-        let (start, end, _, length) = Slice(start: start, stop: end).adjustIndex(self.count)
-        if sub.count == 0 {
-            return length + 1
+        let (s, e) = adjustIndex(start, end)
+        if (e - s < sub.count) { return 0 }
+        if sub.isEmpty {
+            return Swift.max(e - s, 0) + 1
         }
-        var n = self.find(sub, start: start, end: end)
+        var n = find(sub, start: s, end: e)
         var c = 0
         while n != -1 {
             c += 1
-            n = self.find(sub, start: n + sub.count, end: end)
+            n = find(sub, start: n + sub.count, end: e)
         }
         return c
     }
     public func endswith(_ suffix: String, start: Int? = nil, end: Int? = nil) -> Bool {
-        return self[start, end].hasSuffix(suffix)
+        let (s, e) = adjustIndex(start, end)
+        if (e - s < suffix.count) { return false }
+        if suffix.isEmpty {
+            return true
+        }
+        return self[s, e].hasSuffix(suffix)
     }
     public func endswith(_ suffixes: [String], start: Int? = nil, end: Int? = nil) -> Bool {
-        let str = self[start, end]
-        return suffixes.contains(where: { str.hasSuffix($0) })
+        return suffixes.contains(where: { endswith($0, start: start, end: end) })
     }
     public func expandtabs(_ tabsize: Int = 8) -> String {
         var buffer = ""
@@ -126,17 +147,15 @@ extension String {
     }
 
     public func find(_ sub: String, start: Int? = nil, end: Int? = nil) -> Int {
+        let (s, e) = adjustIndex(start, end)
+        if (e - s < sub.count) { return -1 }
         if sub.isEmpty {
-            return 0
+            return s
         }
-        let (s, e, _, _) = Slice(start: start, stop: end).adjustIndex(self.count)
-        var i = s
-        let fin = e - sub.count
-        while i <= fin {
-            if self[i, i + sub.count] == sub {
-                return i
-            }
-            i += 1
+        let start = index(startIndex, offsetBy: s)
+        let end = index(startIndex, offsetBy: e)
+        if let range = range(of: sub, options: .init(), range: start..<end) {
+            return distance(from: startIndex, to: range.lowerBound)
         }
         return -1
     }
@@ -331,7 +350,7 @@ extension String {
         }
         return (tmp[0], sep, tmp[1])
     }
-    
+
     func replece(new: String, count: Int) -> String {
         if count == .zero {
             return self
@@ -379,21 +398,15 @@ extension String {
         return new.join(split(old, maxsplit: count))
     }
     public func rfind(_ sub: String, start: Int? = nil, end: Int? = nil) -> Int {
-        // TODO:Impl
+        let (s, e) = adjustIndex(start, end)
+        if (e - s < sub.count) { return -1 }
         if sub.isEmpty {
-            return self.count
+            return count
         }
-        var (s, e, _, _) = Slice(start: start, stop: end).adjustIndex(self.count)
-        if (e - s) < sub.count {
-            return -1
-        }
-        s -= 1
-        var fin = e - sub.count
-        while fin != s {
-            if self[fin, fin + sub.count] == sub {
-                return fin
-            }
-            fin -= 1
+        let start = index(startIndex, offsetBy: s)
+        let end = index(startIndex, offsetBy: e)
+        if let range = range(of: sub, options: .backwards, range: start..<end) {
+            return distance(from: startIndex, to: range.lowerBound)
         }
         return -1
     }
@@ -581,11 +594,15 @@ extension String {
         return result
     }
     public func startswith(_ prefix: String, start: Int? = nil, end: Int? = nil) -> Bool {
-        return self[start, end].hasPrefix(prefix)
+        let (s, e) = adjustIndex(start, end)
+        if (e - s < prefix.count) { return false }
+        if prefix.isEmpty {
+            return true
+        }
+        return self[s, e].hasPrefix(prefix)
     }
     public func startswith(_ prefixes: [String], start: Int? = nil, end: Int? = nil) -> Bool {
-        let str = self[start, end]
-        return prefixes.contains(where: { str.hasPrefix($0) })
+        return prefixes.contains(where: { startswith($0, start: start, end: end) })
     }
 
     public func strip(_ chars: String? = nil) -> String {
