@@ -67,7 +67,10 @@ extension String {
         return nil
     }
     public func capitalize() -> String {
-        return self.prefix(1).uppercased() + self.dropFirst(1).lowercased()
+        if let f = first {
+            return f.titlecaseMapping + dropFirst().lowercased()
+        }
+        return self
     }
     public func casefold() -> String {
         var folded = ""
