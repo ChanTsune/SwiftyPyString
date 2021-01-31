@@ -248,20 +248,23 @@ extension String {
         return hasCase
     }
     public func join(_ iterable: [String]) -> String {
-        var str = ""
-        for item in iterable {
-            str += item
-            str += self
-        }
-        return String(str.dropLast(self.count))
+        return iterable.joined(separator: self)
     }
-    public func join(_ iterable: [Character]) -> String {
+    public func join<T: Sequence>(_ iterable: T) -> String where T.Element == Character {
         var str = ""
         for item in iterable {
             str.append(item)
             str += self
         }
-        return String(str.dropLast(self.count))
+        return String(str.dropLast(count))
+    }
+    public func join<T: Sequence, U: StringProtocol>(_ iterable: T) -> String where T.Element == U {
+        var str = ""
+        for item in iterable {
+            str += item
+            str += self
+        }
+        return String(str.dropLast(count))
     }
     public func rjust(_ width: Int, fillchar: Character = " ") -> String {
         if self.count >= width {
