@@ -25,15 +25,6 @@ extension Character {
     public var titlecaseMapping: String {
         return self.properties.titlecaseMapping
     }
-    public func toUpper() -> Character {
-        return Character(self.uppercaseMapping)
-    }
-    public func toLower() -> Character {
-        return Character(self.lowercaseMapping)
-    }
-    public func toTitle() -> Character {
-        return Character(self.titlecaseMapping)
-    }
     public var isTitlecase: Bool {
         return self.toTitle() == self
     }
