@@ -331,12 +331,34 @@ extension String {
         }
         return (tmp[0], sep, tmp[1])
     }
+    
+    func replece(new: String, count: Int) -> String {
+        if count == .zero {
+            return self
+        }
+        var count = 0 < count ? count : .max
+        var buffer = new
+        for c in self {
+            buffer.append(c)
+            count--
+            if count > 0 {
+                buffer += new
+            }
+        }
+        return buffer
+    }
 
     public func replace(_ old: String, new: String, count: Int = Int.max) -> String {
-        if self.isEmpty && old.isEmpty && count == Int.max {
-            return new
+        if old.isEmpty {
+            if isEmpty {
+                if count == .zero {
+                    return ""
+                }
+                return new
+            }
+            return replece(new: new, count: count)
         }
-        return new.join(self.split(old, maxsplit: count))
+        return new.join(split(old, maxsplit: count))
     }
     public func rfind(_ sub: String, start: Int? = nil, end: Int? = nil) -> Int {
         // TODO:Impl
