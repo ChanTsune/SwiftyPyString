@@ -10,22 +10,6 @@ func XCTAssertEqual(_ expression1: (String, String, String), _ expression2: (Str
     XCTAssertEqual(e13, e23)
 }
 extension String {
-
-    func removeprefix(_ prefix: String) -> String {
-        if startswith(prefix) {
-            return ""
-        }
-        return self
-    }
-    func removesuffix(_ suffix: String) -> String {
-        if endswith(suffix) {
-            return ""
-        }
-        return self
-    }
-    func join<T: Sequence>(_ iterable: T) -> String {
-        ""
-    }
     static var ASCII_LETTERS: String { "" }
     static var DIGITS: String { "" }
 }
