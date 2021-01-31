@@ -31,7 +31,11 @@ extension String {
 }
 
 func * (_ s: [String], n: Int) -> [String] {
-    return []
+    var l: [String] = []
+    for _ in 0..<n {
+        l.append(contentsOf: s)
+    }
+    return l
 }
 
 func % (_ s: String, v: Any) -> String { return "" }
@@ -797,8 +801,8 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("a".join(["z"]), "z")
         XCTAssertEqual(".".join(["a", "b", "c"]), "a.b.c")
         for i in [5, 25, 125] {
-            XCTAssertEqual("-".join(["a" * i] * i), ("a" * i + "-" * i)[Slice(start: nil, stop: -1, step: nil)])
-            XCTAssertEqual("-".join(("a" * i) * i), ("a" * i + "-" * i)[Slice(start: nil, stop: -1, step: nil)])
+            XCTAssertEqual("-".join(["a" * i] * i), (("a" * i + "-") * i)[Slice(start: nil, stop: -1, step: nil)])
+            XCTAssertEqual("-".join(["a" * i] * i), (("a" * i + "-") * i)[Slice(start: nil, stop: -1, step: nil)])
         }
         XCTAssertEqual(" ".join(["a", "b", "c"]), "a b c")
     }
