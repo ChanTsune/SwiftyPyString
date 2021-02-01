@@ -66,22 +66,6 @@ extension String {
         }
         return nil
     }
-    func adjustIndex(_ s: Int?, _ e: Int?) -> (Int, Int) {
-        var start = s ?? 0
-        var end = e ?? count
-        if (end > count) {
-            end = count
-        } else if (end < 0) {
-            end += count
-            end = Swift.max(end, 0)
-        }
-        if (start < 0) {
-            start += count
-            start = Swift.max(start, 0)
-        }
-        return (start, end)
-    }
-
     public func capitalize() -> String {
         if let f = first {
             return f.titlecaseMapping + dropFirst().lowercased()
