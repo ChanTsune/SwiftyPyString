@@ -433,7 +433,7 @@ extension String {
                 break
             }
             index += sep_len
-            result.insert(self[index, prev_index], at: 0)
+            result.insert(String(slice(start: index, end: prev_index)), at: 0)
             index -= sep_len
 
             index -= 1
@@ -445,7 +445,7 @@ extension String {
                 break
             }
         }
-        result.insert(self[0, prev_index], at: 0)
+        result.insert(String(slice(start: 0, end: prev_index)), at: 0)
         return result
     }
     func _rsplit(maxsplit: Int) -> [String] {
@@ -483,13 +483,13 @@ extension String {
             if index == -1 {
                 break
             }
-            result.append(self[prev_index, index])
+            result.append(String(slice(start: prev_index, end: index)))
             prev_index = index + sep_len
 
             maxsplit -= 1
         }
 
-        result.append(self[prev_index, nil])
+        result.append(String(slice(start: prev_index, end: nil)))
 
         return result
     }
@@ -518,11 +518,11 @@ extension String {
                     eol = i
                 }
             }
-            result.append(self[j, eol])
+            result.append(String(slice(start: j, end: eol)))
             j = i
         }
         if j < len {
-            result.append(self[j, eol])
+            result.append(String(slice(start: j, end: eol)))
         }
         return result
     }
