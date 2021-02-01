@@ -468,30 +468,8 @@ extension String {
         return result
     }
     func _rsplit(maxsplit: Int) -> [String] {
-        var index = self.count - 1, len = 0
-        var result: [String] = []
-        var maxsplit = maxsplit
-        if maxsplit < 0 {
-            maxsplit = Int.max
-        }
-        for chr in self.reversed() {
-            if chr.isWhitespace {
-                if len != 0 {
-                    result.insert(self[index, len], at: 0)
-                    maxsplit -= 1
-                    index -= len
-                }
-                index -= 1
-                len = 0
-            } else {
-                len += 1
-            }
-        }
-        let tmp = self[0, index + 1].rstrip()
-        if tmp.count != 0 {
-            result.insert(tmp, at: 0)
-        }
-        return result
+        let maxsplit = maxsplit >= 0 ? maxsplit : .max
+        return "".join(reversed()).split(maxSplits: maxsplit, omittingEmptySubsequences: true, whereSeparator: { $0.isWhitespace }).map { "".join(String($0).lstrip().reversed()) }.filter { !$0.isEmpty }.reversed()
     }
     public func rsplit(_ sep: String? = nil, maxsplit: Int = (-1)) -> [String] {
         if let sep = sep {
@@ -535,34 +513,8 @@ extension String {
         return result
     }
     func _split(maxsplit: Int) -> [String] {
-        var maxsplit = maxsplit
-        var result: [String] = []
-        var index = 0
-        var len = 0
-        if maxsplit < 0 {
-            maxsplit = Int.max
-        }
-        for chr in self {
-            if chr.isWhitespace {
-                if len != 0 {
-                    result.append(self[index, len])
-                    maxsplit -= 1
-                    index += len
-                }
-                index += 1
-                len = 0
-            } else {
-                len += 1
-            }
-            if maxsplit == 0 {
-                break
-            }
-        }
-        let tmp = self[index, nil].lstrip()
-        if tmp.count != 0 {
-            result.append(tmp)
-        }
-        return result
+        let maxsplit = maxsplit >= 0 ? maxsplit : .max
+        return split(maxSplits: maxsplit, omittingEmptySubsequences: true, whereSeparator: { $0.isWhitespace }).map { String($0).lstrip() }.filter { !$0.isEmpty }
     }
     public func split(_ sep: String? = nil, maxsplit: Int = (-1)) -> [String] {
         if let sep = sep {
