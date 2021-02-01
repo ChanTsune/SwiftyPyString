@@ -66,22 +66,6 @@ extension String {
         }
         return nil
     }
-    func adjustIndex(_ s: Int?, _ e: Int?) -> (Int, Int) {
-        var start = s ?? 0
-        var end = e ?? count
-        if (end > count) {
-            end = count
-        } else if (end < 0) {
-            end += count
-            end = Swift.max(end, 0)
-        }
-        if (start < 0) {
-            start += count
-            start = Swift.max(start, 0)
-        }
-        return (start, end)
-    }
-
     public func capitalize() -> String {
         if let f = first {
             return f.titlecaseMapping + dropFirst().lowercased()
@@ -116,10 +100,7 @@ extension String {
     public func endswith(_ suffix: String, start: Int? = nil, end: Int? = nil) -> Bool {
         let (s, e) = adjustIndex(start, end)
         if (e - s < suffix.count) { return false }
-        if suffix.isEmpty {
-            return true
-        }
-        return self[s, e].hasSuffix(suffix)
+        return suffix.isEmpty || self[s, e].hasSuffix(suffix)
     }
     public func endswith(_ suffixes: [String], start: Int? = nil, end: Int? = nil) -> Bool {
         return suffixes.contains(where: { endswith($0, start: start, end: end) })
@@ -468,30 +449,8 @@ extension String {
         return result
     }
     func _rsplit(maxsplit: Int) -> [String] {
-        var index = self.count - 1, len = 0
-        var result: [String] = []
-        var maxsplit = maxsplit
-        if maxsplit < 0 {
-            maxsplit = Int.max
-        }
-        for chr in self.reversed() {
-            if chr.isWhitespace {
-                if len != 0 {
-                    result.insert(self[index, len], at: 0)
-                    maxsplit -= 1
-                    index -= len
-                }
-                index -= 1
-                len = 0
-            } else {
-                len += 1
-            }
-        }
-        let tmp = self[0, index + 1].rstrip()
-        if tmp.count != 0 {
-            result.insert(tmp, at: 0)
-        }
-        return result
+        let maxsplit = maxsplit >= 0 ? maxsplit : .max
+        return "".join(reversed()).split(maxSplits: maxsplit, omittingEmptySubsequences: true, whereSeparator: { $0.isWhitespace }).map { "".join(String($0).lstrip().reversed()) }.filter { !$0.isEmpty }.reversed()
     }
     public func rsplit(_ sep: String? = nil, maxsplit: Int = (-1)) -> [String] {
         if let sep = sep {
@@ -535,34 +494,8 @@ extension String {
         return result
     }
     func _split(maxsplit: Int) -> [String] {
-        var maxsplit = maxsplit
-        var result: [String] = []
-        var index = 0
-        var len = 0
-        if maxsplit < 0 {
-            maxsplit = Int.max
-        }
-        for chr in self {
-            if chr.isWhitespace {
-                if len != 0 {
-                    result.append(self[index, len])
-                    maxsplit -= 1
-                    index += len
-                }
-                index += 1
-                len = 0
-            } else {
-                len += 1
-            }
-            if maxsplit == 0 {
-                break
-            }
-        }
-        let tmp = self[index, nil].lstrip()
-        if tmp.count != 0 {
-            result.append(tmp)
-        }
-        return result
+        let maxsplit = maxsplit >= 0 ? maxsplit : .max
+        return split(maxSplits: maxsplit, omittingEmptySubsequences: true, whereSeparator: { $0.isWhitespace }).map { String($0).lstrip() }.filter { !$0.isEmpty }
     }
     public func split(_ sep: String? = nil, maxsplit: Int = (-1)) -> [String] {
         if let sep = sep {
@@ -596,10 +529,7 @@ extension String {
     public func startswith(_ prefix: String, start: Int? = nil, end: Int? = nil) -> Bool {
         let (s, e) = adjustIndex(start, end)
         if (e - s < prefix.count) { return false }
-        if prefix.isEmpty {
-            return true
-        }
-        return self[s, e].hasPrefix(prefix)
+        return prefix.isEmpty || self[s, e].hasPrefix(prefix)
     }
     public func startswith(_ prefixes: [String], start: Int? = nil, end: Int? = nil) -> Bool {
         return prefixes.contains(where: { startswith($0, start: start, end: end) })
