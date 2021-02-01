@@ -100,7 +100,7 @@ extension String {
     public func endswith(_ suffix: String, start: Int? = nil, end: Int? = nil) -> Bool {
         let (s, e) = adjustIndex(start, end)
         if (e - s < suffix.count) { return false }
-        return suffix.isEmpty || self[s, e].hasSuffix(suffix)
+        return suffix.isEmpty || slice(start: s, end: e).hasSuffix(suffix)
     }
     public func endswith(_ suffixes: [String], start: Int? = nil, end: Int? = nil) -> Bool {
         return suffixes.contains(where: { endswith($0, start: start, end: end) })
@@ -529,7 +529,7 @@ extension String {
     public func startswith(_ prefix: String, start: Int? = nil, end: Int? = nil) -> Bool {
         let (s, e) = adjustIndex(start, end)
         if (e - s < prefix.count) { return false }
-        return prefix.isEmpty || self[s, e].hasPrefix(prefix)
+        return prefix.isEmpty || slice(start: s, end: e).hasPrefix(prefix)
     }
     public func startswith(_ prefixes: [String], start: Int? = nil, end: Int? = nil) -> Bool {
         return prefixes.contains(where: { startswith($0, start: start, end: end) })
