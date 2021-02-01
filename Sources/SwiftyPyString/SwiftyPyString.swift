@@ -48,16 +48,6 @@ extension Character {
     }
 }
 
-public func * (str: String, n: Int) -> String {
-    return String(repeating: str, count: n > 0 ? n : 0)
-}
-public func * (n: Int, str: String) -> String {
-    return String(repeating: str, count: n > 0 ? n : 0)
-}
-public func *= (str: inout String, n: Int) {
-    str = String(repeating: str, count: n > 0 ? n : 0)
-}
-
 
 extension String {
     func at(_ i: Int) -> Character? {
@@ -81,7 +71,7 @@ extension String {
         }
         let left = width - self.count
         let right = left / 2 + left % 2
-        return String(repeating: fillchar, count: left - right) + self + String(repeating: fillchar, count: right)
+        return fillchar * (left - right) + self + fillchar * right
     }
     public func count(_ sub: String, start: Int? = nil, end: Int? = nil) -> Int {
         let (s, e) = adjustIndex(start, end)
@@ -288,7 +278,7 @@ extension String {
             return self
         }
         let w = width - self.count
-        return String(repeating: fillchar, count: w) + self
+        return fillchar * w + self
     }
     public func lower() -> String {
         return self.lowercased()
@@ -403,7 +393,7 @@ extension String {
             return self
         }
         let w = width - self.count
-        return self + String(repeating: fillchar, count: w)
+        return self + fillchar * w
     }
 
     public func rpartition(_ sep: String) -> (String, String, String) {
