@@ -323,22 +323,6 @@ extension String {
         return (tmp[0], sep, tmp[1])
     }
 
-    func replece(new: String, count: Int) -> String {
-        if count == .zero {
-            return self
-        }
-        var count = 0 < count ? count : .max
-        var buffer = new
-        for c in self {
-            buffer.append(c)
-            count--
-            if count > 0 {
-                buffer += new
-            }
-        }
-        return buffer
-    }
-
     /// If the string ends with the suffix string and that suffix is not empty, return string[null, -suffix.count].
     /// Otherwise, return a copy of the original string.
     public func removesuffix(_ suffix: String) -> String {
@@ -365,9 +349,24 @@ extension String {
                 }
                 return new
             }
-            return replece(new: new, count: count)
+            return repleceEmpty(to: new, count: count)
         }
         return new.join(split(old, maxsplit: count))
+    }
+    func repleceEmpty(to new: String, count: Int) -> String {
+        if count == .zero {
+            return self
+        }
+        var count = 0 < count ? count : .max
+        var buffer = new
+        for c in self {
+            buffer.append(c)
+            count--
+            if count > 0 {
+                buffer += new
+            }
+        }
+        return buffer
     }
     public func rfind(_ sub: String, start: Int? = nil, end: Int? = nil) -> Int {
         let (s, e) = adjustIndex(start, end)
