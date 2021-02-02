@@ -48,16 +48,6 @@ extension Character {
     }
 }
 
-public func * (str: String, n: Int) -> String {
-    return String(repeating: str, count: n > 0 ? n : 0)
-}
-public func * (n: Int, str: String) -> String {
-    return String(repeating: str, count: n > 0 ? n : 0)
-}
-public func *= (str: inout String, n: Int) {
-    str = String(repeating: str, count: n > 0 ? n : 0)
-}
-
 
 extension String {
     func at(_ i: Int) -> Character? {
@@ -81,7 +71,7 @@ extension String {
         }
         let left = width - self.count
         let right = left / 2 + left % 2
-        return String(repeating: fillchar, count: left - right) + self + String(repeating: fillchar, count: right)
+        return fillchar * (left - right) + self + fillchar * right
     }
     public func count(_ sub: String, start: Int? = nil, end: Int? = nil) -> Int {
         let (s, e) = adjustIndex(start, end)
@@ -100,7 +90,7 @@ extension String {
     public func endswith(_ suffix: String, start: Int? = nil, end: Int? = nil) -> Bool {
         let (s, e) = adjustIndex(start, end)
         if (e - s < suffix.count) { return false }
-        return suffix.isEmpty || self[s, e].hasSuffix(suffix)
+        return suffix.isEmpty || slice(start: s, end: e).hasSuffix(suffix)
     }
     public func endswith(_ suffixes: [String], start: Int? = nil, end: Int? = nil) -> Bool {
         return suffixes.contains(where: { endswith($0, start: start, end: end) })
@@ -288,7 +278,7 @@ extension String {
             return self
         }
         let w = width - self.count
-        return String(repeating: fillchar, count: w) + self
+        return fillchar * w + self
     }
     public func lower() -> String {
         return self.lowercased()
@@ -403,7 +393,7 @@ extension String {
             return self
         }
         let w = width - self.count
-        return self + String(repeating: fillchar, count: w)
+        return self + fillchar * w
     }
 
     public func rpartition(_ sep: String) -> (String, String, String) {
@@ -433,7 +423,7 @@ extension String {
                 break
             }
             index += sep_len
-            result.insert(self[index, prev_index], at: 0)
+            result.insert(String(slice(start: index, end: prev_index)), at: 0)
             index -= sep_len
 
             index -= 1
@@ -445,7 +435,7 @@ extension String {
                 break
             }
         }
-        result.insert(self[0, prev_index], at: 0)
+        result.insert(String(slice(start: 0, end: prev_index)), at: 0)
         return result
     }
     func _rsplit(maxsplit: Int) -> [String] {
@@ -483,13 +473,13 @@ extension String {
             if index == -1 {
                 break
             }
-            result.append(self[prev_index, index])
+            result.append(String(slice(start: prev_index, end: index)))
             prev_index = index + sep_len
 
             maxsplit -= 1
         }
 
-        result.append(self[prev_index, nil])
+        result.append(String(slice(start: prev_index, end: nil)))
 
         return result
     }
@@ -518,18 +508,18 @@ extension String {
                     eol = i
                 }
             }
-            result.append(self[j, eol])
+            result.append(String(slice(start: j, end: eol)))
             j = i
         }
         if j < len {
-            result.append(self[j, eol])
+            result.append(String(slice(start: j, end: eol)))
         }
         return result
     }
     public func startswith(_ prefix: String, start: Int? = nil, end: Int? = nil) -> Bool {
         let (s, e) = adjustIndex(start, end)
         if (e - s < prefix.count) { return false }
-        return prefix.isEmpty || self[s, e].hasPrefix(prefix)
+        return prefix.isEmpty || slice(start: s, end: e).hasPrefix(prefix)
     }
     public func startswith(_ prefixes: [String], start: Int? = nil, end: Int? = nil) -> Bool {
         return prefixes.contains(where: { startswith($0, start: start, end: end) })
