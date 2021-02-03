@@ -11,6 +11,7 @@ public func allTests() -> [XCTestCaseEntry] {
         testCase(FormatTests.allTests),
         testCase(SliceTests.allTests),
         testCase(SwiftyPyStringTests.allTests),
+        testCase(PythonCompliantStringTests.allTests),
     ]
 }
 #endif

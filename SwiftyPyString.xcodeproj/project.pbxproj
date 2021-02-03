@@ -34,6 +34,7 @@
 		E00F0D922410B1390008CDF7 /* FormatStringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00F0D912410B1390008CDF7 /* FormatStringTests.swift */; };
 		E00F0D942410B5F80008CDF7 /* FormatIntegerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00F0D932410B5F80008CDF7 /* FormatIntegerTests.swift */; };
 		E00F0D962410B6360008CDF7 /* FormatFloatingPointTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E00F0D952410B6360008CDF7 /* FormatFloatingPointTests.swift */; };
+		E05B9F0625C516CB00B86101 /* PythonCompliantStringTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E05B9F0525C516CB00B86101 /* PythonCompliantStringTests.swift */; };
 		E0E969F725CA8B7E00E3B8D1 /* InternalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0E969F625CA8B7E00E3B8D1 /* InternalTests.swift */; };
 		E0E96A0425CA8C0900E3B8D1 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0E96A0325CA8C0900E3B8D1 /* Extensions.swift */; };
 		E0E96A0A25CA8C2000E3B8D1 /* Operators.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0E96A0925CA8C2000E3B8D1 /* Operators.swift */; };
@@ -70,6 +71,7 @@
 		E00F0D912410B1390008CDF7 /* FormatStringTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatStringTests.swift; sourceTree = "<group>"; };
 		E00F0D932410B5F80008CDF7 /* FormatIntegerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatIntegerTests.swift; sourceTree = "<group>"; };
 		E00F0D952410B6360008CDF7 /* FormatFloatingPointTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatFloatingPointTests.swift; sourceTree = "<group>"; };
+		E05B9F0525C516CB00B86101 /* PythonCompliantStringTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PythonCompliantStringTests.swift; sourceTree = "<group>"; };
 		E0E969F625CA8B7E00E3B8D1 /* InternalTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = InternalTests.swift; sourceTree = "<group>"; };
 		E0E96A0325CA8C0900E3B8D1 /* Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		E0E96A0925CA8C2000E3B8D1 /* Operators.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Operators.swift; sourceTree = "<group>"; };
@@ -120,6 +122,7 @@
 		OBJ_11 /* SwiftyPyStringTests */ = {
 			isa = PBXGroup;
 			children = (
+				E05B9F0525C516CB00B86101 /* PythonCompliantStringTests.swift */,
 				B5D5A54E2406B7B8003FACA8 /* EmptyStringTest.swift */,
 				B5D5A54D2406B7B8003FACA8 /* FormatTests.swift */,
 				E00F0D912410B1390008CDF7 /* FormatStringTests.swift */,
@@ -299,6 +302,7 @@
 				E00F0D942410B5F80008CDF7 /* FormatIntegerTests.swift in Sources */,
 				E00F0D922410B1390008CDF7 /* FormatStringTests.swift in Sources */,
 				B54DDD6422EAD8870083970A /* SliceTests.swift in Sources */,
+				E05B9F0625C516CB00B86101 /* PythonCompliantStringTests.swift in Sources */,
 				E008EF982412471100DE2A91 /* FormatComplexTests.swift in Sources */,
 				B5D5A5502406B7B8003FACA8 /* EmptyStringTest.swift in Sources */,
 			);

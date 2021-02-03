@@ -405,12 +405,12 @@ extension String {
         return (tmp[0], sep, tmp[1])
     }
     func _rsplit(_ sep: String, maxsplit: Int) -> [String] {
+        if sep.isEmpty {
+//            throw PyException.ValueError("empty separator")
+            return self._rsplit(maxsplit: maxsplit)
+        }
         if self.isEmpty {
             return [self]
-        }
-        if sep.isEmpty {
-            // error
-            return self._rsplit(maxsplit: maxsplit)
         }
         var result: [String] = []
         var index = 0, prev_index = Int.max, sep_len = sep.count
@@ -456,12 +456,12 @@ extension String {
         return "".join(reversed().drop(while: { $0.isWhitespace }).reversed())
     }
     func _split(_ sep: String, maxsplit: Int) -> [String] {
-        if self.isEmpty {
-            return [self]
-        }
         if sep.isEmpty {
-            // error
+//            throw PyException.ValueError("empty separator")
             return self._split(maxsplit: maxsplit)
+        }
+        if isEmpty {
+            return [self]
         }
         var maxsplit = maxsplit
         var result: [String] = []
