@@ -24,8 +24,8 @@ final class SliceTests: XCTestCase {
         XCTAssertEqual(slice3.step, 3)
     }
     func testIndicse() throws {
-        let slice = Slice(stop: nil)
-        XCTAssert(slice.indices(10) == (0, 10, 1))
+        XCTAssert(Slice(stop: nil).indices(10) == (0, 10, 1))
+        XCTAssert(Slice(start: 0, stop: -1, step: 1).indices(5) == (0, 4, 1))
     }
     func testSubscriptByInt() {
         let str = "0123456789"
