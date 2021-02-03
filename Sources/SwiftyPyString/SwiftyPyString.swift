@@ -325,20 +325,20 @@ extension StringProtocol {
 
     /// If the string ends with the suffix string and that suffix is not empty, return string[null, -suffix.count].
     /// Otherwise, return a copy of the original string.
-    public func removesuffix(_ suffix: String) -> String {
+    public func removesuffix(_ suffix: String) -> SubSequence {
         if endswith(suffix) {
-            return String(dropLast(suffix.count))
+            return dropLast(suffix.count)
         }
-        return String(self)
+        return dropLast(0)
     }
 
     /// If the string starts with the prefix string, return string[prefix.count, null].
     /// Otherwise, return a copy of the original string.
-    public func removeprefix(_ prefix: String) -> String {
+    public func removeprefix(_ prefix: String) -> SubSequence {
         if startswith(prefix) {
-            return String(dropFirst(prefix.count))
+            return dropFirst(prefix.count)
         }
-        return String(self)
+        return dropFirst(0)
     }
 
     public func replace(_ old: String, new: String, count: Int = Int.max) -> String {
