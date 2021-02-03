@@ -49,7 +49,7 @@ extension Character {
 }
 
 
-extension String {
+extension StringProtocol {
     func at(_ i: Int) -> Character? {
         if self.count > i {
             return self[self.index(self.startIndex, offsetBy: i)]
@@ -60,14 +60,14 @@ extension String {
         if let f = first {
             return f.titlecaseMapping + dropFirst().lowercased()
         }
-        return self
+        return String(self)
     }
     public func casefold() -> String {
         return map { casefoldTable[$0.unicode.value, default: String($0)] }.joined()
     }
     public func center(_ width: Int, fillchar: Character = " ") -> String {
         if self.count >= width {
-            return self
+            return String(self)
         }
         let left = width - self.count
         let right = left / 2 + left % 2
@@ -87,12 +87,12 @@ extension String {
         }
         return c
     }
-    public func endswith(_ suffix: String, start: Int? = nil, end: Int? = nil) -> Bool {
+    public func endswith<T: StringProtocol>(_ suffix: T, start: Int? = nil, end: Int? = nil) -> Bool {
         let (s, e) = adjustIndex(start, end)
         if (e - s < suffix.count) { return false }
         return suffix.isEmpty || slice(start: s, end: e).hasSuffix(suffix)
     }
-    public func endswith(_ suffixes: [String], start: Int? = nil, end: Int? = nil) -> Bool {
+    public func endswith<T: StringProtocol>(_ suffixes: [T], start: Int? = nil, end: Int? = nil) -> Bool {
         return suffixes.contains(where: { endswith($0, start: start, end: end) })
     }
     public func expandtabs(_ tabsize: Int = 8) -> String {
@@ -260,23 +260,23 @@ extension String {
         return hasCase
     }
     public func join(_ iterable: [String]) -> String {
-        return iterable.joined(separator: self)
+        return iterable.joined(separator: String(self))
     }
     public func join<T: Sequence>(_ iterable: T) -> String where T.Element == Character {
         return String(iterable.reduce(into: "") { (result, char) in
                 result.append(char)
-                result.append(self)
+                result.append(contentsOf: self)
             }.dropLast(count))
     }
     public func join<T: Sequence, U: StringProtocol>(_ iterable: T) -> String where T.Element == U {
         return String(iterable.reduce(into: "") { (result, char) in
                 result.append(contentsOf: char)
-                result.append(self)
+                result.append(contentsOf: self)
             }.dropLast(count))
     }
     public func rjust(_ width: Int, fillchar: Character = " ") -> String {
         if self.count >= width {
-            return self
+            return String(self)
         }
         let w = width - self.count
         return fillchar * w + self
@@ -318,7 +318,7 @@ extension String {
     public func partition(_ sep: String) -> (String, String, String) {
         let tmp = self.split(sep, maxsplit: 1)
         if tmp.count == 1 {
-            return (self, "", "")
+            return (String(self), "", "")
         }
         return (tmp[0], sep, tmp[1])
     }
@@ -329,7 +329,7 @@ extension String {
         if endswith(suffix) {
             return String(dropLast(suffix.count))
         }
-        return self
+        return String(self)
     }
 
     /// If the string starts with the prefix string, return string[prefix.count, null].
@@ -338,7 +338,7 @@ extension String {
         if startswith(prefix) {
             return String(dropFirst(prefix.count))
         }
-        return self
+        return String(self)
     }
 
     public func replace(_ old: String, new: String, count: Int = Int.max) -> String {
@@ -355,7 +355,7 @@ extension String {
     }
     func repleceEmpty(to new: String, count: Int) -> String {
         if count == .zero {
-            return self
+            return String(self)
         }
         var count = 0 < count ? count : .max
         var buffer = new
@@ -390,7 +390,7 @@ extension String {
     }
     public func ljust(_ width: Int, fillchar: Character = " ") -> String {
         if self.count >= width {
-            return self
+            return String(self)
         }
         let w = width - self.count
         return self + fillchar * w
@@ -399,13 +399,13 @@ extension String {
     public func rpartition(_ sep: String) -> (String, String, String) {
         let tmp = self._rsplit(sep, maxsplit: 1)
         if tmp.count == 1 {
-            return ("", "", self)
+            return ("", "", String(self))
         }
         return (tmp[0], sep, tmp[1])
     }
     func _rsplit(_ sep: String, maxsplit: Int) -> [String] {
         if self.isEmpty {
-            return [self]
+            return [String(self)]
         }
         if sep.isEmpty {
             // error
@@ -456,7 +456,7 @@ extension String {
     }
     func _split(_ sep: String, maxsplit: Int) -> [String] {
         if self.isEmpty {
-            return [self]
+            return [String(self)]
         }
         if sep.isEmpty {
             // error
@@ -497,8 +497,9 @@ extension String {
         let lineTokens = "\n\r\r\n\u{0b}\u{0c}\u{1c}\u{1d}\u{1e}\u{85}\u{2028}\u{2029}"
         var len = self.count, i = 0, j = 0, eol = 0
         var result: [String] = []
+        let s = String(self)
         while i < len {
-            while i < len && !lineTokens.contains(self[i]) {
+            while i < len && !lineTokens.contains(s[i]) {
                 i += 1
             }
             eol = i
