@@ -284,11 +284,11 @@ extension StringProtocol {
     public func lower() -> String {
         return self.lowercased()
     }
-    public func lstrip(_ chars: String? = nil) -> String {
+    public func lstrip(_ chars: String? = nil) -> SubSequence {
         if let chars = chars {
-            return String(drop(while: { chars.contains($0) }))
+            return drop(while: { chars.contains($0) })
         }
-        return String(drop(while: { $0.isWhitespace }))
+        return drop(while: { $0.isWhitespace })
     }
     static public func maketrans(_ x: [UInt32: String?]) -> [Character: String] {
         var _x: [Character: String?] = [:]
@@ -448,11 +448,11 @@ extension StringProtocol {
         }
         return self._rsplit(maxsplit: maxsplit)
     }
-    public func rstrip(_ chars: String? = nil) -> String {
+    public func rstrip(_ chars: String? = nil) -> SubSequence {
         if let chars = chars {
-            return "".join(reversed().drop(while: { chars.contains($0) }).reversed())
+            return dropLast(while: { chars.contains($0) })
         }
-        return "".join(reversed().drop(while: { $0.isWhitespace }).reversed())
+        return dropLast(while: { $0.isWhitespace })
     }
     func _split(_ sep: String, maxsplit: Int) -> [String] {
         if self.isEmpty {
@@ -485,7 +485,7 @@ extension StringProtocol {
     }
     func _split(maxsplit: Int) -> [String] {
         let maxsplit = maxsplit >= 0 ? maxsplit : .max
-        return split(maxSplits: maxsplit, omittingEmptySubsequences: true, whereSeparator: { $0.isWhitespace }).map { String($0).lstrip() }.filter { !$0.isEmpty }
+        return split(maxSplits: maxsplit, omittingEmptySubsequences: true, whereSeparator: { $0.isWhitespace }).map { String($0.lstrip()) }.filter { !$0.isEmpty }
     }
     public func split(_ sep: String? = nil, maxsplit: Int = (-1)) -> [String] {
         if let sep = sep {
@@ -526,9 +526,10 @@ extension StringProtocol {
         return prefixes.contains(where: { startswith($0, start: start, end: end) })
     }
 
-    public func strip(_ chars: String? = nil) -> String {
-        return self.lstrip(chars).rstrip(chars)
+    public func strip(_ chars: String? = nil) -> SubSequence {
+        return lstrip(chars).rstrip(chars)
     }
+
     public func swapcase() -> String {
         var swapped = ""
         for chr in self {
