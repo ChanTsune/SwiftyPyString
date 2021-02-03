@@ -219,25 +219,30 @@ extension String {
         }, empty: false)
     }
     public func istitle() -> Bool {
-        if self.isEmpty {
+        if isEmpty {
             return false
         }
-        var prev_cased = false
-        for chr in self {
-            if !prev_cased {
-                if !chr.isTitlecase {
+        var cased = false
+        var previousIsCased = false
+        for ch in self {
+            if (ch.isUppercase || ch.isTitlecase) {
+                if (previousIsCased) {
                     return false
                 }
-            } else {
-                if chr.isCased {
-                    if !chr.isLowercase {
-                        return false
-                    }
+                previousIsCased = true
+                cased = true
+            } else if (ch.isLowercase) {
+                if (!previousIsCased) {
+                    return false
                 }
+                previousIsCased = true
+                cased = true
             }
-            prev_cased = chr.isCased
+            else {
+                previousIsCased = false
+            }
         }
-        return true
+        return cased
     }
     public func isupper() -> Bool {
         if self.isEmpty {
