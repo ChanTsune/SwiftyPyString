@@ -440,7 +440,7 @@ extension StringProtocol {
     }
     func _rsplit(maxsplit: Int) -> [String] {
         let maxsplit = maxsplit >= 0 ? maxsplit : .max
-        return "".join(reversed()).split(maxSplits: maxsplit, omittingEmptySubsequences: true, whereSeparator: { $0.isWhitespace }).map { "".join(String($0).lstrip().reversed()) }.filter { !$0.isEmpty }.reversed()
+        return "".join(reversed()).split(maxSplits: maxsplit, omittingEmptySubsequences: true, whereSeparator: { $0.isWhitespace }).map { "".join($0.lstrip().reversed()) }.filter { !$0.isEmpty }.reversed()
     }
     public func rsplit(_ sep: String? = nil, maxsplit: Int = (-1)) -> [String] {
         if let sep = sep {
