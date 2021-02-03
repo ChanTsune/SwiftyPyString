@@ -26,3 +26,13 @@ extension StringProtocol {
         return dropLast(count - e).dropFirst(s)
     }
 }
+
+extension StringProtocol {
+    func dropLast(while predicate: (Self.Element) throws -> Bool) rethrows -> SubSequence {
+        var s = dropLast(0)
+        while let l = s.last, try predicate(l) {
+            s = s.dropLast()
+        }
+        return s
+    }
+}
