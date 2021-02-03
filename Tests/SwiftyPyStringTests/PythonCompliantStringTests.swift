@@ -380,12 +380,12 @@ class PythonCompliantStringTests: XCTestCase {
         XCTAssertEqual("123123".replace("123", new: ""), "")
         XCTAssertEqual("123x123".replace("123", new: ""), "x")
     }
-    func test_replace_overflow() throws {
-        let A2_16 = "A" * pow(2, 16)
-        XCTAssertThrowsError(try A2_16.replace("", new: A2_16))
-        XCTAssertThrowsError(try A2_16.replace("A", new: A2_16))
-        XCTAssertThrowsError(try A2_16.replace("AA", new: A2_16 + A2_16))
-    }
+//    func test_replace_overflow() throws {
+//        let A2_16 = "A" * pow(2, 16)
+//        XCTAssertThrowsError(try A2_16.replace("", new: A2_16))
+//        XCTAssertThrowsError(try A2_16.replace("A", new: A2_16))
+//        XCTAssertThrowsError(try A2_16.replace("AA", new: A2_16 + A2_16))
+//    }
     func test_removeprefix() throws {
         XCTAssertEqual("spam".removeprefix("sp"), "am")
         XCTAssertEqual("spamspamspam".removeprefix("spam"), "spamspam")
