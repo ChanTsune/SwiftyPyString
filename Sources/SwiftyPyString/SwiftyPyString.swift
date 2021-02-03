@@ -258,20 +258,16 @@ extension String {
         return iterable.joined(separator: self)
     }
     public func join<T: Sequence>(_ iterable: T) -> String where T.Element == Character {
-        var str = ""
-        for item in iterable {
-            str.append(item)
-            str += self
-        }
-        return String(str.dropLast(count))
+        return String(iterable.reduce(into: "") { (result, char) in
+                result.append(char)
+                result.append(self)
+            }.dropLast(count))
     }
     public func join<T: Sequence, U: StringProtocol>(_ iterable: T) -> String where T.Element == U {
-        var str = ""
-        for item in iterable {
-            str += item
-            str += self
-        }
-        return String(str.dropLast(count))
+        return String(iterable.reduce(into: "") { (result, char) in
+                result.append(contentsOf: char)
+                result.append(self)
+            }.dropLast(count))
     }
     public func rjust(_ width: Int, fillchar: Character = " ") -> String {
         if self.count >= width {
