@@ -3,7 +3,7 @@
 //  SwiftyPyString
 //
 
-public class Slice {
+public struct Slice {
     var start: Int? = nil
     var stop: Int?
     var step: Int? = nil
@@ -13,14 +13,6 @@ public class Slice {
         return (a, b, c)
     }
 
-    public init(stop: Int?) {
-        self.stop = stop
-    }
-    public init(start: Int?, stop: Int?, step: Int? = nil) {
-        self.start = start
-        self.stop = stop
-        self.step = step
-    }
     func adjustIndex(_ length: Int) -> (Int, Int, Int, Int) {
         let step: Int = (self.step == 0) ? 1 : self.step ?? 1
         var start: Int = 0
