@@ -1,0 +1,22 @@
+name: "Test Carthage"
+
+on:
+  push:
+
+jobs:
+  carthage_install:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2.3.4
+    - name: Extract branch name
+      shell: bash
+      run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+      id: extract_branch
+    - name: Test carthage install
+      run: |
+        echo -n 'git "file://' > Cartfile
+        echo -n $(pwd) >> Cartfile
+        echo -n '" "' >> Cartfile
+        echo -n ${{ steps.extract_branch.outputs.branch }} >> Cartfile
+        echo -n '"' >> Cartfile
+        carthage update --use-xcframeworks
