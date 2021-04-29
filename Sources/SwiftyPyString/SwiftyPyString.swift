@@ -35,7 +35,7 @@ extension Character {
         return Character(self.titlecaseMapping)
     }
     public var isTitlecase: Bool {
-        return self.toTitle() == self
+        return properties.generalCategory == .titlecaseLetter
     }
     public func isdecimal() -> Bool {
         return self.properties.generalCategory == .decimalNumber
@@ -48,16 +48,6 @@ extension Character {
     }
 }
 
-public func * (str: String, n: Int) -> String {
-    return String(repeating: str, count: n > 0 ? n : 0)
-}
-public func * (n: Int, str: String) -> String {
-    return String(repeating: str, count: n > 0 ? n : 0)
-}
-public func *= (str: inout String, n: Int) {
-    str = String(repeating: str, count: n > 0 ? n : 0)
-}
-
 
 extension String {
     func at(_ i: Int) -> Character? {
@@ -67,14 +57,13 @@ extension String {
         return nil
     }
     public func capitalize() -> String {
-        return self.prefix(1).uppercased() + self.dropFirst(1).lowercased()
+        if let f = first {
+            return f.titlecaseMapping + dropFirst().lowercased()
+        }
+        return self
     }
     public func casefold() -> String {
-        var folded = ""
-        for c in self {
-            folded.append(casefoldTable[c.unicode.value, default: String(c)])
-        }
-        return folded
+        return map { casefoldTable[$0.unicode.value, default: String($0)] }.joined()
     }
     public func center(_ width: Int, fillchar: Character = " ") -> String {
         if self.count >= width {
@@ -82,44 +71,62 @@ extension String {
         }
         let left = width - self.count
         let right = left / 2 + left % 2
-        return String(repeating: fillchar, count: left - right) + self + String(repeating: fillchar, count: right)
+        return fillchar * (left - right) + self + fillchar * right
     }
     public func count(_ sub: String, start: Int? = nil, end: Int? = nil) -> Int {
-        let (start, end, _, length) = Slice(start: start, stop: end).adjustIndex(self.count)
-        if sub.count == 0 {
-            return length + 1
+        let (s, e) = adjustIndex(start, end)
+        if (e - s < sub.count) { return 0 }
+        if sub.isEmpty {
+            return Swift.max(e - s, 0) + 1
         }
-        var n = self.find(sub, start: start, end: end)
+        var n = find(sub, start: s, end: e)
         var c = 0
         while n != -1 {
             c += 1
-            n = self.find(sub, start: n + sub.count, end: end)
+            n = find(sub, start: n + sub.count, end: e)
         }
         return c
     }
     public func endswith(_ suffix: String, start: Int? = nil, end: Int? = nil) -> Bool {
-        return self[start, end].hasSuffix(suffix)
+        let (s, e) = adjustIndex(start, end)
+        if (e - s < suffix.count) { return false }
+        return suffix.isEmpty || slice(start: s, end: e).hasSuffix(suffix)
     }
     public func endswith(_ suffixes: [String], start: Int? = nil, end: Int? = nil) -> Bool {
-        let str = self[start, end]
-        return suffixes.contains(where: { str.hasSuffix($0) })
+        return suffixes.contains(where: { endswith($0, start: start, end: end) })
     }
     public func expandtabs(_ tabsize: Int = 8) -> String {
-        return self.replace("\t", new: String(repeating: " ", count: tabsize))
+        var buffer = ""
+        buffer.reserveCapacity(count + count("\t") * tabsize)
+        var linePos = 0
+        for ch in self {
+            if (ch == "\t") {
+                if (tabsize > 0) {
+                    let incr = tabsize - (linePos % tabsize)
+                    linePos += incr
+                    buffer.append(" " * incr)
+                }
+            } else {
+                linePos += 1
+                buffer.append(ch)
+                if (ch == "\n" || ch == "\r" || ch == "\r\n") {
+                    linePos = 0
+                }
+            }
+        }
+        return buffer
     }
 
     public func find(_ sub: String, start: Int? = nil, end: Int? = nil) -> Int {
+        let (s, e) = adjustIndex(start, end)
+        if (e - s < sub.count) { return -1 }
         if sub.isEmpty {
-            return 0
+            return s
         }
-        let (s, e, _, _) = Slice(start: start, stop: end).adjustIndex(self.count)
-        var i = s
-        let fin = e - sub.count
-        while i <= fin {
-            if self[i, i + sub.count] == sub {
-                return i
-            }
-            i += 1
+        let start = index(startIndex, offsetBy: s)
+        let end = index(startIndex, offsetBy: e)
+        if let range = range(of: sub, options: .init(), range: start..<end) {
+            return distance(from: startIndex, to: range.lowerBound)
         }
         return -1
     }
@@ -212,25 +219,30 @@ extension String {
         }, empty: false)
     }
     public func istitle() -> Bool {
-        if self.isEmpty {
+        if isEmpty {
             return false
         }
-        var prev_cased = false
-        for chr in self {
-            if !prev_cased {
-                if !chr.isTitlecase {
+        var cased = false
+        var previousIsCased = false
+        for ch in self {
+            if (ch.isUppercase || ch.isTitlecase) {
+                if (previousIsCased) {
                     return false
                 }
-            } else {
-                if chr.isCased {
-                    if !chr.isLowercase {
-                        return false
-                    }
+                previousIsCased = true
+                cased = true
+            } else if (ch.isLowercase) {
+                if (!previousIsCased) {
+                    return false
                 }
+                previousIsCased = true
+                cased = true
             }
-            prev_cased = chr.isCased
+            else {
+                previousIsCased = false
+            }
         }
-        return true
+        return cased
     }
     public func isupper() -> Bool {
         if self.isEmpty {
@@ -248,34 +260,33 @@ extension String {
         return hasCase
     }
     public func join(_ iterable: [String]) -> String {
-        var str = ""
-        for item in iterable {
-            str += item
-            str += self
-        }
-        return String(str.dropLast(self.count))
+        return iterable.joined(separator: self)
     }
-    public func join(_ iterable: [Character]) -> String {
-        var str = ""
-        for item in iterable {
-            str.append(item)
-            str += self
-        }
-        return String(str.dropLast(self.count))
+    public func join<T: Sequence>(_ iterable: T) -> String where T.Element == Character {
+        return String(iterable.reduce(into: "") { (result, char) in
+                result.append(char)
+                result.append(self)
+            }.dropLast(count))
+    }
+    public func join<T: Sequence, U: StringProtocol>(_ iterable: T) -> String where T.Element == U {
+        return String(iterable.reduce(into: "") { (result, char) in
+                result.append(contentsOf: char)
+                result.append(self)
+            }.dropLast(count))
     }
     public func rjust(_ width: Int, fillchar: Character = " ") -> String {
         if self.count >= width {
             return self
         }
         let w = width - self.count
-        return String(repeating: fillchar, count: w) + self
+        return fillchar * w + self
     }
     public func lower() -> String {
         return self.lowercased()
     }
     public func lstrip(_ chars: String? = nil) -> String {
         if let chars = chars {
-            return String(drop(while: {chars.contains($0) }))
+            return String(drop(while: { chars.contains($0) }))
         }
         return String(drop(while: { $0.isWhitespace }))
     }
@@ -312,28 +323,61 @@ extension String {
         return (tmp[0], sep, tmp[1])
     }
 
-    public func replace(_ old: String, new: String, count: Int = Int.max) -> String {
-        if self.isEmpty && old.isEmpty && count == Int.max {
-            return new
+    /// If the string ends with the suffix string and that suffix is not empty, return string[null, -suffix.count].
+    /// Otherwise, return a copy of the original string.
+    public func removesuffix(_ suffix: String) -> String {
+        if endswith(suffix) {
+            return String(dropLast(suffix.count))
         }
-        return new.join(self.split(old, maxsplit: count))
+        return self
+    }
+
+    /// If the string starts with the prefix string, return string[prefix.count, null].
+    /// Otherwise, return a copy of the original string.
+    public func removeprefix(_ prefix: String) -> String {
+        if startswith(prefix) {
+            return String(dropFirst(prefix.count))
+        }
+        return self
+    }
+
+    public func replace(_ old: String, new: String, count: Int = Int.max) -> String {
+        if old.isEmpty {
+            if isEmpty {
+                if count == .zero {
+                    return ""
+                }
+                return new
+            }
+            return repleceEmpty(to: new, count: count)
+        }
+        return new.join(split(old, maxsplit: count))
+    }
+    func repleceEmpty(to new: String, count: Int) -> String {
+        if count == .zero {
+            return self
+        }
+        var count = 0 < count ? count : .max
+        var buffer = new
+        for c in self {
+            buffer.append(c)
+            count--
+            if count > 0 {
+                buffer += new
+            }
+        }
+        return buffer
     }
     public func rfind(_ sub: String, start: Int? = nil, end: Int? = nil) -> Int {
-        // TODO:Impl
+        let (s, e) = adjustIndex(start, end)
+        if (e - s < sub.count) { return -1 }
         if sub.isEmpty {
-            return self.count
+            return count
         }
-        var (s, e, _, _) = Slice(start: start, stop: end).adjustIndex(self.count)
-        if (e - s) < sub.count {
-            return -1
-        }
-        s -= 1
-        var fin = e - sub.count
-        while fin != s {
-            if self[fin, fin + sub.count] == sub {
-                return fin
-            }
-            fin -= 1
+        let start = index(startIndex, offsetBy: s)
+        let end = index(startIndex, offsetBy: e)
+        if let range = range(of: sub, options: .backwards, range: start..<end) {
+            return distance(from: startIndex, to: range.lowerBound)
         }
         return -1
     }
@@ -349,7 +393,7 @@ extension String {
             return self
         }
         let w = width - self.count
-        return self + String(repeating: fillchar, count: w)
+        return self + fillchar * w
     }
 
     public func rpartition(_ sep: String) -> (String, String, String) {
@@ -379,7 +423,7 @@ extension String {
                 break
             }
             index += sep_len
-            result.insert(self[index, prev_index], at: 0)
+            result.insert(String(slice(start: index, end: prev_index)), at: 0)
             index -= sep_len
 
             index -= 1
@@ -391,34 +435,12 @@ extension String {
                 break
             }
         }
-        result.insert(self[0, prev_index], at: 0)
+        result.insert(String(slice(start: 0, end: prev_index)), at: 0)
         return result
     }
     func _rsplit(maxsplit: Int) -> [String] {
-        var index = self.count - 1, len = 0
-        var result: [String] = []
-        var maxsplit = maxsplit
-        if maxsplit < 0 {
-            maxsplit = Int.max
-        }
-        for chr in self.reversed() {
-            if chr.isWhitespace {
-                if len != 0 {
-                    result.insert(self[index, len], at: 0)
-                    maxsplit -= 1
-                    index -= len
-                }
-                index -= 1
-                len = 0
-            } else {
-                len += 1
-            }
-        }
-        let tmp = self[0, index + 1].rstrip()
-        if tmp.count != 0 {
-            result.insert(tmp, at: 0)
-        }
-        return result
+        let maxsplit = maxsplit >= 0 ? maxsplit : .max
+        return "".join(reversed()).split(maxSplits: maxsplit, omittingEmptySubsequences: true, whereSeparator: { $0.isWhitespace }).map { "".join(String($0).lstrip().reversed()) }.filter { !$0.isEmpty }.reversed()
     }
     public func rsplit(_ sep: String? = nil, maxsplit: Int = (-1)) -> [String] {
         if let sep = sep {
@@ -451,45 +473,19 @@ extension String {
             if index == -1 {
                 break
             }
-            result.append(self[prev_index, index])
+            result.append(String(slice(start: prev_index, end: index)))
             prev_index = index + sep_len
 
             maxsplit -= 1
         }
 
-        result.append(self[prev_index, nil])
+        result.append(String(slice(start: prev_index, end: nil)))
 
         return result
     }
     func _split(maxsplit: Int) -> [String] {
-        var maxsplit = maxsplit
-        var result: [String] = []
-        var index = 0
-        var len = 0
-        if maxsplit < 0 {
-            maxsplit = Int.max
-        }
-        for chr in self {
-            if chr.isWhitespace {
-                if len != 0 {
-                    result.append(self[index, len])
-                    maxsplit -= 1
-                    index += len
-                }
-                index += 1
-                len = 0
-            } else {
-                len += 1
-            }
-            if maxsplit == 0 {
-                break
-            }
-        }
-        let tmp = self[index, nil].lstrip()
-        if tmp.count != 0 {
-            result.append(tmp)
-        }
-        return result
+        let maxsplit = maxsplit >= 0 ? maxsplit : .max
+        return split(maxSplits: maxsplit, omittingEmptySubsequences: true, whereSeparator: { $0.isWhitespace }).map { String($0).lstrip() }.filter { !$0.isEmpty }
     }
     public func split(_ sep: String? = nil, maxsplit: Int = (-1)) -> [String] {
         if let sep = sep {
@@ -512,20 +508,21 @@ extension String {
                     eol = i
                 }
             }
-            result.append(self[j, eol])
+            result.append(String(slice(start: j, end: eol)))
             j = i
         }
         if j < len {
-            result.append(self[j, eol])
+            result.append(String(slice(start: j, end: eol)))
         }
         return result
     }
     public func startswith(_ prefix: String, start: Int? = nil, end: Int? = nil) -> Bool {
-        return self[start, end].hasPrefix(prefix)
+        let (s, e) = adjustIndex(start, end)
+        if (e - s < prefix.count) { return false }
+        return prefix.isEmpty || slice(start: s, end: e).hasPrefix(prefix)
     }
     public func startswith(_ prefixes: [String], start: Int? = nil, end: Int? = nil) -> Bool {
-        let str = self[start, end]
-        return prefixes.contains(where: { str.hasPrefix($0) })
+        return prefixes.contains(where: { startswith($0, start: start, end: end) })
     }
 
     public func strip(_ chars: String? = nil) -> String {
@@ -574,23 +571,18 @@ extension String {
         return titled
     }
     public func translate(_ table: [Character: String]) -> String {
-        var transed = ""
-        for chr in self {
-            transed.append(table[chr, default: String(chr)])
-        }
-        return transed
+        return map { table[$0, default: String($0)] }.joined()
     }
     public func upper() -> String {
         return self.uppercased()
     }
     public func zfill(_ width: Int) -> String {
-        if !self.isEmpty {
-            let h = self[0, 1]
-            if h == "+" || h == "-" {
-                return h + self[1, nil].rjust(width - 1, fillchar: "0")
+        if !isEmpty {
+            if let h = first, h == "+" || h == "-" {
+                return "\(h)\(String(dropFirst()).rjust(width - 1, fillchar: "0"))"
             }
         }
-        return self.rjust(width, fillchar: "0")
+        return rjust(width, fillchar: "0")
     }
 }
 
