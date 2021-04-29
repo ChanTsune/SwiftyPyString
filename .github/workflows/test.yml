@@ -49,4 +49,4 @@ jobs:
         echo -n '" "' >> Cartfile
         echo -n ${{ steps.extract_branch.outputs.branch }} >> Cartfile
         echo -n '"' >> Cartfile
-        carthage update
+        carthage update --use-xcframeworks
