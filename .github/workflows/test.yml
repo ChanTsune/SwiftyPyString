@@ -21,7 +21,7 @@ jobs:
     env:
       SWIFT_VERSION: ${{ matrix.swift-version }}
     steps:
-    - uses: actions/checkout@v2.3.4
+    - uses: actions/checkout@v2.4.0
     - name: SetUp
       run: eval "$(curl -sL https://swiftenv.fuller.li/install.sh)"
     - name: Test
@@ -30,6 +30,6 @@ jobs:
   pod_spec_lint:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v2.3.4
+    - uses: actions/checkout@v2.4.0
     - name: Test
       run: pod lib lint
