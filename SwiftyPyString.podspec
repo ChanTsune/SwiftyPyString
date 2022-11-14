@@ -14,7 +14,7 @@ Pod::Spec.new do |spec|
   spec.ios.deployment_target = "11.0"
   spec.osx.deployment_target = "10.10"
   spec.watchos.deployment_target = "2.0"
-  spec.tvos.deployment_target = "9.0"
+  spec.tvos.deployment_target = "11.0"
   spec.source       = { :git => "https://github.com/ChanTsune/SwiftyPyString.git", :tag => "#{spec.version}" }
   spec.source_files = "Sources/**/*.{swift}"
   spec.requires_arc = true
