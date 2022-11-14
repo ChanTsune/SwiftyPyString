@@ -11,7 +11,7 @@ Pod::Spec.new do |spec|
   spec.homepage     = "https://github.com/ChanTsune/SwiftyPyString"
   spec.license      = { :type => "MIT", :file => "LICENSE" }
   spec.author    = "ChanTsune"
-  spec.ios.deployment_target = "9.0"
+  spec.ios.deployment_target = "11.0"
   spec.osx.deployment_target = "10.10"
   spec.watchos.deployment_target = "2.0"
   spec.tvos.deployment_target = "9.0"
