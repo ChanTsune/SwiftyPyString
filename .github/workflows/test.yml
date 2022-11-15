@@ -28,7 +28,7 @@ jobs:
       run: swift test
 
   pod_spec_lint:
-    runs-on: macos-latest
+    runs-on: macos-11
     steps:
     - uses: actions/checkout@v3
     - name: Test
